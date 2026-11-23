@@ -1,0 +1,85 @@
+\begin{lexlean}{Foundation.View.V1.Model}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\title{Portable view model}
+\begin{semanticmodule}
+inductive{
+  name: NodeKind,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Document, fields: []},
+    {name: Main, fields: []},
+    {name: Heading, fields: []},
+    {name: Text, fields: []},
+    {name: Form, fields: []},
+    {name: SignedInt64Input, fields: []},
+    {name: OperationSelect, fields: []},
+    {name: SubmitButton, fields: []},
+    {name: LiveOutput, fields: []}
+  ]
+}
+
+inductive{
+  name: InputGrammar,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: AsciiSignedInt64, fields: []}]
+}
+
+inductive{
+  name: StyleToken,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Compact, fields: []},
+    {name: HighContrast, fields: []},
+    {name: SystemSans, fields: []}
+  ]
+}
+
+structure{
+  name: SelectOption,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: UInt8},
+    {name: label, type: String},
+    {name: requestName, type: String}
+  ]
+}
+
+structure{
+  name: Node,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: kind, type: NodeKind},
+    {name: identifier, type: String},
+    {name: label, type: String},
+    {name: grammar, type: (Option InputGrammar)},
+    {name: children, type: (List String)}
+  ]
+}
+
+structure{
+  name: View,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: title, type: String},
+    {name: language, type: String},
+    {name: heading, type: String},
+    {name: nodes, type: (List Node)},
+    {name: options, type: (List SelectOption)},
+    {name: inputError, type: String},
+    {name: divisionError, type: String},
+    {name: overflowError, type: String},
+    {name: layout, type: StyleToken},
+    {name: color, type: StyleToken},
+    {name: typography, type: StyleToken}
+  ]
+}
+\end{semanticmodule}
+\end{lexlean}

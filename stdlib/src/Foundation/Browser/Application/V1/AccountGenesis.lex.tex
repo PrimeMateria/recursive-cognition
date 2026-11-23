@@ -1,0 +1,69 @@
+\begin{lexlean}{Foundation.Browser.Application.V1.AccountGenesis}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Browser.Application.V1.Effects}
+\importmodule{Foundation.Crypto.P256.Model}
+\title{Browser account genesis}
+\begin{semanticmodule}
+structure{
+  name: AccountGenesis,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: namespace, type: Bytes},
+    {name: nonce, type: Bytes},
+    {name: initialKey, type: Bytes}
+  ]
+}
+
+inductive{
+  name: AccountGenesisError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: BadNamespace, fields: []},
+    {name: BadNonce, fields: []},
+    {name: BadKey, fields: []},
+    {name: NamespaceMismatch, fields: []},
+    {name: UnexpectedOperation, fields: []}
+  ]
+}
+
+definition{
+  name: accountGenesisDomain,
+  parameters: [],
+  result: Bytes,
+  body: 0x707269736d706d2f6163636f756e742d67656e657369732f3100,
+  axioms: []
+}
+
+definition{
+  name: validateAccountGenesis,
+  parameters: [value : AccountGenesis],
+  result: (Result Bool AccountGenesisError),
+  body: (match ((prim length (project value namespace) : Nat) =? 32)
+    | Bool.false => (ctor Result.error [Bool, AccountGenesisError] (ctor AccountGenesisError.BadNamespace))
+    | Bool.true => (match ((prim length (project value nonce) : Nat) =? 32)
+      | Bool.false => (ctor Result.error [Bool, AccountGenesisError] (ctor AccountGenesisError.BadNonce))
+      | Bool.true => (match (Foundation.Crypto.P256.Model::p256PublicKeyValid (project value initialKey))
+        | Bool.false => (ctor Result.error [Bool, AccountGenesisError] (ctor AccountGenesisError.BadKey))
+        | Bool.true => (ctor Result.ok [Bool, AccountGenesisError] true)))),
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: matchAccountGenesisNamespace,
+  parameters: [expected : Bytes, value : AccountGenesis],
+  result: (Result Bool AccountGenesisError),
+  body: (match ((prim length expected : Nat) =? 32)
+    | Bool.false => (ctor Result.error [Bool, AccountGenesisError] (ctor AccountGenesisError.BadNamespace))
+    | Bool.true => (match (validateAccountGenesis value)
+      | Result.error cause => (ctor Result.error [Bool, AccountGenesisError] cause)
+      | Result.ok valid => (match (prim equal expected (project value namespace) : Bool)
+        | Bool.false => (ctor Result.error [Bool, AccountGenesisError] (ctor AccountGenesisError.NamespaceMismatch))
+        | Bool.true => (ctor Result.ok [Bool, AccountGenesisError] true)))),
+  axioms: [Quot.sound, propext]
+}
+\end{semanticmodule}
+\end{lexlean}

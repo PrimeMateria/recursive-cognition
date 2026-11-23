@@ -1,0 +1,339 @@
+\begin{lexlean}{Foundation.Browser.Application.V1.OperationJournal}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Bytes}
+\importmodule{Foundation.Browser.Application.V1.Effects}
+\title{Browser operation journal}
+\begin{semanticmodule}
+structure{
+  name: JournalBinding,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: application, type: Bytes},
+    {name: manifest, type: Bytes},
+    {name: artifacts, type: Bytes},
+    {name: requestedPolicy, type: Bytes},
+    {name: effectivePolicy, type: Bytes},
+    {name: signingKey, type: Bytes},
+    {name: namespace, type: String},
+    {name: head, type: String},
+    {name: stagingHead, type: String},
+    {name: maximumRecords, type: Nat}
+  ]
+}
+
+structure{
+  name: JournalPayload,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: digest, type: Bytes},
+    {name: length, type: Nat},
+    {name: chunks, type: (List Bytes)}
+  ]
+}
+
+structure{
+  name: JournalRecord,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: binding, type: JournalBinding},
+    {name: revision, type: Nat},
+    {name: previous, type: Bytes},
+    {name: journalSession, type: Bytes},
+    {name: operation, type: Nat},
+    {name: runtimeSession, type: Bytes},
+    {name: runtimeOperation, type: Nat},
+    {name: resource, type: String},
+    {name: requestKind, type: Nat},
+    {name: phase, type: Nat},
+    {name: request, type: JournalPayload},
+    {name: resultKind, type: Nat},
+    {name: response, type: (Option JournalPayload)}
+  ]
+}
+
+structure{
+  name: JournalState,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: binding, type: JournalBinding},
+    {name: records, type: Nat},
+    {name: nextOperation, type: Nat},
+    {name: head, type: Bytes},
+    {name: pending, type: (Option JournalRecord)}
+  ]
+}
+
+structure{
+  name: JournalChunk,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: offset, type: Nat}, {name: length, type: Nat}]
+}
+
+structure{
+  name: JournalPlan,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: chunks, type: (List JournalChunk)}]
+}
+
+inductive{
+  name: JournalError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: BadBinding, fields: []},
+    {name: BadRecord, fields: []},
+    {name: BadState, fields: []},
+    {name: BindingChanged, fields: []},
+    {name: RecordLimit, fields: []},
+    {name: RevisionMismatch, fields: []},
+    {name: PredecessorMismatch, fields: []},
+    {name: OperationOverflow, fields: []},
+    {name: OperationMismatch, fields: []},
+    {name: PendingOperation, fields: []},
+    {name: MissingPending, fields: []},
+    {name: TerminalMismatch, fields: []}
+  ]
+}
+
+definition{
+  name: journalRefValid,
+  parameters: [value : Bytes],
+  result: Bool,
+  body: ((prim length value : Nat) =? 32),
+  axioms: []
+}
+
+definition{
+  name: journalBindingValid,
+  parameters: [value : JournalBinding],
+  result: Bool,
+  body: ((journalRefValid (project value application)) && ((journalRefValid (project value manifest)) && ((journalRefValid (project value artifacts)) && ((journalRefValid (project value requestedPolicy)) && ((journalRefValid (project value effectivePolicy)) && (((prim length (project value signingKey) : Nat) =? 65) && ((Foundation.Browser.Application.V1.Effects::effectNameValid (project value namespace) 0) && ((Foundation.Browser.Application.V1.Effects::effectNameValid (project value head) 0) && ((Foundation.Browser.Application.V1.Effects::effectNameValid (project value stagingHead) 0) && ((not (prim equal (project value head) (project value stagingHead) : Bool)) && ((2 <=? (project value maximumRecords)) && (((project value maximumRecords) <=? 1024) && true)))))))))))),
+  axioms: []
+}
+
+definition{
+  name: journalBindingEqual,
+  parameters: [left : JournalBinding, right : JournalBinding],
+  result: Bool,
+  body: ((prim equal (project left application) (project right application) : Bool) && ((prim equal (project left manifest) (project right manifest) : Bool) && ((prim equal (project left artifacts) (project right artifacts) : Bool) && ((prim equal (project left requestedPolicy) (project right requestedPolicy) : Bool) && ((prim equal (project left effectivePolicy) (project right effectivePolicy) : Bool) && ((prim equal (project left signingKey) (project right signingKey) : Bool) && ((prim equal (project left namespace) (project right namespace) : Bool) && ((prim equal (project left head) (project right head) : Bool) && ((prim equal (project left stagingHead) (project right stagingHead) : Bool) && (((project left maximumRecords) =? (project right maximumRecords)) && true)))))))))),
+  axioms: []
+}
+
+definition{
+  name: journalChunksValid,
+  parameters: [chunks : (List Bytes), remaining : Nat],
+  result: Bool,
+  body: (match chunks
+    | List.nil => (remaining =? 0)
+    | List.cons head tail => ((journalRefValid head) && ((0 <? remaining) && ((match (remaining <=? 1048576)
+      | Bool.false => (journalChunksValid tail (prim subtract remaining 1048576 : Nat))
+      | Bool.true => (journalChunksValid tail 0)) && true)))),
+  axioms: [],
+  recursive_argument: chunks
+}
+
+definition{
+  name: journalPayloadValid,
+  parameters: [value : JournalPayload],
+  result: Bool,
+  body: ((journalRefValid (project value digest)) && ((0 <? (project value length)) && (((project value length) <=? 67108864) && ((journalChunksValid (project value chunks) (project value length)) && true)))),
+  axioms: []
+}
+
+definition{
+  name: journalPayloadEqual,
+  parameters: [left : JournalPayload, right : JournalPayload],
+  result: Bool,
+  body: ((prim equal (project left digest) (project right digest) : Bool) && (((project left length) =? (project right length)) && ((Foundation.Browser.Application.V1.Effects::effectObjectsEqual (project left chunks) (project right chunks)) && true))),
+  axioms: []
+}
+
+definition{
+  name: journalRecordValid,
+  parameters: [value : JournalRecord],
+  result: Bool,
+  body: ((journalBindingValid (project value binding)) && ((0 <? (project value revision)) && (((project value revision) <=? 1024) && ((journalRefValid (project value previous)) && ((journalRefValid (project value journalSession)) && ((journalRefValid (project value runtimeSession)) && (((project value operation) <? 4294967295) && (((project value runtimeOperation) <? 4294967295) && ((0 <? (prim length (prim utf8_encode (project value resource) : Bytes) : Nat)) && (((prim length (prim utf8_encode (project value resource) : Bytes) : Nat) <=? 128) && (((project value requestKind) <=? 7) && (((project value phase) <=? 2) && ((journalPayloadValid (project value request)) && ((match ((project value phase) =? 0)
+    | Bool.false => ((match ((project value phase) =? 1)
+      | Bool.false => ((project value resultKind) =? 8)
+      | Bool.true => ((project value resultKind) =? (project value requestKind))) && ((match (project value response)
+      | Option.none => false
+      | Option.some payload => (journalPayloadValid payload)) && true))
+    | Bool.true => (((project value resultKind) =? 9) && ((match (project value response)
+      | Option.none => true
+      | Option.some payload => false) && true))) && true)))))))))))))),
+  axioms: []
+}
+
+definition{
+  name: journalRecordRequestEqual,
+  parameters: [left : JournalRecord, right : JournalRecord],
+  result: Bool,
+  body: ((journalBindingEqual (project left binding) (project right binding)) && ((prim equal (project left journalSession) (project right journalSession) : Bool) && ((prim equal (project left runtimeSession) (project right runtimeSession) : Bool) && (((project left operation) =? (project right operation)) && (((project left runtimeOperation) =? (project right runtimeOperation)) && (((project left requestKind) =? (project right requestKind)) && ((prim equal (project left resource) (project right resource) : Bool) && ((journalPayloadEqual (project left request) (project right request)) && true)))))))),
+  axioms: []
+}
+
+definition{
+  name: journalStateValid,
+  parameters: [value : JournalState],
+  result: Bool,
+  body: ((journalBindingValid (project value binding)) && (((project value records) <=? (project (project value binding) maximumRecords)) && (((project value nextOperation) <=? 4294967295) && ((journalRefValid (project value head)) && ((match ((project value records) =? 0)
+    | Bool.false => true
+    | Bool.true => ((project value nextOperation) =? 0)) && ((match (project value pending)
+    | Option.none => true
+    | Option.some pending => ((journalRecordValid pending) && ((journalBindingEqual (project pending binding) (project value binding)) && (((project pending phase) =? 0) && (((project pending revision) =? (project value records)) && ((((project pending operation) + 1) =? (project value nextOperation)) && true)))))) && true)))))),
+  axioms: []
+}
+
+definition{
+  name: beginOperationJournal,
+  parameters: [binding : JournalBinding, genesis : Bytes],
+  result: (Result JournalState JournalError),
+  body: (match ((journalBindingValid binding) && ((journalRefValid genesis) && true))
+    | Bool.false => (ctor Result.error [JournalState, JournalError] (ctor JournalError.BadBinding))
+    | Bool.true => (ctor Result.ok [JournalState, JournalError] (record JournalState {binding := binding, records := 0, nextOperation := 0, head := genesis, pending := (ctor Option.none [JournalRecord])}))),
+  axioms: []
+}
+
+definition{
+  name: appendOperationRecord,
+  parameters: [state : JournalState, incoming : JournalRecord, digest : Bytes],
+  result: (Result JournalState JournalError),
+  body: (match (journalStateValid state)
+    | Bool.false => (ctor Result.error [JournalState, JournalError] (ctor JournalError.BadState))
+    | Bool.true => (match ((journalRecordValid incoming) && ((journalRefValid digest) && true))
+      | Bool.false => (ctor Result.error [JournalState, JournalError] (ctor JournalError.BadRecord))
+      | Bool.true => (match (journalBindingEqual (project state binding) (project incoming binding))
+        | Bool.false => (ctor Result.error [JournalState, JournalError] (ctor JournalError.BindingChanged))
+        | Bool.true => (match ((project state records) <? (project (project state binding) maximumRecords))
+          | Bool.false => (ctor Result.error [JournalState, JournalError] (ctor JournalError.RecordLimit))
+          | Bool.true => (match ((project incoming revision) =? ((project state records) + 1))
+            | Bool.false => (ctor Result.error [JournalState, JournalError] (ctor JournalError.RevisionMismatch))
+            | Bool.true => (match (prim equal (project incoming previous) (project state head) : Bool)
+              | Bool.false => (ctor Result.error [JournalState, JournalError] (ctor JournalError.PredecessorMismatch))
+              | Bool.true => (match ((project incoming phase) =? 0)
+                | Bool.false => (match (project state pending)
+                  | Option.none => (ctor Result.error [JournalState, JournalError] (ctor JournalError.MissingPending))
+                  | Option.some old => (match (journalRecordRequestEqual old incoming)
+                    | Bool.false => (ctor Result.error [JournalState, JournalError] (ctor JournalError.TerminalMismatch))
+                    | Bool.true => (ctor Result.ok [JournalState, JournalError] (record JournalState {binding := (project state binding), records := (project incoming revision), nextOperation := (project state nextOperation), head := digest, pending := (ctor Option.none [JournalRecord])}))))
+                | Bool.true => (match (((project state records) + 2) <=? (project (project state binding) maximumRecords))
+                  | Bool.false => (ctor Result.error [JournalState, JournalError] (ctor JournalError.RecordLimit))
+                  | Bool.true => (match ((project state nextOperation) <? 4294967295)
+                    | Bool.false => (ctor Result.error [JournalState, JournalError] (ctor JournalError.OperationOverflow))
+                    | Bool.true => (match ((project incoming operation) =? (project state nextOperation))
+                      | Bool.false => (ctor Result.error [JournalState, JournalError] (ctor JournalError.OperationMismatch))
+                      | Bool.true => (match (project state pending)
+                        | Option.some old => (ctor Result.error [JournalState, JournalError] (ctor JournalError.PendingOperation))
+                        | Option.none => (ctor Result.ok [JournalState, JournalError] (record JournalState {binding := (project state binding), records := (project incoming revision), nextOperation := ((project state nextOperation) + 1), head := digest, pending := (ctor Option.some [JournalRecord] incoming)}))))))))))))),
+  axioms: []
+}
+
+definition{
+  name: journalOperationKind,
+  parameters: [value : Foundation.Browser.Application.V1.Effects::EffectOperation],
+  result: Nat,
+  body: (match value
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.InvokeGuest x0 => 0
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.RandomBytes x0 => 1
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.DigestBytes x0 => 2
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.SignBytes x0 => 3
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.VerifyBytes x0 => 4
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.ReadObject x0 => 5
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.ReadHead x0 => 6
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.Commit x0 => 7),
+  axioms: []
+}
+
+definition{
+  name: journalResultKind,
+  parameters: [value : Foundation.Browser.Application.V1.Effects::EffectResult],
+  result: Nat,
+  body: (match value
+    | Foundation.Browser.Application.V1.Effects::EffectResult.GuestBytes x0 => 0
+    | Foundation.Browser.Application.V1.Effects::EffectResult.RandomBytes x0 => 1
+    | Foundation.Browser.Application.V1.Effects::EffectResult.Digest x0 => 2
+    | Foundation.Browser.Application.V1.Effects::EffectResult.Signature x0 => 3
+    | Foundation.Browser.Application.V1.Effects::EffectResult.Verification x0 => 4
+    | Foundation.Browser.Application.V1.Effects::EffectResult.Object x0 => 5
+    | Foundation.Browser.Application.V1.Effects::EffectResult.Head x0 => 6
+    | Foundation.Browser.Application.V1.Effects::EffectResult.Committed x0 => 7
+    | Foundation.Browser.Application.V1.Effects::EffectResult.Rejected x0 => 8
+    | Foundation.Browser.Application.V1.Effects::EffectResult.Unknown => 9),
+  axioms: []
+}
+
+definition{
+  name: journalRequestMatches,
+  parameters: [
+    record : JournalRecord,
+    request : Foundation.Browser.Application.V1.Effects::EffectRequest,
+    manifest : Foundation.Browser.Application.V1.Effects::EffectManifest
+  ],
+  result: Bool,
+  body: ((Foundation.Browser.Application.V1.Effects::effectManifestValid manifest) && ((Foundation.Browser.Application.V1.Effects::effectRequestValid request manifest (project var{
+    name: record
+  } runtimeSession)) && ((journalRecordValid var{
+    name: record
+  }) && ((prim equal (project (project var{
+    name: record
+  } binding) application) (project request application) : Bool) && ((prim equal (project (project var{
+    name: record
+  } binding) manifest) (project request manifest) : Bool) && ((prim equal (project var{
+    name: record
+  } runtimeSession) (project request session) : Bool) && (((project var{
+    name: record
+  } runtimeOperation) =? (project request operation)) && ((prim equal (project var{
+    name: record
+  } resource) (project request resource) : Bool) && (((project var{
+    name: record
+  } requestKind) =? (journalOperationKind (project request effect))) && true))))))))),
+  axioms: []
+}
+
+definition{
+  name: journalResultMatches,
+  parameters: [
+    record : JournalRecord,
+    request : Foundation.Browser.Application.V1.Effects::EffectRequest,
+    response : Foundation.Browser.Application.V1.Effects::EffectResult,
+    manifest : Foundation.Browser.Application.V1.Effects::EffectManifest
+  ],
+  result: Bool,
+  body: ((journalRequestMatches var{
+    name: record
+  } request manifest) && ((0 <? (project var{
+    name: record
+  } phase)) && (((project var{
+    name: record
+  } resultKind) =? (journalResultKind response)) && ((match (Foundation.Browser.Application.V1.Effects::effectFindAdapter (project manifest grants) (project var{
+      name: record
+    } resource))
+    | Option.none => false
+    | Option.some adapter => (Foundation.Browser.Application.V1.Effects::effectResultValid response request adapter)) && true)))),
+  axioms: []
+}
+
+definition{
+  name: operationChunkPlan,
+  parameters: [remaining : Nat, offset : Nat, fuel : Nat],
+  result: JournalPlan,
+  body: (match fuel
+    | Nat.zero => (record JournalPlan {chunks := (ctor List.nil [JournalChunk])})
+    | Nat.succ rest => (match (remaining =? 0)
+      | Bool.false => (record JournalPlan {chunks := (ctor List.cons [JournalChunk] (record JournalChunk {offset := offset, length := (match (remaining <=? 1048576)
+        | Bool.false => 1048576
+        | Bool.true => remaining)}) (project (operationChunkPlan (prim subtract remaining 1048576 : Nat) (offset + 1048576) rest) chunks))})
+      | Bool.true => (record JournalPlan {chunks := (ctor List.nil [JournalChunk])}))),
+  axioms: [],
+  recursive_argument: fuel
+}
+\end{semanticmodule}
+\end{lexlean}

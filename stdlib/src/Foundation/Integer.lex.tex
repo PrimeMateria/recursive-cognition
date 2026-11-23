@@ -1,0 +1,47 @@
+\begin{lexlean}{Foundation.Integer}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\title{Checked integer arithmetic}
+\begin{semanticmodule}
+definition{
+  name: checkedAddInt64,
+  parameters: [left : Int64, right : Int64],
+  result: (Option Int64),
+  body: (prim checked_add left right : (Option Int64)),
+  axioms: []
+}
+
+definition{
+  name: checkedSubtractInt64,
+  parameters: [left : Int64, right : Int64],
+  result: (Option Int64),
+  body: (prim checked_subtract left right : (Option Int64)),
+  axioms: []
+}
+
+definition{
+  name: checkedMultiplyInt64,
+  parameters: [left : Int64, right : Int64],
+  result: (Option Int64),
+  body: (prim checked_multiply left right : (Option Int64)),
+  axioms: []
+}
+
+definition{
+  name: checkedNegateInt64,
+  parameters: [value : Int64],
+  result: (Option Int64),
+  body: (prim checked_negate value : (Option Int64)),
+  axioms: []
+}
+
+definition{
+  name: checkedDivideInt64,
+  parameters: [left : Int64, right : Int64],
+  result: (Option Int64),
+  body: (prim checked_quotient left right : (Option Int64)),
+  axioms: []
+}
+\end{semanticmodule}
+\end{lexlean}

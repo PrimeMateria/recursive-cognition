@@ -1,0 +1,197 @@
+\begin{lexlean}{Foundation.Browser.Application.V1.SessionJournalReservation}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Browser.Application.V1.SessionJournal}
+\importmodule{Foundation.Browser.Application.V1.OperationJournal}
+\title{Browser session journal reservation}
+\begin{semanticmodule}
+structure{
+  name: SessionJournalReservation,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: ordinals, type: Nat}, {name: retained, type: Nat}]
+}
+
+definition{
+  name: addSessionJournalReservation,
+  parameters: [extra : Nat, reservation : SessionJournalReservation],
+  result: SessionJournalReservation,
+  body: (record SessionJournalReservation {ordinals := (extra + (project reservation ordinals)), retained := (project reservation retained)}),
+  axioms: []
+}
+
+definition{
+  name: reserveSessionJournalOrdinary,
+  parameters: [count : Nat, retained : Nat, maximumRecords : Nat],
+  result: SessionJournalReservation,
+  body: (match count
+    | Nat.zero => (record SessionJournalReservation {ordinals := 0, retained := retained})
+    | Nat.succ rest => (match ((retained + 1) <=? maximumRecords)
+      | Bool.false => (addSessionJournalReservation 2 (reserveSessionJournalOrdinary rest 1 maximumRecords))
+      | Bool.true => (addSessionJournalReservation 1 (reserveSessionJournalOrdinary rest (retained + 1) maximumRecords)))),
+  axioms: [],
+  recursive_argument: count
+}
+
+definition{
+  name: reserveSessionJournalContinuationStep,
+  parameters: [retained : Nat, maximumRecords : Nat],
+  result: SessionJournalReservation,
+  body: (match ((retained + 2) <=? maximumRecords)
+    | Bool.false => (record SessionJournalReservation {ordinals := 2, retained := 1})
+    | Bool.true => (record SessionJournalReservation {ordinals := 1, retained := (retained + 1)})),
+  axioms: []
+}
+
+definition{
+  name: reserveSessionJournalContinuationsTree,
+  parameters: [depth : Nat, count : Nat, retained : Nat, maximumRecords : Nat],
+  result: (Result SessionJournalReservation Foundation.Browser.Application.V1.SessionJournal::SessionJournalError),
+  body: (match depth
+    | Nat.zero => (ctor Result.error [SessionJournalReservation, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] (ctor Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.BadRecord))
+    | Nat.succ prior => (match count
+      | Nat.zero => (ctor Result.ok [SessionJournalReservation, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] (record SessionJournalReservation {ordinals := 0, retained := retained}))
+      | Nat.succ rest => (match rest
+        | Nat.zero => (ctor Result.ok [SessionJournalReservation, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] (reserveSessionJournalContinuationStep retained maximumRecords))
+        | Nat.succ unused => (match (reserveSessionJournalContinuationsTree prior (prim quotient count 2 0 : Nat) retained maximumRecords)
+          | Result.error cause => (ctor Result.error [SessionJournalReservation, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] cause)
+          | Result.ok left => (match (reserveSessionJournalContinuationsTree prior (prim subtract count (prim quotient count 2 0 : Nat) : Nat) (project left retained) maximumRecords)
+            | Result.error cause => (ctor Result.error [SessionJournalReservation, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] cause)
+            | Result.ok right => (ctor Result.ok [SessionJournalReservation, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] (addSessionJournalReservation (project left ordinals) right))))))),
+  axioms: [],
+  recursive_argument: depth
+}
+
+definition{
+  name: reserveSessionJournalContinuations,
+  parameters: [count : Nat, retained : Nat, maximumRecords : Nat, ordinary : Nat],
+  result: (Result SessionJournalReservation Foundation.Browser.Application.V1.SessionJournal::SessionJournalError),
+  body: (match (reserveSessionJournalContinuationsTree (count + 1) count retained maximumRecords)
+    | Result.error cause => (ctor Result.error [SessionJournalReservation, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] cause)
+    | Result.ok continued => (ctor Result.ok [SessionJournalReservation, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] (addSessionJournalReservation (project continued ordinals) (reserveSessionJournalOrdinary ordinary (project continued retained) maximumRecords)))),
+  axioms: []
+}
+
+definition{
+  name: sessionJournalRequiredOrdinals,
+  parameters: [state : Foundation.Browser.Application.V1.SessionJournal::SessionJournalState],
+  result: (Result Nat Foundation.Browser.Application.V1.SessionJournal::SessionJournalError),
+  body: (match (Foundation.Browser.Application.V1.SessionJournal::sessionJournalStateValid state)
+    | Bool.false => (ctor Result.error [Nat, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] (ctor Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.BadState))
+    | Bool.true => (match (project (project state position) pending)
+      | Option.none => (match ((project (project state position) phase) =? 0)
+        | Bool.false => (ctor Result.ok [Nat, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] 0)
+        | Bool.true => (ctor Result.ok [Nat, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] (project (reserveSessionJournalOrdinary 1 (project state retained) (project (project state binding) maximumRecords)) ordinals)))
+      | Option.some step => (match ((project (project state position) phase) =? 1)
+        | Bool.false => (match ((project (project state position) phase) =? 2)
+          | Bool.false => (ctor Result.ok [Nat, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] (project (reserveSessionJournalOrdinary 2 (project state retained) (project (project state binding) maximumRecords)) ordinals))
+          | Bool.true => (ctor Result.ok [Nat, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] (project (reserveSessionJournalOrdinary 3 (project state retained) (project (project state binding) maximumRecords)) ordinals)))
+        | Bool.true => (match (reserveSessionJournalContinuations (prim subtract (project step maximumSteps) (project step step) : Nat) (project state retained) (project (project state binding) maximumRecords) 4)
+          | Result.error cause => (ctor Result.error [Nat, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] cause)
+          | Result.ok reserved => (ctor Result.ok [Nat, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] (project reserved ordinals)))))),
+  axioms: []
+}
+
+definition{
+  name: sessionJournalReservationValid,
+  parameters: [state : Foundation.Browser.Application.V1.SessionJournal::SessionJournalState],
+  result: Bool,
+  body: (match (sessionJournalRequiredOrdinals state)
+    | Result.error error => false
+    | Result.ok needed => (needed <=? (prim subtract 4294967295 (project state sequence) : Nat))),
+  axioms: []
+}
+
+definition{
+  name: reserveSessionJournalState,
+  parameters: [state : Foundation.Browser.Application.V1.SessionJournal::SessionJournalState],
+  result: (Result Foundation.Browser.Application.V1.SessionJournal::SessionJournalState Foundation.Browser.Application.V1.SessionJournal::SessionJournalError),
+  body: (match (sessionJournalRequiredOrdinals state)
+    | Result.error error => (ctor Result.error [Foundation.Browser.Application.V1.SessionJournal::SessionJournalState, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] error)
+    | Result.ok needed => (match (needed <=? (prim subtract 4294967295 (project state sequence) : Nat))
+      | Bool.false => (ctor Result.error [Foundation.Browser.Application.V1.SessionJournal::SessionJournalState, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] (ctor Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.CounterExhausted))
+      | Bool.true => (ctor Result.ok [Foundation.Browser.Application.V1.SessionJournal::SessionJournalState, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] state))),
+  axioms: []
+}
+
+definition{
+  name: acceptReservedSessionJournal,
+  parameters: [
+    value : (Result Foundation.Browser.Application.V1.SessionJournal::SessionJournalState Foundation.Browser.Application.V1.SessionJournal::SessionJournalError)
+  ],
+  result: (Result Foundation.Browser.Application.V1.SessionJournal::SessionJournalState Foundation.Browser.Application.V1.SessionJournal::SessionJournalError),
+  body: (match value
+    | Result.error error => (ctor Result.error [Foundation.Browser.Application.V1.SessionJournal::SessionJournalState, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] error)
+    | Result.ok next => (reserveSessionJournalState next)),
+  axioms: []
+}
+
+definition{
+  name: initializeReservedSessionJournal,
+  parameters: [
+    binding : Foundation.Browser.Application.V1.SessionJournal::SessionJournalBinding,
+    operation : Foundation.Browser.Application.V1.OperationJournal::JournalPayload,
+    position : Foundation.Browser.Application.V1.SessionJournal::SessionJournalPosition,
+    envelope : Foundation.Browser.Application.V1.OperationJournal::JournalPayload
+  ],
+  result: (Result Foundation.Browser.Application.V1.SessionJournal::SessionJournalState Foundation.Browser.Application.V1.SessionJournal::SessionJournalError),
+  body: (acceptReservedSessionJournal (Foundation.Browser.Application.V1.SessionJournal::initializeSessionJournal binding operation position envelope)),
+  axioms: []
+}
+
+definition{
+  name: appendReservedSessionJournal,
+  parameters: [
+    state : Foundation.Browser.Application.V1.SessionJournal::SessionJournalState,
+    record : Foundation.Browser.Application.V1.SessionJournal::SessionJournalRecord,
+    envelope : Foundation.Browser.Application.V1.OperationJournal::JournalPayload
+  ],
+  result: (Result Foundation.Browser.Application.V1.SessionJournal::SessionJournalState Foundation.Browser.Application.V1.SessionJournal::SessionJournalError),
+  body: (match (reserveSessionJournalState state)
+    | Result.error error => (ctor Result.error [Foundation.Browser.Application.V1.SessionJournal::SessionJournalState, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] error)
+    | Result.ok admitted => (acceptReservedSessionJournal (Foundation.Browser.Application.V1.SessionJournal::appendSessionJournal admitted var{
+      name: record
+    } envelope))),
+  axioms: []
+}
+
+definition{
+  name: replayReservedSessionJournalTree,
+  parameters: [
+    state : Foundation.Browser.Application.V1.SessionJournal::SessionJournalState,
+    entries : (List Foundation.Browser.Application.V1.SessionJournal::SessionJournalEntry),
+    depth : Nat
+  ],
+  result: (Result Foundation.Browser.Application.V1.SessionJournal::SessionJournalState Foundation.Browser.Application.V1.SessionJournal::SessionJournalError),
+  body: (match depth
+    | Nat.zero => (ctor Result.error [Foundation.Browser.Application.V1.SessionJournal::SessionJournalState, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] (ctor Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.BadRecord))
+    | Nat.succ prior => (match entries
+      | List.nil => (reserveSessionJournalState state)
+      | List.cons entry rest => (match rest
+        | List.nil => (match (appendReservedSessionJournal state (project entry record) (project entry envelope))
+          | Result.error cause => (ctor Result.error [Foundation.Browser.Application.V1.SessionJournal::SessionJournalState, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] cause)
+          | Result.ok next => (reserveSessionJournalState next))
+        | List.cons unusedHead unusedTail => (match (prim slice entries 0 (prim quotient (prim length entries : Nat) 2 0 : Nat) : (Option (List Foundation.Browser.Application.V1.SessionJournal::SessionJournalEntry)))
+          | Option.none => (ctor Result.error [Foundation.Browser.Application.V1.SessionJournal::SessionJournalState, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] (ctor Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.BadRecord))
+          | Option.some left => (match (prim slice entries (prim quotient (prim length entries : Nat) 2 0 : Nat) (prim subtract (prim length entries : Nat) (prim quotient (prim length entries : Nat) 2 0 : Nat) : Nat) : (Option (List Foundation.Browser.Application.V1.SessionJournal::SessionJournalEntry)))
+            | Option.none => (ctor Result.error [Foundation.Browser.Application.V1.SessionJournal::SessionJournalState, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] (ctor Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.BadRecord))
+            | Option.some right => (match (replayReservedSessionJournalTree state left prior)
+              | Result.error cause => (ctor Result.error [Foundation.Browser.Application.V1.SessionJournal::SessionJournalState, Foundation.Browser.Application.V1.SessionJournal::SessionJournalError] cause)
+              | Result.ok next => (replayReservedSessionJournalTree next right prior))))))),
+  axioms: [],
+  recursive_argument: depth
+}
+
+definition{
+  name: replayReservedSessionJournal,
+  parameters: [
+    state : Foundation.Browser.Application.V1.SessionJournal::SessionJournalState,
+    entries : (List Foundation.Browser.Application.V1.SessionJournal::SessionJournalEntry)
+  ],
+  result: (Result Foundation.Browser.Application.V1.SessionJournal::SessionJournalState Foundation.Browser.Application.V1.SessionJournal::SessionJournalError),
+  body: (replayReservedSessionJournalTree state entries ((prim length entries : Nat) + 1)),
+  axioms: []
+}
+\end{semanticmodule}
+\end{lexlean}

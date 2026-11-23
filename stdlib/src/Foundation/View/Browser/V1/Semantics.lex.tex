@@ -1,0 +1,338 @@
+\begin{lexlean}{Foundation.View.Browser.V1.Semantics}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.View.Browser.V1.Model}
+\title{Browser view semantics}
+\begin{semanticmodule}
+inductive{
+  name: InputPurpose,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: None, fields: []},
+    {name: PlainText, fields: []},
+    {name: Name, fields: []},
+    {name: Organization, fields: []},
+    {name: Email, fields: []},
+    {name: Username, fields: []},
+    {name: CurrentPassword, fields: []},
+    {name: NewPassword, fields: []},
+    {name: OneTimeCode, fields: []}
+  ]
+}
+
+inductive{
+  name: Landmark,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: None, fields: []},
+    {name: Main, fields: []},
+    {name: Banner, fields: []},
+    {name: Complementary, fields: []},
+    {name: ContentInfo, fields: []}
+  ]
+}
+
+inductive{
+  name: SemanticLayout,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: None, fields: []},
+    {name: Stack, fields: []},
+    {name: Sidebar, fields: []},
+    {name: TwoColumns, fields: []},
+    {name: ThreeColumns, fields: []},
+    {name: FourColumns, fields: []}
+  ]
+}
+
+inductive{
+  name: Appearance,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: Automatic, fields: []}, {name: Light, fields: []}, {name: Dark, fields: []}]
+}
+
+structure{
+  name: SemanticAnnotation,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: nodeId, type: Nat},
+    {name: purpose, type: InputPurpose},
+    {name: helperLabel, type: Nat},
+    {name: errorLabel, type: Nat},
+    {name: landmark, type: Landmark},
+    {name: layout, type: SemanticLayout}
+  ]
+}
+
+structure{
+  name: SemanticPresentation,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: frame, type: Foundation.View.Browser.V1.Model::Presentation},
+    {name: designIndex, type: Nat},
+    {name: appearance, type: Appearance},
+    {name: skipLabel, type: Nat},
+    {name: annotations, type: (List SemanticAnnotation)}
+  ]
+}
+
+definition{
+  name: inputPurposeCode,
+  parameters: [value : InputPurpose],
+  result: Nat,
+  body: (match value
+    | InputPurpose.None => 0
+    | InputPurpose.PlainText => 1
+    | InputPurpose.Name => 2
+    | InputPurpose.Organization => 3
+    | InputPurpose.Email => 4
+    | InputPurpose.Username => 5
+    | InputPurpose.CurrentPassword => 6
+    | InputPurpose.NewPassword => 7
+    | InputPurpose.OneTimeCode => 8),
+  axioms: []
+}
+
+definition{
+  name: landmarkCode,
+  parameters: [value : Landmark],
+  result: Nat,
+  body: (match value
+    | Landmark.None => 0
+    | Landmark.Main => 1
+    | Landmark.Banner => 2
+    | Landmark.Complementary => 3
+    | Landmark.ContentInfo => 4),
+  axioms: []
+}
+
+definition{
+  name: layoutCode,
+  parameters: [value : SemanticLayout],
+  result: Nat,
+  body: (match value
+    | SemanticLayout.None => 0
+    | SemanticLayout.Stack => 1
+    | SemanticLayout.Sidebar => 2
+    | SemanticLayout.TwoColumns => 3
+    | SemanticLayout.ThreeColumns => 4
+    | SemanticLayout.FourColumns => 5),
+  axioms: []
+}
+
+definition{
+  name: appearanceCode,
+  parameters: [value : Appearance],
+  result: Nat,
+  body: (match value | Appearance.Automatic => 0 | Appearance.Light => 1 | Appearance.Dark => 2),
+  axioms: []
+}
+
+definition{
+  name: fieldKind,
+  parameters: [kind : Nat],
+  result: Bool,
+  body: (((kind =? 5) || ((kind =? 6) || ((kind =? 7) || ((kind =? 10) || false)))) || (kind =? 11)),
+  axioms: []
+}
+
+definition{
+  name: purposeFits,
+  parameters: [purpose : InputPurpose, kind : Nat],
+  result: Bool,
+  body: (match ((inputPurposeCode purpose) =? 0)
+    | Bool.false => (match ((inputPurposeCode purpose) <=? 5)
+      | Bool.false => (kind =? 10)
+      | Bool.true => (kind =? 5))
+    | Bool.true => true),
+  axioms: []
+}
+
+definition{
+  name: landmarkAt,
+  parameters: [values : (List SemanticAnnotation), node : Nat],
+  result: Nat,
+  body: (match values
+    | List.nil => 0
+    | List.cons head tail => (match ((project head nodeId) =? node)
+      | Bool.false => (landmarkAt tail node)
+      | Bool.true => (landmarkCode (project head landmark)))),
+  axioms: [],
+  recursive_argument: values
+}
+
+definition{
+  name: landmarkCount,
+  parameters: [values : (List SemanticAnnotation), kind : Nat],
+  result: Nat,
+  body: (match values
+    | List.nil => 0
+    | List.cons head tail => ((match ((landmarkCode (project head landmark)) =? kind)
+      | Bool.false => 0
+      | Bool.true => 1) + (landmarkCount tail kind))),
+  axioms: [],
+  recursive_argument: values
+}
+
+definition{
+  name: landmarkAncestorsValid,
+  parameters: [
+    fuel : Nat,
+    nodes : (List Foundation.View.Browser.V1.Model::Node),
+    annotations : (List SemanticAnnotation),
+    parent : Nat,
+    allowMain : Bool
+  ],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => (parent =? 0)
+    | Nat.succ remaining => (match (parent =? 0)
+      | Bool.false => (match (Foundation.View.Browser.V1.Model::nodeAt nodes parent)
+        | Option.none => false
+        | Option.some ancestor => (((Foundation.View.Browser.V1.Model::contentKind (project ancestor content)) =? 0) && ((((landmarkAt annotations parent) =? 0) || ((allowMain && (((landmarkAt annotations parent) =? 1) && true)) || false)) && ((landmarkAncestorsValid remaining nodes annotations (project ancestor parent) allowMain) && true))))
+      | Bool.true => true)),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: annotationFits,
+  parameters: [
+    value : SemanticAnnotation,
+    nodes : (List Foundation.View.Browser.V1.Model::Node),
+    all : (List SemanticAnnotation)
+  ],
+  result: Bool,
+  body: (match (Foundation.View.Browser.V1.Model::nodeAt nodes (project value nodeId))
+    | Option.none => false
+    | Option.some node => ((0 <? (project value nodeId)) && (((project value helperLabel) <=? 256) && (((project value errorLabel) <=? 256) && ((purposeFits (project value purpose) (Foundation.View.Browser.V1.Model::contentKind (project node content))) && (((((project value helperLabel) =? 0) && (((project value errorLabel) =? 0) && true)) || ((fieldKind (Foundation.View.Browser.V1.Model::contentKind (project node content))) || false)) && ((((landmarkCode (project value landmark)) =? 0) || ((((Foundation.View.Browser.V1.Model::contentKind (project node content)) =? 0) && ((landmarkAncestorsValid 16 nodes all (project node parent) ((landmarkCode (project value landmark)) =? 3)) && true)) || false)) && ((((layoutCode (project value layout)) =? 0) || (((Foundation.View.Browser.V1.Model::contentKind (project node content)) <=? 2) || false)) && true)))))))),
+  axioms: []
+}
+
+definition{
+  name: annotationsValid,
+  parameters: [
+    values : (List SemanticAnnotation),
+    all : (List SemanticAnnotation),
+    nodes : (List Foundation.View.Browser.V1.Model::Node),
+    previous : Nat
+  ],
+  result: Bool,
+  body: (match values
+    | List.nil => true
+    | List.cons head tail => ((previous <? (project head nodeId)) && ((annotationFits head nodes all) && ((annotationsValid tail all nodes (project head nodeId)) && true)))),
+  axioms: [],
+  recursive_argument: values
+}
+
+definition{
+  name: semanticPresentationValid,
+  parameters: [value : SemanticPresentation],
+  result: Bool,
+  body: ((Foundation.View.Browser.V1.Model::presentationValid (project value frame)) && (((project value designIndex) <? 16) && (((project value skipLabel) <=? 256) && ((annotationsValid (project value annotations) (project value annotations) (project (project value frame) nodes) 0) && (((landmarkCount (project value annotations) 2) <=? 1) && (((landmarkCount (project value annotations) 4) <=? 1) && ((match (((project (project value frame) phase) =? 3) && (((Foundation.View.Browser.V1.Model::countNodes (project (project value frame) nodes)) =? 0) && true))
+    | Bool.false => ((0 <? (project value skipLabel)) && (((landmarkCount (project value annotations) 1) =? 1) && true))
+    | Bool.true => (((project value skipLabel) =? 0) && (((landmarkCount (project value annotations) 1) =? 0) && true))) && true))))))),
+  axioms: []
+}
+
+definition{
+  name: annotationLabelsFit,
+  parameters: [values : (List SemanticAnnotation), count : Nat],
+  result: Bool,
+  body: (match values
+    | List.nil => true
+    | List.cons head tail => (((project head helperLabel) <=? count) && (((project head errorLabel) <=? count) && ((annotationLabelsFit tail count) && true)))),
+  axioms: [],
+  recursive_argument: values
+}
+
+definition{
+  name: catalogueIndicesFit,
+  parameters: [values : (List Nat), count : Nat],
+  result: Bool,
+  body: (match values
+    | List.nil => true
+    | List.cons head tail => ((head <? count) && (catalogueIndicesFit tail count))),
+  axioms: [],
+  recursive_argument: values
+}
+
+definition{
+  name: choiceCatalogueFits,
+  parameters: [values : (List Foundation.View.Browser.V1.Model::Choice), count : Nat],
+  result: Bool,
+  body: (match values
+    | List.nil => true
+    | List.cons head tail => (((project head label) <? count) && (choiceCatalogueFits tail count))),
+  axioms: [],
+  recursive_argument: values
+}
+
+definition{
+  name: contentCatalogueFits,
+  parameters: [value : Foundation.View.Browser.V1.Model::Content, count : Nat],
+  result: Bool,
+  body: (match value
+    | Foundation.View.Browser.V1.Model::Content.Section label => (label <? count)
+    | Foundation.View.Browser.V1.Model::Content.Navigation label => (label <? count)
+    | Foundation.View.Browser.V1.Model::Content.Form label => (label <? count)
+    | Foundation.View.Browser.V1.Model::Content.Heading level label => (label <? count)
+    | Foundation.View.Browser.V1.Model::Content.Text text => true
+    | Foundation.View.Browser.V1.Model::Content.Input label enabled required maximum initial epoch => (label <? count)
+    | Foundation.View.Browser.V1.Model::Content.Multiline label enabled required maximum initial epoch => (label <? count)
+    | Foundation.View.Browser.V1.Model::Content.Select label enabled required initial choices epoch => ((label <? count) && (choiceCatalogueFits choices count))
+    | Foundation.View.Browser.V1.Model::Content.Action label action enabled primary fields => (label <? count)
+    | Foundation.View.Browser.V1.Model::Content.Table label columns chunks => ((label <? count) && (catalogueIndicesFit columns count))
+    | Foundation.View.Browser.V1.Model::Content.SecretInput label enabled required maximum epoch => (label <? count)
+    | Foundation.View.Browser.V1.Model::Content.TextSelect label enabled required initial choices epoch => (label <? count)),
+  axioms: []
+}
+
+definition{
+  name: nodeCatalogueFits,
+  parameters: [values : (List Foundation.View.Browser.V1.Model::Node), count : Nat],
+  result: Bool,
+  body: (match values
+    | List.nil => true
+    | List.cons head tail => ((contentCatalogueFits (project head content) count) && (nodeCatalogueFits tail count))),
+  axioms: [],
+  recursive_argument: values
+}
+
+definition{
+  name: semanticCatalogueFits,
+  parameters: [value : SemanticPresentation, labelCount : Nat, designCount : Nat],
+  result: Bool,
+  body: ((semanticPresentationValid value) && ((0 <? labelCount) && ((labelCount <=? 256) && ((0 <? designCount) && ((designCount <=? 16) && (((project value designIndex) <? designCount) && (((project value skipLabel) <=? labelCount) && ((annotationLabelsFit (project value annotations) labelCount) && (true && (((project (project value frame) status) <=? labelCount) && (nodeCatalogueFits (project (project value frame) nodes) labelCount))))))))))),
+  axioms: []
+}
+
+definition{
+  name: mainNode,
+  parameters: [values : (List SemanticAnnotation)],
+  result: Nat,
+  body: (match values
+    | List.nil => 0
+    | List.cons head tail => (match ((landmarkCode (project head landmark)) =? 1)
+      | Bool.false => (mainNode tail)
+      | Bool.true => (project head nodeId))),
+  axioms: [],
+  recursive_argument: values
+}
+
+definition{
+  name: semanticProgressFits,
+  parameters: [current : SemanticPresentation, next : SemanticPresentation],
+  result: Bool,
+  body: ((semanticPresentationValid current) && ((semanticPresentationValid next) && ((Foundation.View.Browser.V1.Model::progressFits (project current frame) (project next frame)) && true))),
+  axioms: []
+}
+\end{semanticmodule}
+\end{lexlean}

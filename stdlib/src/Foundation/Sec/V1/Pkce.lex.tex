@@ -1,0 +1,180 @@
+\begin{lexlean}{Foundation.Sec.V1.Pkce}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Codec.Cbor.V1.Primitive}
+\title{Proof key for code exchange}
+\begin{semanticmodule}
+inductive{
+  name: PkceError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: BadLength, fields: []},
+    {name: InvalidCharacter, fields: []},
+    {name: InvalidOperation, fields: []}
+  ]
+}
+
+definition{
+  name: pkceSlice,
+  parameters: [value : Bytes, offset : Nat, count : Nat],
+  result: Bytes,
+  body: (match (prim slice value offset count : (Option Bytes))
+    | Option.none => 0x
+    | Option.some part => part),
+  axioms: []
+}
+
+definition{
+  name: pkceByte,
+  parameters: [value : Bytes, offset : Nat],
+  result: Nat,
+  body: (match (prim index value offset : (Option UInt8))
+    | Option.none => 0
+    | Option.some byte => (Foundation.Codec.Cbor.V1.Primitive::cborOctetNat byte)),
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: pkceDigit,
+  parameters: [value : Nat],
+  result: Bytes,
+  body: (pkceSlice 0x4142434445464748494a4b4c4d4e4f505152535455565758595a6162636465666768696a6b6c6d6e6f707172737475767778797a303132333435363738392d5f value 1),
+  axioms: []
+}
+
+definition{
+  name: pkceGroup,
+  parameters: [first : Nat, second : Nat, third : Nat],
+  result: Bytes,
+  body: (prim append (prim append (pkceDigit (prim quotient var{
+    name: first
+  } 4 0 : Nat)) (pkceDigit ((prim multiply (prim remainder var{
+    name: first
+  } 4 0 : Nat) 16 : Nat) + (prim quotient var{
+    name: second
+  } 16 0 : Nat))) : Bytes) (prim append (pkceDigit ((prim multiply (prim remainder var{
+    name: second
+  } 16 0 : Nat) 4 : Nat) + (prim quotient third 64 0 : Nat))) (pkceDigit (prim remainder third 64 0 : Nat)) : Bytes) : Bytes),
+  axioms: []
+}
+
+definition{
+  name: pkceEncodeBlocks,
+  parameters: [fuel : Nat, value : Bytes, offset : Nat],
+  result: Bytes,
+  body: (match fuel
+    | Nat.zero => 0x
+    | Nat.succ remaining => (match (offset <? 30)
+      | Bool.false => (pkceSlice (pkceGroup (pkceByte value 30) (pkceByte value 31) 0) 0 3)
+      | Bool.true => (prim append (pkceGroup (pkceByte value offset) (pkceByte value (offset + 1)) (pkceByte value (offset + 2))) (pkceEncodeBlocks remaining value (offset + 3)) : Bytes))),
+  axioms: [Quot.sound, propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: pkceEncode32,
+  parameters: [value : Bytes],
+  result: (Result Bytes PkceError),
+  body: (match ((prim length value : Nat) =? 32)
+    | Bool.false => (ctor Result.error [Bytes, PkceError] (ctor PkceError.BadLength))
+    | Bool.true => (ctor Result.ok [Bytes, PkceError] (pkceEncodeBlocks 11 value 0))),
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: pkceVerifierFromEntropy,
+  parameters: [entropy : Bytes],
+  result: (Result Bytes PkceError),
+  body: (pkceEncode32 entropy),
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: pkceChallengeFromDigest,
+  parameters: [digest : Bytes],
+  result: (Result Bytes PkceError),
+  body: (pkceEncode32 digest),
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: pkceUnreserved,
+  parameters: [value : Nat],
+  result: Bool,
+  body: ((((65 <=? value) && (value <=? 90)) || ((97 <=? value) && (value <=? 122))) || (((48 <=? value) && (value <=? 57)) || (((value =? 45) || (value =? 46)) || ((value =? 95) || (value =? 126))))),
+  axioms: []
+}
+
+definition{
+  name: pkceVerifierCharacters,
+  parameters: [fuel : Nat, value : Bytes, offset : Nat],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => (offset =? (prim length value : Nat))
+    | Nat.succ remaining => (match (offset <? (prim length value : Nat))
+      | Bool.false => true
+      | Bool.true => ((pkceUnreserved (pkceByte value offset)) && (pkceVerifierCharacters remaining value (offset + 1))))),
+  axioms: [Quot.sound, propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: pkceVerifierBytes,
+  parameters: [value : Bytes],
+  result: (Result Bytes PkceError),
+  body: (match ((43 <=? (prim length value : Nat)) && ((prim length value : Nat) <=? 128))
+    | Bool.false => (ctor Result.error [Bytes, PkceError] (ctor PkceError.BadLength))
+    | Bool.true => (match (pkceVerifierCharacters 128 value 0)
+      | Bool.false => (ctor Result.error [Bytes, PkceError] (ctor PkceError.InvalidCharacter))
+      | Bool.true => (ctor Result.ok [Bytes, PkceError] value))),
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: pkceErrorCode,
+  parameters: [error : PkceError],
+  result: Bytes,
+  body: (match error
+    | PkceError.BadLength => 0x0101
+    | PkceError.InvalidCharacter => 0x0102
+    | PkceError.InvalidOperation => 0x0103),
+  axioms: []
+}
+
+definition{
+  name: pkceResponse,
+  parameters: [value : (Result Bytes PkceError)],
+  result: Bytes,
+  body: (match value
+    | Result.error cause => (pkceErrorCode cause)
+    | Result.ok bytes => (prim append 0x00 bytes : Bytes)),
+  axioms: []
+}
+
+definition{
+  name: pkceOperation,
+  parameters: [operation : Nat, value : Bytes],
+  result: (Result Bytes PkceError),
+  body: (match (operation =? 0)
+    | Bool.false => (match (operation =? 1)
+      | Bool.false => (match (operation =? 2)
+        | Bool.false => (ctor Result.error [Bytes, PkceError] (ctor PkceError.InvalidOperation))
+        | Bool.true => (pkceChallengeFromDigest value))
+      | Bool.true => (pkceVerifierBytes value))
+    | Bool.true => (pkceVerifierFromEntropy value)),
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: pkceWireBytes,
+  parameters: [request : Bytes],
+  result: Bytes,
+  body: (match ((0 <? (prim length request : Nat)) && ((prim length request : Nat) <=? 129))
+    | Bool.false => 0x0101
+    | Bool.true => (pkceResponse (pkceOperation (pkceByte request 0) (pkceSlice request 1 (prim subtract (prim length request : Nat) 1 : Nat))))),
+  axioms: [Quot.sound, propext]
+}
+\end{semanticmodule}
+\end{lexlean}

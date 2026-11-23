@@ -1,0 +1,208 @@
+\begin{lexlean}{Foundation.Holo.V1.PrimaryWire}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Holo.V1.Wire}
+\title{Hologram primary wire format}
+\begin{semanticmodule}
+definition{
+  name: primaryWireManifestPrefix,
+  parameters: [],
+  result: Bytes,
+  body: 0x68747470733a2f2f686f6c6f6772616d2e666f756e646174696f6e2f7265616c697a6174696f6e2f6170702d6d616e69666573740002000000,
+  axioms: []
+}
+
+definition{
+  name: primaryWireManifestSuffix,
+  parameters: [],
+  result: Bytes,
+  body: 0x3700000000000000010000000008000000686f6c6f5f72756e1a000000686f6c6f6772616d3a67756573742f636f72652d7761736d403100000000,
+  axioms: []
+}
+
+definition{
+  name: primaryAppManifest,
+  parameters: [requires : Bytes, guest : Bytes],
+  result: (Option Bytes),
+  body: (match ((Foundation.Holo.V1.Wire::wireKappaLabelValid requires) && ((Foundation.Holo.V1.Wire::wireKappaLabelValid guest) && true))
+    | Bool.false => (ctor Option.none [Bytes])
+    | Bool.true => (ctor Option.some [Bytes] (prim append (prim append (prim append (prim append 0x (primaryWireManifestPrefix) : Bytes) requires : Bytes) guest : Bytes) (primaryWireManifestSuffix) : Bytes))),
+  axioms: [propext]
+}
+
+definition{
+  name: primaryValidAppManifest,
+  parameters: [value : Bytes],
+  result: Bool,
+  body: (((prim length value : Nat) =? 258) && ((Foundation.Holo.V1.Wire::wireWindowEquals value 0 57 (primaryWireManifestPrefix)) && ((Foundation.Holo.V1.Wire::wireWindowEquals value 199 59 (primaryWireManifestSuffix)) && ((Foundation.Holo.V1.Wire::wireKappaLabelValid (Foundation.Holo.V1.Wire::wireSlice value 57 71)) && ((Foundation.Holo.V1.Wire::wireKappaLabelValid (Foundation.Holo.V1.Wire::wireSlice value 128 71)) && true))))),
+  axioms: [propext]
+}
+
+definition{
+  name: primaryManifestReference,
+  parameters: [value : Bytes, index : Nat],
+  result: (Option Bytes),
+  body: (match ((primaryValidAppManifest value) && ((index <? 2) && true))
+    | Bool.false => (ctor Option.none [Bytes])
+    | Bool.true => (ctor Option.some [Bytes] (Foundation.Holo.V1.Wire::wireSlice value (57 + (prim multiply index 71 : Nat)) 71))),
+  axioms: [propext]
+}
+
+definition{
+  name: primaryWireProvenancePrefix,
+  parameters: [],
+  result: Bytes,
+  body: (prim append (prim append 0x (Foundation.Holo.V1.Wire::wireEncodeLe16 53) : Bytes) 0x68747470733a2f2f756f722e666f756e646174696f6e2f657874656e73696f6e2f707269736d706d2d636f6d706f6e656e742f7631 : Bytes),
+  axioms: []
+}
+
+definition{
+  name: primaryWireBlobsValid,
+  parameters: [blob0 : Bytes, blob1 : Bytes, blob2 : Bytes],
+  result: Bool,
+  body: ((Foundation.Holo.V1.Wire::wireBlobValid blob0) && ((Foundation.Holo.V1.Wire::wireBlobValid blob1) && ((Foundation.Holo.V1.Wire::wireBlobValid blob2) && ((Foundation.Holo.V1.Wire::wireBytesLess (Foundation.Holo.V1.Wire::wireBlobLabel blob0) (Foundation.Holo.V1.Wire::wireBlobLabel blob1)) && ((Foundation.Holo.V1.Wire::wireBytesLess (Foundation.Holo.V1.Wire::wireBlobLabel blob1) (Foundation.Holo.V1.Wire::wireBlobLabel blob2)) && true))))),
+  axioms: [propext]
+}
+
+definition{
+  name: primaryWireReferencePresent,
+  parameters: [label : Bytes, blob0 : Bytes, blob1 : Bytes, blob2 : Bytes],
+  result: Bool,
+  body: ((Foundation.Holo.V1.Wire::wireBytesEqual label (Foundation.Holo.V1.Wire::wireBlobLabel blob0)) || ((Foundation.Holo.V1.Wire::wireBytesEqual label (Foundation.Holo.V1.Wire::wireBlobLabel blob1)) || ((Foundation.Holo.V1.Wire::wireBytesEqual label (Foundation.Holo.V1.Wire::wireBlobLabel blob2)) || false))),
+  axioms: [propext]
+}
+
+definition{
+  name: primaryWireCapabilitiesPresent,
+  parameters: [label : Bytes, blob0 : Bytes, blob1 : Bytes, blob2 : Bytes],
+  result: Bool,
+  body: (((Foundation.Holo.V1.Wire::wireBytesEqual label (Foundation.Holo.V1.Wire::wireBlobLabel blob0)) && ((Foundation.Holo.V1.Wire::wireBytesEqual (Foundation.Holo.V1.Wire::wireBlobContent blob0) (Foundation.Holo.V1.Wire::emptyCapabilities)) && true)) || (((Foundation.Holo.V1.Wire::wireBytesEqual label (Foundation.Holo.V1.Wire::wireBlobLabel blob1)) && ((Foundation.Holo.V1.Wire::wireBytesEqual (Foundation.Holo.V1.Wire::wireBlobContent blob1) (Foundation.Holo.V1.Wire::emptyCapabilities)) && true)) || (((Foundation.Holo.V1.Wire::wireBytesEqual label (Foundation.Holo.V1.Wire::wireBlobLabel blob2)) && ((Foundation.Holo.V1.Wire::wireBytesEqual (Foundation.Holo.V1.Wire::wireBlobContent blob2) (Foundation.Holo.V1.Wire::emptyCapabilities)) && true)) || false))),
+  axioms: [propext]
+}
+
+definition{
+  name: primaryWirePayloadsValid,
+  parameters: [manifest : Bytes, blob0 : Bytes, blob1 : Bytes, blob2 : Bytes],
+  result: Bool,
+  body: ((primaryValidAppManifest manifest) && ((primaryWireBlobsValid blob0 blob1 blob2) && ((primaryWireCapabilitiesPresent (Foundation.Holo.V1.Wire::wireSlice manifest 57 71) blob0 blob1 blob2) && ((primaryWireReferencePresent (Foundation.Holo.V1.Wire::wireSlice manifest 128 71) blob0 blob1 blob2) && true)))),
+  axioms: [propext]
+}
+
+definition{
+  name: primaryWireBodyPayloadsValid,
+  parameters: [body : Bytes],
+  result: Bool,
+  body: ((Foundation.Holo.V1.Wire::wireWindowEquals (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked body 2) 0 (prim length (Foundation.Holo.V1.Wire::wireDirectoryPrefix) : Nat) (Foundation.Holo.V1.Wire::wireDirectoryPrefix)) && ((Foundation.Holo.V1.Wire::wireWindowEquals (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked body 3) 0 (prim length (primaryWireProvenancePrefix) : Nat) (primaryWireProvenancePrefix)) && ((primaryWirePayloadsValid (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked body 0) (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked body 4) (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked body 5) (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked body 6)) && true))),
+  axioms: [propext]
+}
+
+definition{
+  name: primaryValidArchiveBody,
+  parameters: [body : Bytes],
+  result: Bool,
+  body: (match ((178 <=? (prim length body : Nat)) && ((Foundation.Holo.V1.Wire::wireWindowEquals body 0 10 0x484f4c4f040000000700) && true))
+    | Bool.false => false
+    | Bool.true => (match (Foundation.Holo.V1.Wire::wireRowsValid body 0 178 7)
+      | Bool.false => false
+      | Bool.true => (primaryWireBodyPayloadsValid body))),
+  axioms: [propext]
+}
+
+definition{
+  name: primaryWireComposeBodyUnchecked,
+  parameters: [
+    manifest : Bytes,
+    metadata : Bytes,
+    directory : Bytes,
+    provenance : Bytes,
+    blob0 : Bytes,
+    blob1 : Bytes,
+    blob2 : Bytes
+  ],
+  result: Bytes,
+  body: (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append 0x 0x484f4c4f040000000700 : Bytes) (Foundation.Holo.V1.Wire::wireTableRow 0 178 (prim length manifest : Nat)) : Bytes) (Foundation.Holo.V1.Wire::wireTableRow 1 (178 + (prim length manifest : Nat)) (prim length metadata : Nat)) : Bytes) (Foundation.Holo.V1.Wire::wireTableRow 2 ((178 + (prim length manifest : Nat)) + (prim length metadata : Nat)) (prim length directory : Nat)) : Bytes) (Foundation.Holo.V1.Wire::wireTableRow 3 (((178 + (prim length manifest : Nat)) + (prim length metadata : Nat)) + (prim length directory : Nat)) (prim length provenance : Nat)) : Bytes) (Foundation.Holo.V1.Wire::wireTableRow 4 ((((178 + (prim length manifest : Nat)) + (prim length metadata : Nat)) + (prim length directory : Nat)) + (prim length provenance : Nat)) (prim length blob0 : Nat)) : Bytes) (Foundation.Holo.V1.Wire::wireTableRow 5 (((((178 + (prim length manifest : Nat)) + (prim length metadata : Nat)) + (prim length directory : Nat)) + (prim length provenance : Nat)) + (prim length blob0 : Nat)) (prim length blob1 : Nat)) : Bytes) (Foundation.Holo.V1.Wire::wireTableRow 6 ((((((178 + (prim length manifest : Nat)) + (prim length metadata : Nat)) + (prim length directory : Nat)) + (prim length provenance : Nat)) + (prim length blob0 : Nat)) + (prim length blob1 : Nat)) (prim length blob2 : Nat)) : Bytes) manifest : Bytes) metadata : Bytes) directory : Bytes) provenance : Bytes) blob0 : Bytes) blob1 : Bytes) blob2 : Bytes),
+  axioms: []
+}
+
+definition{
+  name: primaryArchiveBody,
+  parameters: [
+    manifest : Bytes,
+    metadata : Bytes,
+    directory : Bytes,
+    provenance : Bytes,
+    blob0 : Bytes,
+    blob1 : Bytes,
+    blob2 : Bytes
+  ],
+  result: (Option Bytes),
+  body: (match (primaryWirePayloadsValid manifest blob0 blob1 blob2)
+    | Bool.false => (ctor Option.none [Bytes])
+    | Bool.true => (ctor Option.some [Bytes] (primaryWireComposeBodyUnchecked manifest metadata (prim append (prim append 0x (Foundation.Holo.V1.Wire::wireDirectoryPrefix) : Bytes) directory : Bytes) (prim append (prim append 0x (primaryWireProvenancePrefix) : Bytes) provenance : Bytes) blob0 blob1 blob2))),
+  axioms: [propext]
+}
+
+definition{
+  name: primaryFrameArchive,
+  parameters: [body : Bytes, footer : Bytes],
+  result: (Option Bytes),
+  body: (match ((primaryValidArchiveBody body) && (((prim length footer : Nat) =? 32) && true))
+    | Bool.false => (ctor Option.none [Bytes])
+    | Bool.true => (ctor Option.some [Bytes] (prim append (prim append 0x body : Bytes) footer : Bytes))),
+  axioms: [propext]
+}
+
+definition{
+  name: primaryValidArchiveFrame,
+  parameters: [value : Bytes],
+  result: Bool,
+  body: (match (210 <=? (prim length value : Nat))
+    | Bool.false => false
+    | Bool.true => (primaryValidArchiveBody (Foundation.Holo.V1.Wire::wireSlice value 0 (prim subtract (prim length value : Nat) 32 : Nat)))),
+  axioms: [propext]
+}
+
+definition{
+  name: primaryArchiveBodyBytes,
+  parameters: [value : Bytes],
+  result: (Option Bytes),
+  body: (match (primaryValidArchiveFrame value)
+    | Bool.false => (ctor Option.none [Bytes])
+    | Bool.true => (ctor Option.some [Bytes] (Foundation.Holo.V1.Wire::wireSlice value 0 (prim subtract (prim length value : Nat) 32 : Nat)))),
+  axioms: [propext]
+}
+
+definition{
+  name: primaryArchiveFooter,
+  parameters: [value : Bytes],
+  result: (Option Bytes),
+  body: (match (primaryValidArchiveFrame value)
+    | Bool.false => (ctor Option.none [Bytes])
+    | Bool.true => (ctor Option.some [Bytes] (Foundation.Holo.V1.Wire::wireSlice value (prim subtract (prim length value : Nat) 32 : Nat) 32))),
+  axioms: [propext]
+}
+
+definition{
+  name: primaryArchiveSection,
+  parameters: [value : Bytes, index : Nat],
+  result: (Option Bytes),
+  body: (match ((primaryValidArchiveFrame value) && ((index <? 7) && true))
+    | Bool.false => (ctor Option.none [Bytes])
+    | Bool.true => (ctor Option.some [Bytes] (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked value index))),
+  axioms: [propext]
+}
+
+definition{
+  name: primaryArchiveExtension,
+  parameters: [value : Bytes, index : Nat],
+  result: (Option Bytes),
+  body: (match ((primaryValidArchiveFrame value) && ((index <? 2) && true))
+    | Bool.false => (ctor Option.none [Bytes])
+    | Bool.true => (match (index =? 0)
+      | Bool.false => (ctor Option.some [Bytes] (Foundation.Holo.V1.Wire::wireSlice (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked value (index + 2)) (prim length (primaryWireProvenancePrefix) : Nat) (prim subtract (prim length (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked value (index + 2)) : Nat) (prim length (primaryWireProvenancePrefix) : Nat) : Nat)))
+      | Bool.true => (ctor Option.some [Bytes] (Foundation.Holo.V1.Wire::wireSlice (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked value (index + 2)) (prim length (Foundation.Holo.V1.Wire::wireDirectoryPrefix) : Nat) (prim subtract (prim length (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked value (index + 2)) : Nat) (prim length (Foundation.Holo.V1.Wire::wireDirectoryPrefix) : Nat) : Nat))))),
+  axioms: [propext]
+}
+\end{semanticmodule}
+\end{lexlean}

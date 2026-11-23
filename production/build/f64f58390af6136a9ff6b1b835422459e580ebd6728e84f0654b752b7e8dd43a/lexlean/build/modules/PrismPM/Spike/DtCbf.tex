@@ -1,0 +1,28 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\begin{document}
+\section*{Semantic declarations}
+\subsection*{\texttt{DtCbfState}}
+\noindent Kind: \texttt{structure}.\par
+\noindent Field \texttt{hScaled}: \texttt{Nat}.\par
+\noindent Field \texttt{hNextScaled}: \texttt{Nat}.\par
+\noindent Field \texttt{mInterScaled}: \texttt{Nat}.\par
+\noindent Field \texttt{gammaNum}: \texttt{Nat}.\par
+\noindent Field \texttt{gammaDen}: \texttt{Nat}.\par
+\subsection*{\texttt{defaultDtCbfState}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Type: \texttt{DtCbfState}.\par
+\noindent Definition: \texttt{(\{ hScaled := 800, hNextScaled := 410, mInterScaled := 10, gammaNum := 1, gammaDen := 2 \} : DtCbfState)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{dtCbfHolds}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(s : DtCbfState)}.\par
+\noindent Type: \texttt{Bool}.\par
+\noindent Definition: \texttt{(Nat.ble (((LexLeanRuntime.multiply ((LexLeanRuntime.subtract ((s).gammaDen) ((s).gammaNum) : Nat)) ((s).hScaled) : Nat) + (LexLeanRuntime.multiply ((s).gammaDen) ((s).mInterScaled) : Nat))) ((LexLeanRuntime.multiply ((s).gammaDen) ((s).hNextScaled) : Nat)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{dt\_cbf\_forward\_invariant}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{(dtCbfHolds (defaultDtCbfState) = true)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\end{document}

@@ -1,0 +1,164 @@
+\begin{lexlean}{Foundation.Browser.Application.V1.AccountGenesisWire}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Browser.Application.V1.AccountGenesis}
+\importmodule{Foundation.Browser.Application.V1.EffectsWire}
+\importmodule{Foundation.Codec.Cbor.V1.Primitive}
+\title{Browser account genesis wire format}
+\begin{semanticmodule}
+structure{
+  name: AccountGenesisRead,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.AccountGenesis::AccountGenesis},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: writeAccountGenesis,
+  parameters: [value : Foundation.Browser.Application.V1.AccountGenesis::AccountGenesis],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x8401)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value namespace))) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value nonce))) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value initialKey))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readAccountGenesis,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result AccountGenesisRead Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 4)
+    | Result.error wireCause => (ctor Result.error [AccountGenesisRead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match ((project array count) =? 4)
+      | Bool.false => (ctor Result.error [AccountGenesisRead, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project array cursor))
+        | Result.error wireCause => (ctor Result.error [AccountGenesisRead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok version => (match ((project version value) =? 1)
+          | Bool.false => (ctor Result.error [AccountGenesisRead, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project version cursor) 32)
+            | Result.error wireCause => (ctor Result.error [AccountGenesisRead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok namespace => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project namespace cursor) 32)
+              | Result.error wireCause => (ctor Result.error [AccountGenesisRead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok nonce => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project nonce cursor) 65)
+                | Result.error wireCause => (ctor Result.error [AccountGenesisRead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok key => (ctor Result.ok [AccountGenesisRead, Foundation.Codec.Cbor.V1.Primitive::CborError] (record AccountGenesisRead {value := (record Foundation.Browser.Application.V1.AccountGenesis::AccountGenesis {namespace := (project namespace value), nonce := (project nonce value), initialKey := (project key value)}), cursor := (project key cursor)}))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: accountGenesisFailure,
+  parameters: [cause : Foundation.Browser.Application.V1.AccountGenesis::AccountGenesisError],
+  result: Bytes,
+  body: (match cause
+    | Foundation.Browser.Application.V1.AccountGenesis::AccountGenesisError.BadNamespace => 0x83010100
+    | Foundation.Browser.Application.V1.AccountGenesis::AccountGenesisError.BadNonce => 0x83010101
+    | Foundation.Browser.Application.V1.AccountGenesis::AccountGenesisError.BadKey => 0x83010102
+    | Foundation.Browser.Application.V1.AccountGenesis::AccountGenesisError.NamespaceMismatch => 0x83010103
+    | Foundation.Browser.Application.V1.AccountGenesis::AccountGenesisError.UnexpectedOperation => 0x83010104),
+  axioms: []
+}
+
+definition{
+  name: accountGenesisProjection,
+  parameters: [value : Foundation.Browser.Application.V1.AccountGenesis::AccountGenesis],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (writeAccountGenesis value)
+    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok canonical => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x84)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value namespace))) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value initialKey))) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes canonical)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (prim append (Foundation.Browser.Application.V1.AccountGenesis::accountGenesisDomain) canonical : Bytes)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: accountGenesisResponse,
+  parameters: [
+    operation : Nat,
+    expected : Bytes,
+    value : Foundation.Browser.Application.V1.AccountGenesis::AccountGenesis
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.AccountGenesis::validateAccountGenesis value)
+    | Result.error cause => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (accountGenesisFailure cause))
+    | Result.ok valid => (match (operation =? 0)
+      | Bool.false => (match (operation =? 1)
+        | Bool.false => (match (operation =? 2)
+          | Bool.false => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (accountGenesisFailure (ctor Foundation.Browser.Application.V1.AccountGenesis::AccountGenesisError.UnexpectedOperation)))
+          | Bool.true => (match (Foundation.Browser.Application.V1.AccountGenesis::matchAccountGenesisNamespace expected value)
+            | Result.error cause => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (accountGenesisFailure cause))
+            | Result.ok matches => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x830100) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBool matches))))
+        | Bool.true => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x830100) (accountGenesisProjection value)))
+      | Bool.true => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x830100) (writeAccountGenesis value)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: finishAccountGenesis,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat,
+    operation : Nat,
+    expected : Bytes
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (readAccountGenesis input cursor)
+    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok genesis => (match ((project genesis cursor) =? (prim length (project input bytes) : Nat))
+      | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+      | Bool.true => (accountGenesisResponse operation expected (project genesis value)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: dispatchAccountGenesis,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat,
+    operation : Nat,
+    count : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (operation =? 2)
+    | Bool.false => (match (count =? 3)
+      | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (finishAccountGenesis input cursor operation 0x))
+    | Bool.true => (match (count =? 4)
+      | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input cursor 32)
+        | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok expected => (finishAccountGenesis input (project expected cursor) operation (project expected value))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readAccountGenesisRequest,
+  parameters: [input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input 0 4)
+    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok outer => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project outer cursor))
+      | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok version => (match ((project version value) =? 1)
+        | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+        | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project version cursor))
+          | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok operation => (dispatchAccountGenesis input (project operation cursor) (project operation value) (project outer count)))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: accountGenesisWireBytes,
+  parameters: [input : Bytes],
+  result: Bytes,
+  body: (match ((prim length input : Nat) <=? 512)
+    | Bool.false => 0x83010206
+    | Bool.true => (match (readAccountGenesisRequest (record Foundation.Browser.Application.V1.EffectsWire::EffectWireInput {bytes := input}))
+      | Result.error cause => (Foundation.Browser.Application.V1.EffectsWire::effectWireErrorBytes cause)
+      | Result.ok output => output)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+\end{semanticmodule}
+\end{lexlean}

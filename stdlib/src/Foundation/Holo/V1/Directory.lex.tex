@@ -1,0 +1,62 @@
+\begin{lexlean}{Foundation.Holo.V1.Directory}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\title{Hologram application directory}
+\begin{semanticmodule}
+structure{
+  name: DirectoryLayer,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: position, type: UInt32},
+    {name: kind, type: String},
+    {name: contentKappa, type: Bytes},
+    {name: entry, type: String},
+    {name: contract, type: (Option String)},
+    {name: architecture, type: (Option String)},
+    {name: surface, type: (Option String)},
+    {name: engine, type: (Option String)}
+  ]
+}
+
+structure{
+  name: DirectoryChild,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: position, type: UInt32},
+    {name: applicationKappa, type: Bytes},
+    {name: capabilitiesKappa, type: Bytes}
+  ]
+}
+
+structure{
+  name: DirectoryBlob,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: contentKappa, type: Bytes}, {name: byteLength, type: UInt64}]
+}
+
+structure{
+  name: ApplicationDirectory,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: schemaVersion, type: UInt16},
+    {name: primary, type: (Option UInt32)},
+    {name: requiresKappa, type: Bytes},
+    {name: layers, type: (List DirectoryLayer)},
+    {name: children, type: (List DirectoryChild)},
+    {name: blobs, type: (List DirectoryBlob)}
+  ]
+}
+
+definition{
+  name: extensionName,
+  parameters: [],
+  result: String,
+  body: "https://hologram.foundation/extension/application-directory/v1"
+}
+\end{semanticmodule}
+\end{lexlean}

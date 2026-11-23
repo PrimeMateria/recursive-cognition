@@ -1,0 +1,137 @@
+\begin{lexlean}{Foundation.Holo.V1.BrowserWire}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Holo.V1.Wire}
+\title{Hologram browser wire format}
+\begin{semanticmodule}
+definition{
+  name: browserWireManifestSuffix,
+  parameters: [],
+  result: Bytes,
+  body: 0x5b00000000000000020000000008000000686f6c6f5f72756e1a000000686f6c6f6772616d3a67756573742f636f72652d7761736d4031030a000000696e6465782e68746d6c11000000707269736d706d2d62726f777365722f3100000000,
+  axioms: []
+}
+
+definition{
+  name: browserAppManifest,
+  parameters: [requires : Bytes, guest : Bytes, view : Bytes],
+  result: (Option Bytes),
+  body: (if ((Foundation.Holo.V1.Wire::wireKappaLabelValid requires) && ((Foundation.Holo.V1.Wire::wireKappaLabelValid guest) && ((Foundation.Holo.V1.Wire::wireKappaLabelValid view) && true))) then (ctor Option.some [Bytes] (prim append (prim append (prim append (prim append (prim append 0x (Foundation.Holo.V1.Wire::wireManifestPrefix) : Bytes) requires : Bytes) guest : Bytes) view : Bytes) (browserWireManifestSuffix) : Bytes)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: browserValidAppManifest,
+  parameters: [value : Bytes],
+  result: Bool,
+  body: (((prim length value : Nat) =? 365) && ((Foundation.Holo.V1.Wire::wireWindowEquals value 0 57 (Foundation.Holo.V1.Wire::wireManifestPrefix)) && ((Foundation.Holo.V1.Wire::wireWindowEquals value 270 95 (browserWireManifestSuffix)) && ((Foundation.Holo.V1.Wire::wireKappaLabelValid (Foundation.Holo.V1.Wire::wireSlice value 57 71)) && ((Foundation.Holo.V1.Wire::wireKappaLabelValid (Foundation.Holo.V1.Wire::wireSlice value 128 71)) && ((Foundation.Holo.V1.Wire::wireKappaLabelValid (Foundation.Holo.V1.Wire::wireSlice value 199 71)) && true)))))),
+  axioms: [propext]
+}
+
+definition{
+  name: browserManifestReference,
+  parameters: [value : Bytes, index : Nat],
+  result: (Option Bytes),
+  body: (if ((browserValidAppManifest value) && ((index <? 3) && true)) then (ctor Option.some [Bytes] (Foundation.Holo.V1.Wire::wireSlice value (57 + (prim multiply index 71 : Nat)) 71)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: browserWireProvenancePrefix,
+  parameters: [],
+  result: Bytes,
+  body: (prim append (Foundation.Holo.V1.Wire::wireEncodeLe16 51) 0x68747470733a2f2f756f722e666f756e646174696f6e2f657874656e73696f6e2f707269736d706d2d62726f777365722f7631 : Bytes),
+  axioms: []
+}
+
+definition{
+  name: browserWirePayloadsValid,
+  parameters: [manifest : Bytes, blob0 : Bytes, blob1 : Bytes, blob2 : Bytes, blob3 : Bytes],
+  result: Bool,
+  body: ((browserValidAppManifest manifest) && ((Foundation.Holo.V1.Wire::wireBlobsValid blob0 blob1 blob2 blob3) && ((Foundation.Holo.V1.Wire::wireCapabilitiesPresent (Foundation.Holo.V1.Wire::wireSlice manifest 57 71) blob0 blob1 blob2 blob3) && ((Foundation.Holo.V1.Wire::wireReferencePresent (Foundation.Holo.V1.Wire::wireSlice manifest 128 71) blob0 blob1 blob2 blob3) && ((Foundation.Holo.V1.Wire::wireReferencePresent (Foundation.Holo.V1.Wire::wireSlice manifest 199 71) blob0 blob1 blob2 blob3) && true))))),
+  axioms: [propext]
+}
+
+definition{
+  name: browserWireBodyPayloadsValid,
+  parameters: [body : Bytes],
+  result: Bool,
+  body: ((Foundation.Holo.V1.Wire::wireWindowEquals (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked body 2) 0 (prim length (Foundation.Holo.V1.Wire::wireDirectoryPrefix) : Nat) (Foundation.Holo.V1.Wire::wireDirectoryPrefix)) && ((Foundation.Holo.V1.Wire::wireWindowEquals (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked body 3) 0 (prim length (browserWireProvenancePrefix) : Nat) (browserWireProvenancePrefix)) && ((browserWirePayloadsValid (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked body 0) (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked body 4) (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked body 5) (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked body 6) (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked body 7)) && true))),
+  axioms: [propext]
+}
+
+definition{
+  name: browserValidArchiveBody,
+  parameters: [body : Bytes],
+  result: Bool,
+  body: (if (Foundation.Holo.V1.Wire::validCanonicalArchiveBody body) then (if ((202 <=? (prim length body : Nat)) && ((Foundation.Holo.V1.Wire::wireWindowEquals body 0 10 0x484f4c4f040000000800) && true)) then (if (Foundation.Holo.V1.Wire::wireRowsValid body 0 202 8) then (browserWireBodyPayloadsValid body) else false) else false) else false),
+  axioms: [propext]
+}
+
+definition{
+  name: browserArchiveBody,
+  parameters: [
+    manifest : Bytes,
+    metadata : Bytes,
+    directory : Bytes,
+    provenance : Bytes,
+    blob0 : Bytes,
+    blob1 : Bytes,
+    blob2 : Bytes,
+    blob3 : Bytes
+  ],
+  result: (Option Bytes),
+  body: (if (browserWirePayloadsValid manifest blob0 blob1 blob2 blob3) then (Foundation.Holo.V1.Wire::wireCheckedCanonicalBody (Foundation.Holo.V1.Wire::wireComposeBodyUnchecked manifest metadata (prim append (prim append 0x (Foundation.Holo.V1.Wire::wireDirectoryPrefix) : Bytes) directory : Bytes) (prim append (prim append 0x (browserWireProvenancePrefix) : Bytes) provenance : Bytes) blob0 blob1 blob2 blob3)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: browserFrameArchive,
+  parameters: [body : Bytes, footer : Bytes],
+  result: (Option Bytes),
+  body: (if ((browserValidArchiveBody body) && (((prim length footer : Nat) =? 32) && true)) then (ctor Option.some [Bytes] (prim append (prim append 0x body : Bytes) footer : Bytes)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: browserValidArchiveFrame,
+  parameters: [value : Bytes],
+  result: Bool,
+  body: (if (234 <=? (prim length value : Nat)) then (browserValidArchiveBody (Foundation.Holo.V1.Wire::wireSlice value 0 (prim subtract (prim length value : Nat) 32 : Nat))) else false),
+  axioms: [propext]
+}
+
+definition{
+  name: browserArchiveBodyBytes,
+  parameters: [value : Bytes],
+  result: (Option Bytes),
+  body: (if (browserValidArchiveFrame value) then (ctor Option.some [Bytes] (Foundation.Holo.V1.Wire::wireSlice value 0 (prim subtract (prim length value : Nat) 32 : Nat))) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: browserArchiveFooter,
+  parameters: [value : Bytes],
+  result: (Option Bytes),
+  body: (if (browserValidArchiveFrame value) then (ctor Option.some [Bytes] (Foundation.Holo.V1.Wire::wireSlice value (prim subtract (prim length value : Nat) 32 : Nat) 32)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: browserArchiveSection,
+  parameters: [value : Bytes, index : Nat],
+  result: (Option Bytes),
+  body: (if ((browserValidArchiveFrame value) && ((index <? 8) && true)) then (ctor Option.some [Bytes] (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked value index)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: browserArchiveExtension,
+  parameters: [value : Bytes, index : Nat],
+  result: (Option Bytes),
+  body: (if ((browserValidArchiveFrame value) && ((index <? 2) && true)) then (if (index =? 0) then (ctor Option.some [Bytes] (Foundation.Holo.V1.Wire::wireSlice (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked value (index + 2)) (prim length (Foundation.Holo.V1.Wire::wireDirectoryPrefix) : Nat) (prim subtract (prim length (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked value (index + 2)) : Nat) (prim length (Foundation.Holo.V1.Wire::wireDirectoryPrefix) : Nat) : Nat))) else (ctor Option.some [Bytes] (Foundation.Holo.V1.Wire::wireSlice (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked value (index + 2)) (prim length (browserWireProvenancePrefix) : Nat) (prim subtract (prim length (Foundation.Holo.V1.Wire::wireSectionBytesUnchecked value (index + 2)) : Nat) (prim length (browserWireProvenancePrefix) : Nat) : Nat)))) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+\end{semanticmodule}
+\end{lexlean}

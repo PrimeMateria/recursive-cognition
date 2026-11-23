@@ -1,0 +1,421 @@
+\begin{lexlean}{Foundation.Browser.Application.V1.SessionJournalRetention}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Browser.Application.V1.Effects}
+\importmodule{Foundation.Bytes}
+\title{Browser session journal retention}
+\begin{semanticmodule}
+structure{
+  name: SessionRetentionRoot,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: name, type: String}, {name: head, type: Bytes}, {name: refs, type: (List Bytes)}]
+}
+
+structure{
+  name: SessionRetentionSnapshot,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: version, type: Nat},
+    {name: revision, type: Nat},
+    {name: objects, type: (List Bytes)},
+    {name: roots, type: (List SessionRetentionRoot)}
+  ]
+}
+
+structure{
+  name: SessionRetentionReplacement,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: name, type: String},
+    {name: expected, type: (Option Bytes)},
+    {name: head, type: Bytes},
+    {name: refs, type: (List Bytes)}
+  ]
+}
+
+structure{
+  name: SessionRetentionReferenceSet,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: values, type: (List Bytes)}]
+}
+
+structure{
+  name: SessionRetentionRootSet,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: values, type: (List SessionRetentionRoot)}]
+}
+
+inductive{
+  name: SessionRetentionError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: BadSnapshot, fields: []},
+    {name: BadReplacement, fields: []},
+    {name: BadAdditions, fields: []},
+    {name: BadRetirement, fields: []},
+    {name: ExpectedHeadMismatch, fields: []},
+    {name: MissingRetirement, fields: []},
+    {name: AdditionRetirementOverlap, fields: []},
+    {name: ProtectedOrMissingObject, fields: []},
+    {name: ObjectLimit, fields: []},
+    {name: RootLimit, fields: []},
+    {name: RevisionExhausted, fields: []},
+    {name: InternalBudget, fields: []}
+  ]
+}
+
+definition{
+  name: retentionBytesLess,
+  parameters: [left : Bytes, right : Bytes],
+  result: Bool,
+  body: (prim equal (prim compare_bytes left right : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool),
+  axioms: [propext]
+}
+
+definition{
+  name: retentionNameLess,
+  parameters: [left : String, right : String],
+  result: Bool,
+  body: (retentionBytesLess (prim utf8_encode left : Bytes) (prim utf8_encode right : Bytes)),
+  axioms: [propext]
+}
+
+definition{
+  name: retentionRefsOrderedTree,
+  parameters: [refs : (List Bytes), start : Nat, count : Nat, prior : (Option Bytes), depth : Nat],
+  result: Bool,
+  body: (match depth
+    | Nat.zero => false
+    | Nat.succ depthPrior => (match (count =? 0)
+      | Bool.false => (match (count =? 1)
+        | Bool.false => (match (prim index refs (prim subtract (start + (prim quotient count 2 0 : Nat)) 1 : Nat) : (Option Bytes))
+          | Option.none => false
+          | Option.some boundary => ((retentionRefsOrderedTree refs start (prim quotient count 2 0 : Nat) prior depthPrior) && ((retentionRefsOrderedTree refs (start + (prim quotient count 2 0 : Nat)) (prim subtract count (prim quotient count 2 0 : Nat) : Nat) (ctor Option.some [Bytes] boundary) depthPrior) && true)))
+        | Bool.true => (match (prim index refs start : (Option Bytes))
+          | Option.none => false
+          | Option.some head => (((prim length head : Nat) =? 32) && ((match prior
+            | Option.none => true
+            | Option.some before => (retentionBytesLess before head)) && true))))
+      | Bool.true => true)),
+  axioms: [propext],
+  recursive_argument: depth
+}
+
+definition{
+  name: retentionRefsOrdered,
+  parameters: [refs : (List Bytes), prior : (Option Bytes), remaining : Nat],
+  result: Bool,
+  body: (((prim length refs : Nat) <=? remaining) && ((retentionRefsOrderedTree refs 0 (prim length refs : Nat) prior ((prim length refs : Nat) + 1)) && true)),
+  axioms: [propext]
+}
+
+definition{
+  name: retentionRefsValid,
+  parameters: [refs : (List Bytes), maximum : Nat],
+  result: Bool,
+  body: (retentionRefsOrdered refs (ctor Option.none [Bytes]) maximum),
+  axioms: [propext]
+}
+
+definition{
+  name: retentionSubsetAt,
+  parameters: [wanted : (List Bytes), available : (List Bytes), fuel : Nat],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => false
+    | Nat.succ remaining => (match wanted
+      | List.nil => true
+      | List.cons wantedHead wantedTail => (match available
+        | List.nil => false
+        | List.cons availableHead availableTail => (match (prim equal wantedHead availableHead : Bool)
+          | Bool.false => (match (retentionBytesLess wantedHead availableHead)
+            | Bool.false => (retentionSubsetAt wanted availableTail remaining)
+            | Bool.true => false)
+          | Bool.true => (retentionSubsetAt wantedTail availableTail remaining))))),
+  axioms: [propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: retentionSubset,
+  parameters: [wanted : (List Bytes), available : (List Bytes)],
+  result: Bool,
+  body: (retentionSubsetAt wanted available (((prim length wanted : Nat) + (prim length available : Nat)) + 1)),
+  axioms: [propext]
+}
+
+definition{
+  name: retentionDisjointAt,
+  parameters: [left : (List Bytes), right : (List Bytes), fuel : Nat],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => false
+    | Nat.succ remaining => (match left
+      | List.nil => true
+      | List.cons leftHead leftTail => (match right
+        | List.nil => true
+        | List.cons rightHead rightTail => ((not (prim equal leftHead rightHead : Bool)) && ((match (retentionBytesLess leftHead rightHead)
+          | Bool.false => (retentionDisjointAt left rightTail remaining)
+          | Bool.true => (retentionDisjointAt leftTail right remaining)) && true))))),
+  axioms: [propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: retentionDisjoint,
+  parameters: [left : (List Bytes), right : (List Bytes)],
+  result: Bool,
+  body: (retentionDisjointAt left right (((prim length left : Nat) + (prim length right : Nat)) + 1)),
+  axioms: [propext]
+}
+
+definition{
+  name: retentionRootValid,
+  parameters: [root : SessionRetentionRoot, objects : (List Bytes)],
+  result: Bool,
+  body: ((Foundation.Browser.Application.V1.Effects::effectNameValid (project root name) 0) && (((prim length (project root head) : Nat) =? 32) && ((not ((prim length (project root refs) : Nat) =? 0)) && ((retentionRefsValid (project root refs) 4096) && ((retentionSubset (ctor List.cons [Bytes] (project root head) (ctor List.nil [Bytes])) (project root refs)) && ((retentionSubset (project root refs) objects) && true)))))),
+  axioms: [propext]
+}
+
+definition{
+  name: retentionRootsValid,
+  parameters: [
+    roots : (List SessionRetentionRoot),
+    objects : (List Bytes),
+    prior : (Option String),
+    remaining : Nat
+  ],
+  result: Bool,
+  body: (match roots
+    | List.nil => true
+    | List.cons root tail => ((0 <? remaining) && ((retentionRootValid root objects) && ((match prior
+      | Option.none => true
+      | Option.some name => (retentionNameLess name (project root name))) && ((retentionRootsValid tail objects (ctor Option.some [String] (project root name)) (prim subtract remaining 1 : Nat)) && true))))),
+  axioms: [propext],
+  recursive_argument: roots
+}
+
+definition{
+  name: sessionRetentionSnapshotValid,
+  parameters: [snapshot : SessionRetentionSnapshot],
+  result: Bool,
+  body: (((project snapshot version) =? 1) && (((project snapshot revision) <=? 4294967295) && ((retentionRefsValid (project snapshot objects) 4096) && ((retentionRootsValid (project snapshot roots) (project snapshot objects) (ctor Option.none [String]) 64) && true)))),
+  axioms: [propext]
+}
+
+definition{
+  name: retentionReplacementValid,
+  parameters: [value : SessionRetentionReplacement],
+  result: Bool,
+  body: ((Foundation.Browser.Application.V1.Effects::effectNameValid (project value name) 0) && ((match (project value expected)
+    | Option.none => true
+    | Option.some expected => ((prim length expected : Nat) =? 32)) && (((prim length (project value head) : Nat) =? 32) && ((not ((prim length (project value refs) : Nat) =? 0)) && ((retentionRefsValid (project value refs) 4096) && ((retentionSubset (ctor List.cons [Bytes] (project value head) (ctor List.nil [Bytes])) (project value refs)) && true)))))),
+  axioms: [propext]
+}
+
+definition{
+  name: retentionOptionalReplacementValid,
+  parameters: [value : (Option SessionRetentionReplacement)],
+  result: Bool,
+  body: (match value
+    | Option.none => true
+    | Option.some replacement => (retentionReplacementValid replacement)),
+  axioms: [propext]
+}
+
+definition{
+  name: retentionFindRoot,
+  parameters: [roots : (List SessionRetentionRoot), name : String],
+  result: (Option SessionRetentionRoot),
+  body: (match roots
+    | List.nil => (ctor Option.none [SessionRetentionRoot])
+    | List.cons root tail => (match (prim equal (project root name) name : Bool)
+      | Bool.false => (retentionFindRoot tail name)
+      | Bool.true => (ctor Option.some [SessionRetentionRoot] root))),
+  axioms: [],
+  recursive_argument: roots
+}
+
+definition{
+  name: retentionExpectedHeadFits,
+  parameters: [
+    snapshot : SessionRetentionSnapshot,
+    replacement : (Option SessionRetentionReplacement)
+  ],
+  result: Bool,
+  body: (match replacement
+    | Option.none => true
+    | Option.some value => (match (retentionFindRoot (project snapshot roots) (project value name))
+      | Option.none => (match (project value expected)
+        | Option.none => true
+        | Option.some unused => false)
+      | Option.some root => (match (project value expected)
+        | Option.none => false
+        | Option.some expected => (prim equal expected (project root head) : Bool)))),
+  axioms: []
+}
+
+definition{
+  name: retentionInsertRefTree,
+  parameters: [objects : (List Bytes), value : Bytes, depth : Nat],
+  result: SessionRetentionReferenceSet,
+  body: (match depth
+    | Nat.zero => (record SessionRetentionReferenceSet {values := (ctor List.nil [Bytes])})
+    | Nat.succ prior => (match objects
+      | List.nil => (record SessionRetentionReferenceSet {values := (ctor List.cons [Bytes] value (ctor List.nil [Bytes]))})
+      | List.cons head tail => (match tail
+        | List.nil => (record SessionRetentionReferenceSet {values := (match (prim equal value head : Bool)
+          | Bool.false => (match (retentionBytesLess value head)
+            | Bool.false => (ctor List.cons [Bytes] head (ctor List.cons [Bytes] value (ctor List.nil [Bytes])))
+            | Bool.true => (ctor List.cons [Bytes] value (ctor List.cons [Bytes] head (ctor List.nil [Bytes]))))
+          | Bool.true => (ctor List.cons [Bytes] head (ctor List.nil [Bytes])))})
+        | List.cons unusedHead unusedTail => (match (prim slice objects 0 (prim quotient (prim length objects : Nat) 2 0 : Nat) : (Option (List Bytes)))
+          | Option.none => (record SessionRetentionReferenceSet {values := (ctor List.nil [Bytes])})
+          | Option.some left => (match (prim slice objects (prim quotient (prim length objects : Nat) 2 0 : Nat) (prim subtract (prim length objects : Nat) (prim quotient (prim length objects : Nat) 2 0 : Nat) : Nat) : (Option (List Bytes)))
+            | Option.none => (record SessionRetentionReferenceSet {values := (ctor List.nil [Bytes])})
+            | Option.some right => (match (prim index left (prim subtract (prim length left : Nat) 1 : Nat) : (Option Bytes))
+              | Option.none => (record SessionRetentionReferenceSet {values := (ctor List.nil [Bytes])})
+              | Option.some boundary => (record SessionRetentionReferenceSet {values := (match ((prim equal value boundary : Bool) || ((retentionBytesLess value boundary) || false))
+                | Bool.false => (prim append left (project (retentionInsertRefTree right value prior) values) : (List Bytes))
+                | Bool.true => (prim append (project (retentionInsertRefTree left value prior) values) right : (List Bytes)))}))))))),
+  axioms: [propext],
+  recursive_argument: depth
+}
+
+definition{
+  name: retentionInsertRef,
+  parameters: [objects : (List Bytes), value : Bytes],
+  result: SessionRetentionReferenceSet,
+  body: (retentionInsertRefTree objects value ((prim length objects : Nat) + 1)),
+  axioms: [propext]
+}
+
+definition{
+  name: retentionUnion,
+  parameters: [objects : (List Bytes), additions : (List Bytes)],
+  result: SessionRetentionReferenceSet,
+  body: (match additions
+    | List.nil => (record SessionRetentionReferenceSet {values := objects})
+    | List.cons head tail => (retentionUnion (project (retentionInsertRef objects head) values) tail)),
+  axioms: [propext],
+  recursive_argument: additions
+}
+
+definition{
+  name: retentionDifferenceAt,
+  parameters: [objects : (List Bytes), retire : (List Bytes), fuel : Nat],
+  result: (Option (List Bytes)),
+  body: (match fuel
+    | Nat.zero => (ctor Option.none [(List Bytes)])
+    | Nat.succ remaining => (match objects
+      | List.nil => (ctor Option.some [(List Bytes)] (ctor List.nil [Bytes]))
+      | List.cons head tail => (match tail
+        | List.nil => (ctor Option.some [(List Bytes)] (match (retentionSubset (ctor List.cons [Bytes] head (ctor List.nil [Bytes])) retire)
+          | Bool.false => (ctor List.cons [Bytes] head (ctor List.nil [Bytes]))
+          | Bool.true => (ctor List.nil [Bytes])))
+        | List.cons unusedHead unusedTail => (match (prim slice objects 0 (prim quotient (prim length objects : Nat) 2 0 : Nat) : (Option (List Bytes)))
+          | Option.none => (ctor Option.none [(List Bytes)])
+          | Option.some left => (match (prim slice objects (prim quotient (prim length objects : Nat) 2 0 : Nat) (prim subtract (prim length objects : Nat) (prim quotient (prim length objects : Nat) 2 0 : Nat) : Nat) : (Option (List Bytes)))
+            | Option.none => (ctor Option.none [(List Bytes)])
+            | Option.some right => (match (retentionDifferenceAt left retire remaining)
+              | Option.none => (ctor Option.none [(List Bytes)])
+              | Option.some keptLeft => (match (retentionDifferenceAt right retire remaining)
+                | Option.none => (ctor Option.none [(List Bytes)])
+                | Option.some keptRight => (ctor Option.some [(List Bytes)] (prim append keptLeft keptRight : (List Bytes)))))))))),
+  axioms: [propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: retentionDifference,
+  parameters: [objects : (List Bytes), retire : (List Bytes)],
+  result: (Option (List Bytes)),
+  body: (retentionDifferenceAt objects retire (((prim length objects : Nat) + (prim length retire : Nat)) + 1)),
+  axioms: [propext]
+}
+
+definition{
+  name: retentionPutRoot,
+  parameters: [roots : (List SessionRetentionRoot), value : SessionRetentionRoot],
+  result: SessionRetentionRootSet,
+  body: (match roots
+    | List.nil => (record SessionRetentionRootSet {values := (ctor List.cons [SessionRetentionRoot] value (ctor List.nil [SessionRetentionRoot]))})
+    | List.cons head tail => (record SessionRetentionRootSet {values := (match (prim equal (project value name) (project head name) : Bool)
+      | Bool.false => (match (retentionNameLess (project value name) (project head name))
+        | Bool.false => (ctor List.cons [SessionRetentionRoot] head (project (retentionPutRoot tail value) values))
+        | Bool.true => (ctor List.cons [SessionRetentionRoot] value (ctor List.cons [SessionRetentionRoot] head tail)))
+      | Bool.true => (ctor List.cons [SessionRetentionRoot] value tail))})),
+  axioms: [propext],
+  recursive_argument: roots
+}
+
+definition{
+  name: retentionAfterRoots,
+  parameters: [
+    snapshot : SessionRetentionSnapshot,
+    replacement : (Option SessionRetentionReplacement)
+  ],
+  result: SessionRetentionRootSet,
+  body: (match replacement
+    | Option.none => (record SessionRetentionRootSet {values := (project snapshot roots)})
+    | Option.some value => (retentionPutRoot (project snapshot roots) (record SessionRetentionRoot {name := (project value name), head := (project value head), refs := (project value refs)}))),
+  axioms: [propext]
+}
+
+definition{
+  name: retentionFinalize,
+  parameters: [
+    snapshot : SessionRetentionSnapshot,
+    objects : (List Bytes),
+    roots : (List SessionRetentionRoot)
+  ],
+  result: (Result SessionRetentionSnapshot SessionRetentionError),
+  body: (match ((prim length objects : Nat) <=? 4096)
+    | Bool.false => (ctor Result.error [SessionRetentionSnapshot, SessionRetentionError] (ctor SessionRetentionError.ObjectLimit))
+    | Bool.true => (match ((prim length roots : Nat) <=? 64)
+      | Bool.false => (ctor Result.error [SessionRetentionSnapshot, SessionRetentionError] (ctor SessionRetentionError.RootLimit))
+      | Bool.true => (match (retentionRootsValid roots objects (ctor Option.none [String]) 64)
+        | Bool.false => (ctor Result.error [SessionRetentionSnapshot, SessionRetentionError] (ctor SessionRetentionError.ProtectedOrMissingObject))
+        | Bool.true => (ctor Result.ok [SessionRetentionSnapshot, SessionRetentionError] (record SessionRetentionSnapshot {version := 1, revision := ((project snapshot revision) + 1), objects := objects, roots := roots}))))),
+  axioms: [propext]
+}
+
+definition{
+  name: commitSessionRetention,
+  parameters: [
+    snapshot : SessionRetentionSnapshot,
+    replacement : (Option SessionRetentionReplacement),
+    additions : (List Bytes),
+    retire : (List Bytes)
+  ],
+  result: (Result SessionRetentionSnapshot SessionRetentionError),
+  body: (match (sessionRetentionSnapshotValid snapshot)
+    | Bool.false => (ctor Result.error [SessionRetentionSnapshot, SessionRetentionError] (ctor SessionRetentionError.BadSnapshot))
+    | Bool.true => (match (retentionOptionalReplacementValid replacement)
+      | Bool.false => (ctor Result.error [SessionRetentionSnapshot, SessionRetentionError] (ctor SessionRetentionError.BadReplacement))
+      | Bool.true => (match (retentionRefsValid additions 16)
+        | Bool.false => (ctor Result.error [SessionRetentionSnapshot, SessionRetentionError] (ctor SessionRetentionError.BadAdditions))
+        | Bool.true => (match (retentionRefsValid retire 4096)
+          | Bool.false => (ctor Result.error [SessionRetentionSnapshot, SessionRetentionError] (ctor SessionRetentionError.BadRetirement))
+          | Bool.true => (match ((project snapshot revision) <? 4294967295)
+            | Bool.false => (ctor Result.error [SessionRetentionSnapshot, SessionRetentionError] (ctor SessionRetentionError.RevisionExhausted))
+            | Bool.true => (match (retentionExpectedHeadFits snapshot replacement)
+              | Bool.false => (ctor Result.error [SessionRetentionSnapshot, SessionRetentionError] (ctor SessionRetentionError.ExpectedHeadMismatch))
+              | Bool.true => (match (retentionSubset retire (project snapshot objects))
+                | Bool.false => (ctor Result.error [SessionRetentionSnapshot, SessionRetentionError] (ctor SessionRetentionError.MissingRetirement))
+                | Bool.true => (match (retentionDisjoint additions retire)
+                  | Bool.false => (ctor Result.error [SessionRetentionSnapshot, SessionRetentionError] (ctor SessionRetentionError.AdditionRetirementOverlap))
+                  | Bool.true => (match (retentionDifference (project (retentionUnion (project snapshot objects) additions) values) retire)
+                    | Option.none => (ctor Result.error [SessionRetentionSnapshot, SessionRetentionError] (ctor SessionRetentionError.InternalBudget))
+                    | Option.some objects => (retentionFinalize snapshot objects (project (retentionAfterRoots snapshot replacement) values))))))))))),
+  axioms: [propext]
+}
+\end{semanticmodule}
+\end{lexlean}

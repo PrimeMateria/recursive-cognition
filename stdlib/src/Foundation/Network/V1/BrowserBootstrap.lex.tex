@@ -1,0 +1,1069 @@
+\begin{lexlean}{Foundation.Network.V1.BrowserBootstrap}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\title{Browser network bootstrap}
+\begin{semanticmodule}
+inductive{
+  name: BootstrapMode,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: Direct, fields: []}, {name: Relayed, fields: []}]
+}
+
+inductive{
+  name: BootstrapPhase,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Idle, fields: []},
+    {name: Connecting, fields: []},
+    {name: Connected, fields: []},
+    {name: Backoff, fields: []},
+    {name: Closed, fields: []}
+  ]
+}
+
+inductive{
+  name: BootstrapError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: InvalidPolicy, fields: []},
+    {name: InvalidState, fields: []},
+    {name: InvalidRequest, fields: []},
+    {name: WrongBinding, fields: []},
+    {name: StaleRevision, fields: []},
+    {name: ClockRollback, fields: []},
+    {name: InvalidPhase, fields: []},
+    {name: OperatorUnavailable, fields: []},
+    {name: AttemptsExhausted, fields: []},
+    {name: RetryTooEarly, fields: []},
+    {name: ReusedSession, fields: []},
+    {name: ReusedChallenge, fields: []},
+    {name: InvalidConsent, fields: []},
+    {name: ConsentExpired, fields: []},
+    {name: EvidenceMismatch, fields: []},
+    {name: EvidenceExpired, fields: []},
+    {name: InvalidReservation, fields: []},
+    {name: ReservationExpired, fields: []},
+    {name: InvalidChannel, fields: []},
+    {name: MessageLimit, fields: []},
+    {name: CounterExhausted, fields: []},
+    {name: WrongOperator, fields: []},
+    {name: Closed, fields: []}
+  ]
+}
+
+structure{
+  name: BootstrapPolicy,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: profileRef, type: String},
+    {name: policyRef, type: String},
+    {name: signalingOperator, type: String},
+    {name: relayOperator, type: String},
+    {name: disclosureRef, type: String},
+    {name: mode, type: BootstrapMode},
+    {name: publicOperators, type: Bool},
+    {name: secureSignaling, type: Bool},
+    {name: secureRelay, type: Bool},
+    {name: transportOnly, type: Bool},
+    {name: durableStorage, type: Bool},
+    {name: applicationExecution, type: Bool},
+    {name: maxAttempts, type: Nat},
+    {name: retrySeconds, type: Nat},
+    {name: maxLeaseSeconds, type: Nat},
+    {name: maxBytes, type: Nat}
+  ]
+}
+
+structure{
+  name: BootstrapBinding,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: profileRef, type: String},
+    {name: policyRef, type: String},
+    {name: localPeer, type: String},
+    {name: remotePeer, type: String},
+    {name: epoch, type: Nat},
+    {name: attempt, type: Nat},
+    {name: sessionRef, type: String},
+    {name: challengeRef, type: String}
+  ]
+}
+
+structure{
+  name: BootstrapAttempt,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: sessionRef, type: String}, {name: challengeRef, type: String}]
+}
+
+structure{
+  name: BootstrapConsent,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: policyRef, type: String},
+    {name: disclosureRef, type: String},
+    {name: localPeer, type: String},
+    {name: consentRef, type: String},
+    {name: expiresAt, type: Nat},
+    {name: operatorMetadata, type: Bool},
+    {name: peerAddress, type: Bool}
+  ]
+}
+
+structure{
+  name: BootstrapAuthorization,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: binding, type: BootstrapBinding},
+    {name: transcriptRef, type: String},
+    {name: localFingerprint, type: String},
+    {name: remoteFingerprint, type: String},
+    {name: proofRef, type: String},
+    {name: issuedAt, type: Nat},
+    {name: expiresAt, type: Nat}
+  ]
+}
+
+structure{
+  name: BootstrapChannel,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: binding, type: BootstrapBinding},
+    {name: transcriptRef, type: String},
+    {name: localFingerprint, type: String},
+    {name: remoteFingerprint, type: String},
+    {name: mode, type: BootstrapMode},
+    {name: ordered, type: Bool},
+    {name: reliable, type: Bool},
+    {name: encrypted, type: Bool}
+  ]
+}
+
+structure{
+  name: BootstrapReservation,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: binding, type: BootstrapBinding},
+    {name: operatorRef, type: String},
+    {name: transcriptRef, type: String},
+    {name: reservationRef, type: String},
+    {name: expiresAt, type: Nat},
+    {name: byteQuota, type: Nat},
+    {name: publicTransportOnly, type: Bool}
+  ]
+}
+
+structure{
+  name: BootstrapObservation,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: binding, type: BootstrapBinding},
+    {name: revision, type: Nat},
+    {name: now, type: Nat}
+  ]
+}
+
+structure{
+  name: BootstrapState,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: policy, type: BootstrapPolicy},
+    {name: binding, type: BootstrapBinding},
+    {name: revision, type: Nat},
+    {name: lastNow, type: Nat},
+    {name: nextAttemptAt, type: Nat},
+    {name: leaseExpires, type: Nat},
+    {name: authorizationExpires, type: Nat},
+    {name: consentExpires, type: Nat},
+    {name: byteQuota, type: Nat},
+    {name: bytesSent, type: Nat},
+    {name: phase, type: BootstrapPhase},
+    {name: signalAvailable, type: Bool},
+    {name: relayAvailable, type: Bool},
+    {name: consentRef, type: String},
+    {name: transcriptRef, type: String},
+    {name: localFingerprint, type: String},
+    {name: remoteFingerprint, type: String},
+    {name: pendingOperationsRef, type: String},
+    {name: history, type: (List BootstrapAttempt)}
+  ]
+}
+
+inductive{
+  name: BootstrapEvent,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Begin, fields: [BootstrapBinding, BootstrapConsent]},
+    {
+      name: Admit,
+      fields: [BootstrapAuthorization, BootstrapChannel, (Option BootstrapReservation)]
+    },
+    {name: Send, fields: [Nat]},
+    {name: SignalingLost, fields: [String]},
+    {name: RelayLost, fields: [String]},
+    {name: PeerLost, fields: []},
+    {name: OperatorsRestored, fields: [String, String]},
+    {name: Close, fields: []}
+  ]
+}
+
+definition{
+  name: bootstrapReferenceValid,
+  parameters: [value : String],
+  result: Bool,
+  body: ((0 <? (prim length (prim utf8_encode value : Bytes) : Nat)) && (((prim length (prim utf8_encode value : Bytes) : Nat) <=? 128) && true)),
+  axioms: []
+}
+
+definition{
+  name: bootstrapSameMode,
+  parameters: [left : BootstrapMode, right : BootstrapMode],
+  result: Bool,
+  body: (match left
+    | BootstrapMode.Direct => (match right
+      | BootstrapMode.Direct => true
+      | BootstrapMode.Relayed => false)
+    | BootstrapMode.Relayed => (match right
+      | BootstrapMode.Direct => false
+      | BootstrapMode.Relayed => true)),
+  axioms: []
+}
+
+definition{
+  name: bootstrapSamePhase,
+  parameters: [left : BootstrapPhase, right : BootstrapPhase],
+  result: Bool,
+  body: (match left
+    | BootstrapPhase.Idle => (match right
+      | BootstrapPhase.Idle => true
+      | BootstrapPhase.Connecting => false
+      | BootstrapPhase.Connected => false
+      | BootstrapPhase.Backoff => false
+      | BootstrapPhase.Closed => false)
+    | BootstrapPhase.Connecting => (match right
+      | BootstrapPhase.Idle => false
+      | BootstrapPhase.Connecting => true
+      | BootstrapPhase.Connected => false
+      | BootstrapPhase.Backoff => false
+      | BootstrapPhase.Closed => false)
+    | BootstrapPhase.Connected => (match right
+      | BootstrapPhase.Idle => false
+      | BootstrapPhase.Connecting => false
+      | BootstrapPhase.Connected => true
+      | BootstrapPhase.Backoff => false
+      | BootstrapPhase.Closed => false)
+    | BootstrapPhase.Backoff => (match right
+      | BootstrapPhase.Idle => false
+      | BootstrapPhase.Connecting => false
+      | BootstrapPhase.Connected => false
+      | BootstrapPhase.Backoff => true
+      | BootstrapPhase.Closed => false)
+    | BootstrapPhase.Closed => (match right
+      | BootstrapPhase.Idle => false
+      | BootstrapPhase.Connecting => false
+      | BootstrapPhase.Connected => false
+      | BootstrapPhase.Backoff => false
+      | BootstrapPhase.Closed => true)),
+  axioms: []
+}
+
+definition{
+  name: bootstrapSameBinding,
+  parameters: [left : BootstrapBinding, right : BootstrapBinding],
+  result: Bool,
+  body: ((prim equal (project left profileRef) (project right profileRef) : Bool) && ((prim equal (project left policyRef) (project right policyRef) : Bool) && ((prim equal (project left localPeer) (project right localPeer) : Bool) && ((prim equal (project left remotePeer) (project right remotePeer) : Bool) && (((project left epoch) =? (project right epoch)) && (((project left attempt) =? (project right attempt)) && ((prim equal (project left sessionRef) (project right sessionRef) : Bool) && ((prim equal (project left challengeRef) (project right challengeRef) : Bool) && true)))))))),
+  axioms: []
+}
+
+definition{
+  name: bootstrapSamePolicy,
+  parameters: [left : BootstrapPolicy, right : BootstrapPolicy],
+  result: Bool,
+  body: ((prim equal (project left profileRef) (project right profileRef) : Bool) && ((prim equal (project left policyRef) (project right policyRef) : Bool) && ((prim equal (project left signalingOperator) (project right signalingOperator) : Bool) && ((prim equal (project left relayOperator) (project right relayOperator) : Bool) && ((prim equal (project left disclosureRef) (project right disclosureRef) : Bool) && ((bootstrapSameMode (project left mode) (project right mode)) && ((prim equal (project left publicOperators) (project right publicOperators) : Bool) && ((prim equal (project left secureSignaling) (project right secureSignaling) : Bool) && ((prim equal (project left secureRelay) (project right secureRelay) : Bool) && ((prim equal (project left transportOnly) (project right transportOnly) : Bool) && ((prim equal (project left durableStorage) (project right durableStorage) : Bool) && ((prim equal (project left applicationExecution) (project right applicationExecution) : Bool) && (((project left maxAttempts) =? (project right maxAttempts)) && (((project left retrySeconds) =? (project right retrySeconds)) && (((project left maxLeaseSeconds) =? (project right maxLeaseSeconds)) && (((project left maxBytes) =? (project right maxBytes)) && true)))))))))))))))),
+  axioms: []
+}
+
+definition{
+  name: bootstrapPolicyValid,
+  parameters: [policy : BootstrapPolicy],
+  result: Bool,
+  body: ((bootstrapReferenceValid (project policy profileRef)) && ((bootstrapReferenceValid (project policy policyRef)) && ((bootstrapReferenceValid (project policy signalingOperator)) && ((bootstrapReferenceValid (project policy disclosureRef)) && ((project policy publicOperators) && ((project policy secureSignaling) && ((project policy transportOnly) && ((not (project policy durableStorage)) && ((not (project policy applicationExecution)) && ((match (match (project policy mode)
+      | BootstrapMode.Direct => false
+      | BootstrapMode.Relayed => true)
+    | Bool.false => (prim equal (project policy relayOperator) "" : Bool)
+    | Bool.true => ((bootstrapReferenceValid (project policy relayOperator)) && ((project policy secureRelay) && true))) && (((0 <? (project policy maxAttempts)) && (((project policy maxAttempts) <=? 16) && true)) && (((0 <? (project policy retrySeconds)) && (((project policy retrySeconds) <=? 3600) && true)) && (((0 <? (project policy maxLeaseSeconds)) && (((project policy maxLeaseSeconds) <=? 3600) && true)) && (((0 <? (project policy maxBytes)) && (((project policy maxBytes) <=? 1048576) && true)) && true)))))))))))))),
+  axioms: []
+}
+
+definition{
+  name: bootstrapBindingValid,
+  parameters: [binding : BootstrapBinding],
+  result: Bool,
+  body: ((bootstrapReferenceValid (project binding profileRef)) && ((bootstrapReferenceValid (project binding policyRef)) && ((bootstrapReferenceValid (project binding localPeer)) && ((bootstrapReferenceValid (project binding remotePeer)) && ((bootstrapReferenceValid (project binding sessionRef)) && ((bootstrapReferenceValid (project binding challengeRef)) && ((not (prim equal (project binding localPeer) (project binding remotePeer) : Bool)) && (((project binding epoch) <=? 4294967295) && (((project binding attempt) <=? 16) && true))))))))),
+  axioms: []
+}
+
+definition{
+  name: bootstrapSameContext,
+  parameters: [left : BootstrapBinding, right : BootstrapBinding],
+  result: Bool,
+  body: ((prim equal (project left profileRef) (project right profileRef) : Bool) && ((prim equal (project left policyRef) (project right policyRef) : Bool) && ((prim equal (project left localPeer) (project right localPeer) : Bool) && ((prim equal (project left remotePeer) (project right remotePeer) : Bool) && (((project left epoch) =? (project right epoch)) && true))))),
+  axioms: []
+}
+
+definition{
+  name: bootstrapHistoryCount,
+  parameters: [history : (List BootstrapAttempt)],
+  result: Nat,
+  body: (match history
+    | List.nil => 0
+    | List.cons unusedhead tail => (1 + (bootstrapHistoryCount tail))),
+  axioms: [],
+  recursive_argument: history
+}
+
+definition{
+  name: bootstrapUsedSession,
+  parameters: [history : (List BootstrapAttempt), reference : String],
+  result: Bool,
+  body: (match history
+    | List.nil => false
+    | List.cons head tail => ((prim equal (project head sessionRef) reference : Bool) || ((bootstrapUsedSession tail reference) || false))),
+  axioms: [],
+  recursive_argument: history
+}
+
+definition{
+  name: bootstrapUsedChallenge,
+  parameters: [history : (List BootstrapAttempt), reference : String],
+  result: Bool,
+  body: (match history
+    | List.nil => false
+    | List.cons head tail => ((prim equal (project head challengeRef) reference : Bool) || ((bootstrapUsedChallenge tail reference) || false))),
+  axioms: [],
+  recursive_argument: history
+}
+
+definition{
+  name: bootstrapHistoryValid,
+  parameters: [history : (List BootstrapAttempt)],
+  result: Bool,
+  body: (match history
+    | List.nil => true
+    | List.cons head tail => ((bootstrapReferenceValid (project head sessionRef)) && ((bootstrapReferenceValid (project head challengeRef)) && ((not (bootstrapUsedSession tail (project head sessionRef))) && ((not (bootstrapUsedChallenge tail (project head challengeRef))) && ((bootstrapHistoryValid tail) && true)))))),
+  axioms: [],
+  recursive_argument: history
+}
+
+definition{
+  name: bootstrapHistoryCurrent,
+  parameters: [history : (List BootstrapAttempt), binding : BootstrapBinding],
+  result: Bool,
+  body: (match history
+    | List.nil => false
+    | List.cons head unusedtail => ((prim equal (project head sessionRef) (project binding sessionRef) : Bool) && ((prim equal (project head challengeRef) (project binding challengeRef) : Bool) && true))),
+  axioms: []
+}
+
+definition{
+  name: bootstrapStateValid,
+  parameters: [state : BootstrapState],
+  result: Bool,
+  body: ((bootstrapPolicyValid (project state policy)) && ((bootstrapBindingValid (project state binding)) && ((prim equal (project (project state policy) profileRef) (project (project state binding) profileRef) : Bool) && ((prim equal (project (project state policy) policyRef) (project (project state binding) policyRef) : Bool) && (((project (project state binding) attempt) <=? (project (project state policy) maxAttempts)) && ((bootstrapHistoryValid (project state history)) && (((bootstrapHistoryCount (project state history)) =? ((project (project state binding) attempt) + 1)) && ((bootstrapHistoryCurrent (project state history) (project state binding)) && ((bootstrapReferenceValid (project state pendingOperationsRef)) && (((project state revision) <=? 4294967295) && (((project state lastNow) <=? 4294967295) && (((project state nextAttemptAt) <=? 4294967295) && (((project state leaseExpires) <=? 4294967295) && (((project state authorizationExpires) <=? 4294967295) && (((project state consentExpires) <=? 4294967295) && (((project state bytesSent) <=? (project state byteQuota)) && (((project state byteQuota) <=? (project (project state policy) maxBytes)) && ((match (match (project state phase)
+      | BootstrapPhase.Idle => true
+      | BootstrapPhase.Connecting => false
+      | BootstrapPhase.Connected => false
+      | BootstrapPhase.Backoff => false
+      | BootstrapPhase.Closed => false)
+    | Bool.false => true
+    | Bool.true => ((project (project state binding) attempt) =? 0)) && ((match ((match (project state phase)
+      | BootstrapPhase.Idle => false
+      | BootstrapPhase.Connecting => true
+      | BootstrapPhase.Connected => false
+      | BootstrapPhase.Backoff => false
+      | BootstrapPhase.Closed => false) || ((match (project state phase)
+      | BootstrapPhase.Idle => false
+      | BootstrapPhase.Connecting => false
+      | BootstrapPhase.Connected => true
+      | BootstrapPhase.Backoff => false
+      | BootstrapPhase.Closed => false) || false))
+    | Bool.false => true
+    | Bool.true => ((0 <? (project (project state binding) attempt)) && ((bootstrapReferenceValid (project state consentRef)) && true))) && ((match (match (project state phase)
+      | BootstrapPhase.Idle => false
+      | BootstrapPhase.Connecting => false
+      | BootstrapPhase.Connected => true
+      | BootstrapPhase.Backoff => false
+      | BootstrapPhase.Closed => false)
+    | Bool.false => true
+    | Bool.true => ((bootstrapReferenceValid (project state transcriptRef)) && ((bootstrapReferenceValid (project state localFingerprint)) && ((bootstrapReferenceValid (project state remoteFingerprint)) && ((not (prim equal (project state localFingerprint) (project state remoteFingerprint) : Bool)) && ((0 <? (project state byteQuota)) && true)))))) && true)))))))))))))))))))),
+  axioms: []
+}
+
+definition{
+  name: createBrowserBootstrap,
+  parameters: [
+    policy : BootstrapPolicy,
+    binding : BootstrapBinding,
+    pendingOperationsRef : String,
+    now : Nat
+  ],
+  result: (Result BootstrapState BootstrapError),
+  body: (match (bootstrapPolicyValid policy)
+    | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.InvalidPolicy))
+    | Bool.true => (match ((bootstrapBindingValid binding) && (((project binding attempt) =? 0) && ((prim equal (project binding profileRef) (project policy profileRef) : Bool) && ((prim equal (project binding policyRef) (project policy policyRef) : Bool) && ((bootstrapReferenceValid pendingOperationsRef) && ((now <=? 4294967295) && true))))))
+      | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.InvalidRequest))
+      | Bool.true => (ctor Result.ok [BootstrapState, BootstrapError] (record BootstrapState {policy := policy, binding := binding, revision := 0, lastNow := now, nextAttemptAt := now, leaseExpires := 0, authorizationExpires := 0, consentExpires := 0, byteQuota := 0, bytesSent := 0, phase := (ctor BootstrapPhase.Idle), signalAvailable := true, relayAvailable := true, consentRef := "", transcriptRef := "", localFingerprint := "", remoteFingerprint := "", pendingOperationsRef := pendingOperationsRef, history := (cons (record BootstrapAttempt {sessionRef := (project binding sessionRef), challengeRef := (project binding challengeRef)}) (nil BootstrapAttempt))})))),
+  axioms: []
+}
+
+definition{
+  name: bootstrapOperatorsReady,
+  parameters: [state : BootstrapState],
+  result: Bool,
+  body: ((project state signalAvailable) && ((match (match (project (project state policy) mode)
+      | BootstrapMode.Direct => false
+      | BootstrapMode.Relayed => true)
+    | Bool.false => true
+    | Bool.true => (project state relayAvailable)) && true)),
+  axioms: []
+}
+
+definition{
+  name: bootstrapConsentMatches,
+  parameters: [state : BootstrapState, consent : BootstrapConsent],
+  result: Bool,
+  body: ((prim equal (project consent policyRef) (project (project state policy) policyRef) : Bool) && ((prim equal (project consent disclosureRef) (project (project state policy) disclosureRef) : Bool) && ((prim equal (project consent localPeer) (project (project state binding) localPeer) : Bool) && ((bootstrapReferenceValid (project consent consentRef)) && ((project consent operatorMetadata) && ((match (match (project (project state policy) mode)
+      | BootstrapMode.Direct => true
+      | BootstrapMode.Relayed => false)
+    | Bool.false => true
+    | Bool.true => (project consent peerAddress)) && (((project consent expiresAt) <=? 4294967295) && true))))))),
+  axioms: []
+}
+
+definition{
+  name: bootstrapBegin,
+  parameters: [
+    state : BootstrapState,
+    binding : BootstrapBinding,
+    consent : BootstrapConsent,
+    now : Nat
+  ],
+  result: (Result BootstrapState BootstrapError),
+  body: (match ((match (project state phase)
+      | BootstrapPhase.Idle => true
+      | BootstrapPhase.Connecting => false
+      | BootstrapPhase.Connected => false
+      | BootstrapPhase.Backoff => false
+      | BootstrapPhase.Closed => false) || ((match (project state phase)
+      | BootstrapPhase.Idle => false
+      | BootstrapPhase.Connecting => false
+      | BootstrapPhase.Connected => false
+      | BootstrapPhase.Backoff => true
+      | BootstrapPhase.Closed => false) || false))
+    | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.InvalidPhase))
+    | Bool.true => (match (bootstrapOperatorsReady state)
+      | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.OperatorUnavailable))
+      | Bool.true => (match ((project (project state binding) attempt) <? (project (project state policy) maxAttempts))
+        | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.AttemptsExhausted))
+        | Bool.true => (match ((project state nextAttemptAt) <=? now)
+          | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.RetryTooEarly))
+          | Bool.true => (match ((bootstrapBindingValid binding) && ((bootstrapSameContext (project state binding) binding) && (((project binding attempt) =? ((project (project state binding) attempt) + 1)) && true)))
+            | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.WrongBinding))
+            | Bool.true => (match (not (bootstrapUsedSession (project state history) (project binding sessionRef)))
+              | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.ReusedSession))
+              | Bool.true => (match (not (bootstrapUsedChallenge (project state history) (project binding challengeRef)))
+                | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.ReusedChallenge))
+                | Bool.true => (match (bootstrapConsentMatches state consent)
+                  | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.InvalidConsent))
+                  | Bool.true => (match (now <? (project consent expiresAt))
+                    | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.ConsentExpired))
+                    | Bool.true => (match ((prim subtract (project consent expiresAt) now : Nat) <=? (project (project state policy) maxLeaseSeconds))
+                      | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.InvalidConsent))
+                      | Bool.true => (ctor Result.ok [BootstrapState, BootstrapError] (record BootstrapState {policy := (project state policy), binding := binding, revision := (project state revision), lastNow := (project state lastNow), nextAttemptAt := (project state nextAttemptAt), leaseExpires := 0, authorizationExpires := 0, consentExpires := (project consent expiresAt), byteQuota := 0, bytesSent := 0, phase := (ctor BootstrapPhase.Connecting), signalAvailable := (project state signalAvailable), relayAvailable := (project state relayAvailable), consentRef := (project consent consentRef), transcriptRef := "", localFingerprint := "", remoteFingerprint := "", pendingOperationsRef := (project state pendingOperationsRef), history := (cons (record BootstrapAttempt {sessionRef := (project binding sessionRef), challengeRef := (project binding challengeRef)}) (project state history))})))))))))))),
+  axioms: []
+}
+
+definition{
+  name: bootstrapAuthorizationMatches,
+  parameters: [state : BootstrapState, authorization : BootstrapAuthorization],
+  result: Bool,
+  body: ((bootstrapSameBinding (project state binding) (project authorization binding)) && ((bootstrapReferenceValid (project authorization transcriptRef)) && ((bootstrapReferenceValid (project authorization localFingerprint)) && ((bootstrapReferenceValid (project authorization remoteFingerprint)) && ((bootstrapReferenceValid (project authorization proofRef)) && ((not (prim equal (project authorization localFingerprint) (project authorization remoteFingerprint) : Bool)) && (((project authorization issuedAt) <=? 4294967295) && (((project authorization expiresAt) <=? 4294967295) && true)))))))),
+  axioms: []
+}
+
+definition{
+  name: bootstrapChannelMatches,
+  parameters: [
+    state : BootstrapState,
+    authorization : BootstrapAuthorization,
+    channel : BootstrapChannel
+  ],
+  result: Bool,
+  body: ((bootstrapSameBinding (project state binding) (project channel binding)) && ((prim equal (project authorization transcriptRef) (project channel transcriptRef) : Bool) && ((prim equal (project authorization localFingerprint) (project channel localFingerprint) : Bool) && ((prim equal (project authorization remoteFingerprint) (project channel remoteFingerprint) : Bool) && ((bootstrapSameMode (project (project state policy) mode) (project channel mode)) && ((project channel ordered) && ((project channel reliable) && ((project channel encrypted) && true)))))))),
+  axioms: []
+}
+
+definition{
+  name: bootstrapConnected,
+  parameters: [
+    state : BootstrapState,
+    authorization : BootstrapAuthorization,
+    expiresAt : Nat,
+    quota : Nat
+  ],
+  result: BootstrapState,
+  body: (record BootstrapState {policy := (project state policy), binding := (project state binding), revision := (project state revision), lastNow := (project state lastNow), nextAttemptAt := (project state nextAttemptAt), leaseExpires := expiresAt, authorizationExpires := (project authorization expiresAt), consentExpires := (project state consentExpires), byteQuota := quota, bytesSent := 0, phase := (ctor BootstrapPhase.Connected), signalAvailable := (project state signalAvailable), relayAvailable := (project state relayAvailable), consentRef := (project state consentRef), transcriptRef := (project authorization transcriptRef), localFingerprint := (project authorization localFingerprint), remoteFingerprint := (project authorization remoteFingerprint), pendingOperationsRef := (project state pendingOperationsRef), history := (project state history)}),
+  axioms: []
+}
+
+definition{
+  name: bootstrapReservationMatches,
+  parameters: [
+    state : BootstrapState,
+    authorization : BootstrapAuthorization,
+    reservation : BootstrapReservation
+  ],
+  result: Bool,
+  body: ((bootstrapSameBinding (project state binding) (project reservation binding)) && ((prim equal (project reservation operatorRef) (project (project state policy) relayOperator) : Bool) && ((prim equal (project reservation transcriptRef) (project authorization transcriptRef) : Bool) && ((bootstrapReferenceValid (project reservation reservationRef)) && (((project reservation expiresAt) <=? 4294967295) && (((0 <? (project reservation byteQuota)) && (((project reservation byteQuota) <=? (project (project state policy) maxBytes)) && true)) && ((project reservation publicTransportOnly) && true))))))),
+  axioms: []
+}
+
+definition{
+  name: bootstrapAdmit,
+  parameters: [
+    state : BootstrapState,
+    authorization : BootstrapAuthorization,
+    channel : BootstrapChannel,
+    reservation : (Option BootstrapReservation),
+    now : Nat
+  ],
+  result: (Result BootstrapState BootstrapError),
+  body: (match (match (project state phase)
+      | BootstrapPhase.Idle => false
+      | BootstrapPhase.Connecting => true
+      | BootstrapPhase.Connected => false
+      | BootstrapPhase.Backoff => false
+      | BootstrapPhase.Closed => false)
+    | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.InvalidPhase))
+    | Bool.true => (match (bootstrapOperatorsReady state)
+      | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.OperatorUnavailable))
+      | Bool.true => (match (now <? (project state consentExpires))
+        | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.ConsentExpired))
+        | Bool.true => (match (bootstrapAuthorizationMatches state authorization)
+          | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.EvidenceMismatch))
+          | Bool.true => (match (((project authorization issuedAt) <=? now) && ((now <? (project authorization expiresAt)) && true))
+            | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.EvidenceExpired))
+            | Bool.true => (match ((prim subtract (project authorization expiresAt) now : Nat) <=? (project (project state policy) maxLeaseSeconds))
+              | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.EvidenceExpired))
+              | Bool.true => (match (bootstrapChannelMatches state authorization channel)
+                | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.InvalidChannel))
+                | Bool.true => (match (match (project (project state policy) mode)
+                    | BootstrapMode.Direct => true
+                    | BootstrapMode.Relayed => false)
+                  | Bool.false => (match reservation
+                    | Option.none => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.InvalidReservation))
+                    | Option.some lease => (match (bootstrapReservationMatches state authorization lease)
+                      | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.InvalidReservation))
+                      | Bool.true => (match (now <? (project lease expiresAt))
+                        | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.ReservationExpired))
+                        | Bool.true => (match ((prim subtract (project lease expiresAt) now : Nat) <=? (project (project state policy) maxLeaseSeconds))
+                          | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.InvalidReservation))
+                          | Bool.true => (ctor Result.ok [BootstrapState, BootstrapError] (bootstrapConnected state authorization (project lease expiresAt) (project lease byteQuota)))))))
+                  | Bool.true => (match reservation
+                    | Option.none => (ctor Result.ok [BootstrapState, BootstrapError] (bootstrapConnected state authorization (project authorization expiresAt) (project (project state policy) maxBytes)))
+                    | Option.some unusedreservation => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.InvalidReservation))))))))))),
+  axioms: []
+}
+
+definition{
+  name: bootstrapSend,
+  parameters: [state : BootstrapState, byteLength : Nat, now : Nat],
+  result: (Result BootstrapState BootstrapError),
+  body: (match (match (project state phase)
+      | BootstrapPhase.Idle => false
+      | BootstrapPhase.Connecting => false
+      | BootstrapPhase.Connected => true
+      | BootstrapPhase.Backoff => false
+      | BootstrapPhase.Closed => false)
+    | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.InvalidPhase))
+    | Bool.true => (match (match (match (project (project state policy) mode)
+          | BootstrapMode.Direct => false
+          | BootstrapMode.Relayed => true)
+        | Bool.false => true
+        | Bool.true => (project state relayAvailable))
+      | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.OperatorUnavailable))
+      | Bool.true => (match (now <? (project state consentExpires))
+        | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.ConsentExpired))
+        | Bool.true => (match (now <? (project state authorizationExpires))
+          | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.EvidenceExpired))
+          | Bool.true => (match (now <? (project state leaseExpires))
+            | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.ReservationExpired))
+            | Bool.true => (match (((0 <? byteLength) && ((byteLength <=? (project (project state policy) maxBytes)) && true)) && ((byteLength <=? (prim subtract (project state byteQuota) (project state bytesSent) : Nat)) && true))
+              | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.MessageLimit))
+              | Bool.true => (ctor Result.ok [BootstrapState, BootstrapError] (record BootstrapState {policy := (project state policy), binding := (project state binding), revision := (project state revision), lastNow := (project state lastNow), nextAttemptAt := (project state nextAttemptAt), leaseExpires := (project state leaseExpires), authorizationExpires := (project state authorizationExpires), consentExpires := (project state consentExpires), byteQuota := (project state byteQuota), bytesSent := ((project state bytesSent) + byteLength), phase := (project state phase), signalAvailable := (project state signalAvailable), relayAvailable := (project state relayAvailable), consentRef := (project state consentRef), transcriptRef := (project state transcriptRef), localFingerprint := (project state localFingerprint), remoteFingerprint := (project state remoteFingerprint), pendingOperationsRef := (project state pendingOperationsRef), history := (project state history)})))))))),
+  axioms: []
+}
+
+definition{
+  name: bootstrapBackoff,
+  parameters: [state : BootstrapState, now : Nat],
+  result: BootstrapState,
+  body: (record BootstrapState {policy := (project state policy), binding := (project state binding), revision := (project state revision), lastNow := (project state lastNow), nextAttemptAt := (match (now <=? (prim subtract 4294967295 (project (project state policy) retrySeconds) : Nat))
+    | Bool.false => 4294967295
+    | Bool.true => (now + (project (project state policy) retrySeconds))), leaseExpires := (project state leaseExpires), authorizationExpires := (project state authorizationExpires), consentExpires := (project state consentExpires), byteQuota := (project state byteQuota), bytesSent := (project state bytesSent), phase := (ctor BootstrapPhase.Backoff), signalAvailable := (project state signalAvailable), relayAvailable := (project state relayAvailable), consentRef := (project state consentRef), transcriptRef := (project state transcriptRef), localFingerprint := (project state localFingerprint), remoteFingerprint := (project state remoteFingerprint), pendingOperationsRef := (project state pendingOperationsRef), history := (project state history)}),
+  axioms: []
+}
+
+definition{
+  name: bootstrapSignalingLost,
+  parameters: [state : BootstrapState, operatorRef : String, now : Nat],
+  result: (Result BootstrapState BootstrapError),
+  body: (match (prim equal operatorRef (project (project state policy) signalingOperator) : Bool)
+    | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.WrongOperator))
+    | Bool.true => (ctor Result.ok [BootstrapState, BootstrapError] (record BootstrapState {policy := (project (match (match (project state phase)
+        | BootstrapPhase.Idle => false
+        | BootstrapPhase.Connecting => true
+        | BootstrapPhase.Connected => false
+        | BootstrapPhase.Backoff => false
+        | BootstrapPhase.Closed => false)
+      | Bool.false => state
+      | Bool.true => (bootstrapBackoff state now)) policy), binding := (project (match (match (project state phase)
+        | BootstrapPhase.Idle => false
+        | BootstrapPhase.Connecting => true
+        | BootstrapPhase.Connected => false
+        | BootstrapPhase.Backoff => false
+        | BootstrapPhase.Closed => false)
+      | Bool.false => state
+      | Bool.true => (bootstrapBackoff state now)) binding), revision := (project (match (match (project state phase)
+        | BootstrapPhase.Idle => false
+        | BootstrapPhase.Connecting => true
+        | BootstrapPhase.Connected => false
+        | BootstrapPhase.Backoff => false
+        | BootstrapPhase.Closed => false)
+      | Bool.false => state
+      | Bool.true => (bootstrapBackoff state now)) revision), lastNow := (project (match (match (project state phase)
+        | BootstrapPhase.Idle => false
+        | BootstrapPhase.Connecting => true
+        | BootstrapPhase.Connected => false
+        | BootstrapPhase.Backoff => false
+        | BootstrapPhase.Closed => false)
+      | Bool.false => state
+      | Bool.true => (bootstrapBackoff state now)) lastNow), nextAttemptAt := (project (match (match (project state phase)
+        | BootstrapPhase.Idle => false
+        | BootstrapPhase.Connecting => true
+        | BootstrapPhase.Connected => false
+        | BootstrapPhase.Backoff => false
+        | BootstrapPhase.Closed => false)
+      | Bool.false => state
+      | Bool.true => (bootstrapBackoff state now)) nextAttemptAt), leaseExpires := (project (match (match (project state phase)
+        | BootstrapPhase.Idle => false
+        | BootstrapPhase.Connecting => true
+        | BootstrapPhase.Connected => false
+        | BootstrapPhase.Backoff => false
+        | BootstrapPhase.Closed => false)
+      | Bool.false => state
+      | Bool.true => (bootstrapBackoff state now)) leaseExpires), authorizationExpires := (project (match (match (project state phase)
+        | BootstrapPhase.Idle => false
+        | BootstrapPhase.Connecting => true
+        | BootstrapPhase.Connected => false
+        | BootstrapPhase.Backoff => false
+        | BootstrapPhase.Closed => false)
+      | Bool.false => state
+      | Bool.true => (bootstrapBackoff state now)) authorizationExpires), consentExpires := (project (match (match (project state phase)
+        | BootstrapPhase.Idle => false
+        | BootstrapPhase.Connecting => true
+        | BootstrapPhase.Connected => false
+        | BootstrapPhase.Backoff => false
+        | BootstrapPhase.Closed => false)
+      | Bool.false => state
+      | Bool.true => (bootstrapBackoff state now)) consentExpires), byteQuota := (project (match (match (project state phase)
+        | BootstrapPhase.Idle => false
+        | BootstrapPhase.Connecting => true
+        | BootstrapPhase.Connected => false
+        | BootstrapPhase.Backoff => false
+        | BootstrapPhase.Closed => false)
+      | Bool.false => state
+      | Bool.true => (bootstrapBackoff state now)) byteQuota), bytesSent := (project (match (match (project state phase)
+        | BootstrapPhase.Idle => false
+        | BootstrapPhase.Connecting => true
+        | BootstrapPhase.Connected => false
+        | BootstrapPhase.Backoff => false
+        | BootstrapPhase.Closed => false)
+      | Bool.false => state
+      | Bool.true => (bootstrapBackoff state now)) bytesSent), phase := (project (match (match (project state phase)
+        | BootstrapPhase.Idle => false
+        | BootstrapPhase.Connecting => true
+        | BootstrapPhase.Connected => false
+        | BootstrapPhase.Backoff => false
+        | BootstrapPhase.Closed => false)
+      | Bool.false => state
+      | Bool.true => (bootstrapBackoff state now)) phase), signalAvailable := false, relayAvailable := (project (match (match (project state phase)
+        | BootstrapPhase.Idle => false
+        | BootstrapPhase.Connecting => true
+        | BootstrapPhase.Connected => false
+        | BootstrapPhase.Backoff => false
+        | BootstrapPhase.Closed => false)
+      | Bool.false => state
+      | Bool.true => (bootstrapBackoff state now)) relayAvailable), consentRef := (project (match (match (project state phase)
+        | BootstrapPhase.Idle => false
+        | BootstrapPhase.Connecting => true
+        | BootstrapPhase.Connected => false
+        | BootstrapPhase.Backoff => false
+        | BootstrapPhase.Closed => false)
+      | Bool.false => state
+      | Bool.true => (bootstrapBackoff state now)) consentRef), transcriptRef := (project (match (match (project state phase)
+        | BootstrapPhase.Idle => false
+        | BootstrapPhase.Connecting => true
+        | BootstrapPhase.Connected => false
+        | BootstrapPhase.Backoff => false
+        | BootstrapPhase.Closed => false)
+      | Bool.false => state
+      | Bool.true => (bootstrapBackoff state now)) transcriptRef), localFingerprint := (project (match (match (project state phase)
+        | BootstrapPhase.Idle => false
+        | BootstrapPhase.Connecting => true
+        | BootstrapPhase.Connected => false
+        | BootstrapPhase.Backoff => false
+        | BootstrapPhase.Closed => false)
+      | Bool.false => state
+      | Bool.true => (bootstrapBackoff state now)) localFingerprint), remoteFingerprint := (project (match (match (project state phase)
+        | BootstrapPhase.Idle => false
+        | BootstrapPhase.Connecting => true
+        | BootstrapPhase.Connected => false
+        | BootstrapPhase.Backoff => false
+        | BootstrapPhase.Closed => false)
+      | Bool.false => state
+      | Bool.true => (bootstrapBackoff state now)) remoteFingerprint), pendingOperationsRef := (project (match (match (project state phase)
+        | BootstrapPhase.Idle => false
+        | BootstrapPhase.Connecting => true
+        | BootstrapPhase.Connected => false
+        | BootstrapPhase.Backoff => false
+        | BootstrapPhase.Closed => false)
+      | Bool.false => state
+      | Bool.true => (bootstrapBackoff state now)) pendingOperationsRef), history := (project (match (match (project state phase)
+        | BootstrapPhase.Idle => false
+        | BootstrapPhase.Connecting => true
+        | BootstrapPhase.Connected => false
+        | BootstrapPhase.Backoff => false
+        | BootstrapPhase.Closed => false)
+      | Bool.false => state
+      | Bool.true => (bootstrapBackoff state now)) history)}))),
+  axioms: []
+}
+
+definition{
+  name: bootstrapRelayLost,
+  parameters: [state : BootstrapState, operatorRef : String, now : Nat],
+  result: (Result BootstrapState BootstrapError),
+  body: (match (match (project (project state policy) mode)
+      | BootstrapMode.Direct => false
+      | BootstrapMode.Relayed => true)
+    | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.WrongOperator))
+    | Bool.true => (match (prim equal operatorRef (project (project state policy) relayOperator) : Bool)
+      | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.WrongOperator))
+      | Bool.true => (ctor Result.ok [BootstrapState, BootstrapError] (record BootstrapState {policy := (project (match ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => true
+          | BootstrapPhase.Connected => false
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => false
+          | BootstrapPhase.Connected => true
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || false))
+        | Bool.false => state
+        | Bool.true => (bootstrapBackoff state now)) policy), binding := (project (match ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => true
+          | BootstrapPhase.Connected => false
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => false
+          | BootstrapPhase.Connected => true
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || false))
+        | Bool.false => state
+        | Bool.true => (bootstrapBackoff state now)) binding), revision := (project (match ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => true
+          | BootstrapPhase.Connected => false
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => false
+          | BootstrapPhase.Connected => true
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || false))
+        | Bool.false => state
+        | Bool.true => (bootstrapBackoff state now)) revision), lastNow := (project (match ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => true
+          | BootstrapPhase.Connected => false
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => false
+          | BootstrapPhase.Connected => true
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || false))
+        | Bool.false => state
+        | Bool.true => (bootstrapBackoff state now)) lastNow), nextAttemptAt := (project (match ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => true
+          | BootstrapPhase.Connected => false
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => false
+          | BootstrapPhase.Connected => true
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || false))
+        | Bool.false => state
+        | Bool.true => (bootstrapBackoff state now)) nextAttemptAt), leaseExpires := (project (match ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => true
+          | BootstrapPhase.Connected => false
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => false
+          | BootstrapPhase.Connected => true
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || false))
+        | Bool.false => state
+        | Bool.true => (bootstrapBackoff state now)) leaseExpires), authorizationExpires := (project (match ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => true
+          | BootstrapPhase.Connected => false
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => false
+          | BootstrapPhase.Connected => true
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || false))
+        | Bool.false => state
+        | Bool.true => (bootstrapBackoff state now)) authorizationExpires), consentExpires := (project (match ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => true
+          | BootstrapPhase.Connected => false
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => false
+          | BootstrapPhase.Connected => true
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || false))
+        | Bool.false => state
+        | Bool.true => (bootstrapBackoff state now)) consentExpires), byteQuota := (project (match ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => true
+          | BootstrapPhase.Connected => false
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => false
+          | BootstrapPhase.Connected => true
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || false))
+        | Bool.false => state
+        | Bool.true => (bootstrapBackoff state now)) byteQuota), bytesSent := (project (match ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => true
+          | BootstrapPhase.Connected => false
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => false
+          | BootstrapPhase.Connected => true
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || false))
+        | Bool.false => state
+        | Bool.true => (bootstrapBackoff state now)) bytesSent), phase := (project (match ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => true
+          | BootstrapPhase.Connected => false
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => false
+          | BootstrapPhase.Connected => true
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || false))
+        | Bool.false => state
+        | Bool.true => (bootstrapBackoff state now)) phase), signalAvailable := (project (match ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => true
+          | BootstrapPhase.Connected => false
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => false
+          | BootstrapPhase.Connected => true
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || false))
+        | Bool.false => state
+        | Bool.true => (bootstrapBackoff state now)) signalAvailable), relayAvailable := false, consentRef := (project (match ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => true
+          | BootstrapPhase.Connected => false
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => false
+          | BootstrapPhase.Connected => true
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || false))
+        | Bool.false => state
+        | Bool.true => (bootstrapBackoff state now)) consentRef), transcriptRef := (project (match ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => true
+          | BootstrapPhase.Connected => false
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => false
+          | BootstrapPhase.Connected => true
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || false))
+        | Bool.false => state
+        | Bool.true => (bootstrapBackoff state now)) transcriptRef), localFingerprint := (project (match ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => true
+          | BootstrapPhase.Connected => false
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => false
+          | BootstrapPhase.Connected => true
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || false))
+        | Bool.false => state
+        | Bool.true => (bootstrapBackoff state now)) localFingerprint), remoteFingerprint := (project (match ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => true
+          | BootstrapPhase.Connected => false
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => false
+          | BootstrapPhase.Connected => true
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || false))
+        | Bool.false => state
+        | Bool.true => (bootstrapBackoff state now)) remoteFingerprint), pendingOperationsRef := (project (match ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => true
+          | BootstrapPhase.Connected => false
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => false
+          | BootstrapPhase.Connected => true
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || false))
+        | Bool.false => state
+        | Bool.true => (bootstrapBackoff state now)) pendingOperationsRef), history := (project (match ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => true
+          | BootstrapPhase.Connected => false
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || ((match (project state phase)
+          | BootstrapPhase.Idle => false
+          | BootstrapPhase.Connecting => false
+          | BootstrapPhase.Connected => true
+          | BootstrapPhase.Backoff => false
+          | BootstrapPhase.Closed => false) || false))
+        | Bool.false => state
+        | Bool.true => (bootstrapBackoff state now)) history)})))),
+  axioms: []
+}
+
+definition{
+  name: bootstrapPeerLost,
+  parameters: [state : BootstrapState, now : Nat],
+  result: (Result BootstrapState BootstrapError),
+  body: (match ((match (project state phase)
+      | BootstrapPhase.Idle => false
+      | BootstrapPhase.Connecting => true
+      | BootstrapPhase.Connected => false
+      | BootstrapPhase.Backoff => false
+      | BootstrapPhase.Closed => false) || ((match (project state phase)
+      | BootstrapPhase.Idle => false
+      | BootstrapPhase.Connecting => false
+      | BootstrapPhase.Connected => true
+      | BootstrapPhase.Backoff => false
+      | BootstrapPhase.Closed => false) || false))
+    | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.InvalidPhase))
+    | Bool.true => (ctor Result.ok [BootstrapState, BootstrapError] (bootstrapBackoff state now))),
+  axioms: []
+}
+
+definition{
+  name: bootstrapOperatorsRestored,
+  parameters: [state : BootstrapState, signalingOperator : String, relayOperator : String],
+  result: (Result BootstrapState BootstrapError),
+  body: (match ((prim equal signalingOperator (project (project state policy) signalingOperator) : Bool) && ((prim equal relayOperator (project (project state policy) relayOperator) : Bool) && true))
+    | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.WrongOperator))
+    | Bool.true => (ctor Result.ok [BootstrapState, BootstrapError] (record BootstrapState {policy := (project state policy), binding := (project state binding), revision := (project state revision), lastNow := (project state lastNow), nextAttemptAt := (project state nextAttemptAt), leaseExpires := (project state leaseExpires), authorizationExpires := (project state authorizationExpires), consentExpires := (project state consentExpires), byteQuota := (project state byteQuota), bytesSent := (project state bytesSent), phase := (project state phase), signalAvailable := true, relayAvailable := true, consentRef := (project state consentRef), transcriptRef := (project state transcriptRef), localFingerprint := (project state localFingerprint), remoteFingerprint := (project state remoteFingerprint), pendingOperationsRef := (project state pendingOperationsRef), history := (project state history)}))),
+  axioms: []
+}
+
+definition{
+  name: bootstrapDispatch,
+  parameters: [state : BootstrapState, event : BootstrapEvent, now : Nat],
+  result: (Result BootstrapState BootstrapError),
+  body: (match event
+    | BootstrapEvent.Begin binding consent => (bootstrapBegin state binding consent now)
+    | BootstrapEvent.Admit authorization channel reservation => (bootstrapAdmit state authorization channel reservation now)
+    | BootstrapEvent.Send byteLength => (bootstrapSend state byteLength now)
+    | BootstrapEvent.SignalingLost operatorRef => (bootstrapSignalingLost state operatorRef now)
+    | BootstrapEvent.RelayLost operatorRef => (bootstrapRelayLost state operatorRef now)
+    | BootstrapEvent.PeerLost => (bootstrapPeerLost state now)
+    | BootstrapEvent.OperatorsRestored signalingOperator relayOperator => (bootstrapOperatorsRestored state signalingOperator relayOperator)
+    | BootstrapEvent.Close => (ctor Result.ok [BootstrapState, BootstrapError] (record BootstrapState {policy := (project state policy), binding := (project state binding), revision := (project state revision), lastNow := (project state lastNow), nextAttemptAt := (project state nextAttemptAt), leaseExpires := (project state leaseExpires), authorizationExpires := (project state authorizationExpires), consentExpires := (project state consentExpires), byteQuota := (project state byteQuota), bytesSent := (project state bytesSent), phase := (ctor BootstrapPhase.Closed), signalAvailable := (project state signalAvailable), relayAvailable := (project state relayAvailable), consentRef := (project state consentRef), transcriptRef := (project state transcriptRef), localFingerprint := (project state localFingerprint), remoteFingerprint := (project state remoteFingerprint), pendingOperationsRef := (project state pendingOperationsRef), history := (project state history)}))),
+  axioms: []
+}
+
+definition{
+  name: transitionBrowserBootstrap,
+  parameters: [state : BootstrapState, observation : BootstrapObservation, event : BootstrapEvent],
+  result: (Result BootstrapState BootstrapError),
+  body: (match (bootstrapStateValid state)
+    | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.InvalidState))
+    | Bool.true => (match (not (match (project state phase)
+        | BootstrapPhase.Idle => false
+        | BootstrapPhase.Connecting => false
+        | BootstrapPhase.Connected => false
+        | BootstrapPhase.Backoff => false
+        | BootstrapPhase.Closed => true))
+      | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.Closed))
+      | Bool.true => (match (bootstrapSameBinding (project state binding) (project observation binding))
+        | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.WrongBinding))
+        | Bool.true => (match ((project state revision) =? (project observation revision))
+          | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.StaleRevision))
+          | Bool.true => (match (((project observation now) <=? 4294967295) && (((project state lastNow) <=? (project observation now)) && true))
+            | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.ClockRollback))
+            | Bool.true => (match ((project state revision) <? 4294967295)
+              | Bool.false => (ctor Result.error [BootstrapState, BootstrapError] (ctor BootstrapError.CounterExhausted))
+              | Bool.true => (match (bootstrapDispatch state event (project observation now))
+                | Result.error error => (ctor Result.error [BootstrapState, BootstrapError] error)
+                | Result.ok next => (ctor Result.ok [BootstrapState, BootstrapError] (record BootstrapState {policy := (project next policy), binding := (project next binding), revision := ((project state revision) + 1), lastNow := (project observation now), nextAttemptAt := (project next nextAttemptAt), leaseExpires := (project next leaseExpires), authorizationExpires := (project next authorizationExpires), consentExpires := (project next consentExpires), byteQuota := (project next byteQuota), bytesSent := (project next bytesSent), phase := (project next phase), signalAvailable := (project next signalAvailable), relayAvailable := (project next relayAvailable), consentRef := (project next consentRef), transcriptRef := (project next transcriptRef), localFingerprint := (project next localFingerprint), remoteFingerprint := (project next remoteFingerprint), pendingOperationsRef := (project next pendingOperationsRef), history := (project next history)}))))))))),
+  axioms: []
+}
+\end{semanticmodule}
+\end{lexlean}

@@ -1,0 +1,86 @@
+{
+  "spec": "prismpm/provenance-record/1",
+  "record_id": "ADR-0017-upstream-provenance",
+  "local_adr": "ADR-0017",
+  "status": "accepted",
+  "title": "Pinned upstream Prism stdlib and exporter archive provenance for ADR-0017",
+  "decision_basis": "The raw upstream model tree, the canonicalized governed tree, and the exporter archive embedded in the canonical prismpm binary were each digested before governed replay. Scratch adoption and canonicalization receipts precede governed adoption.",
+  "upstream": {
+    "repository": "https://github.com/UOR-Foundation/prismpm.git",
+    "tag": "prism-code-v0.11.1",
+    "commit": "3b5ac767672959f48b3d5943f3e652b769439179",
+    "scratch_checkout": "/tmp/opencode/prismpm-0111",
+    "scratch_role": "decision input only; no authoritative production artifact outside RC_ROOT",
+    "npm_package": {
+      "name": "prism-code",
+      "version": "0.11.1",
+      "install_prefix": "/home/multiplic/.local",
+      "launcher": "/home/multiplic/.local/bin/prism-code",
+      "launcher_sha256": "9887833a7ff30c9f26892b024e7ee4ddfb4b935856accba0c28fe9f08f21e0b4",
+      "role": "user-global launcher; init replay only, not the canonical verifier",
+      "init_receipt": "evidence/adoption-study/prism-code-0111-init.stdout",
+      "init_template_blake3": "e8c71d17317191977cea2f4236af407fcefceea93ca9e5d382907fb4ea937b45"
+    }
+  },
+  "stdlib": {
+    "raw_source": "prismpm-0111/stdlib/src",
+    "raw_lex_files": 115,
+    "raw_tree_sha256": "5b812ae7f538674b42c8db7f716bee03619c1cc3cbb361bca25fa44a7542710d",
+    "raw_tree_method": "from the upstream root: sha256 over newline-terminated sha256sum lines for ./relative *.lex.tex paths sorted by path",
+    "raw_acquisition_absolute_path_sha256": "b68e0964c0041f36532500e9ecaf649711b0df2e66488814d91f9c969a49d2cf",
+    "raw_acquisition_method": "sha256 over newline-terminated sha256sum lines for absolute *.lex.tex paths sorted by path at /tmp/opencode/prismpm-0111/stdlib/src; path-dependent decision input",
+    "adopted_source": "stdlib/src",
+    "canonicalization": "lexlean 0.4.3 fmt --all",
+    "governed_tree_sha256": "9a5d49f3711a377dc0d2ea016643dc8958c899f4957d93c05be0ef4f80574fdc",
+    "governed_tree_method": "from RC_ROOT/stdlib/src: sha256 over newline-terminated sha256sum lines for ./relative *.lex.tex paths sorted by path",
+    "licenses": [
+      {
+        "path": "stdlib/LICENSE-MIT",
+        "sha256": "3f96829e754d532a3c70521826693f13ab8303a17b7f715cb2a0811dae867682"
+      },
+      {
+        "path": "stdlib/LICENSE-APACHE",
+        "sha256": "0d0a33bfc9c787ea04bdf88212b635bda27d28a0f8181db33853767cc73820b2"
+      }
+    ],
+    "scratch_decision_receipts": [
+      "evidence/adoption-study/fmt-scratch-lexlean-fmt-all.stdout",
+      "evidence/adoption-study/fmt-scratch-lexlean-fmt-all.stderr",
+      "evidence/adoption-study/fmt-scratch-lexlean-lock.stdout",
+      "evidence/adoption-study/fmt-scratch-lexlean-lock-check.stdout",
+      "evidence/adoption-study/fmt-scratch-lexlean-fmt-check.stdout",
+      "evidence/adoption-study/fmt-scratch-lexlean-check-all.stdout",
+      "evidence/adoption-study/fmt-scratch-lexlean-verify.stdout",
+      "evidence/adoption-study/fmt-scratch-prismpm-check-json.stdout",
+      "evidence/adoption-study/fmt-scratch-prismpm-verify-json.stdout",
+      "evidence/adoption-study/fmt-scratch-stdlib-tree-digest-before.txt",
+      "evidence/adoption-study/fmt-scratch-stdlib-tree-digest-after.txt"
+    ]
+  },
+  "exporter_archive": {
+    "path": "vendor/lean4-prod/lean.tar",
+    "source": "exact bytes embedded in /home/multiplic/.local/bin/prismpm",
+    "sha256": "b1e282a8b41d8ce6172db40d73ded55e7d9db39b9145c3f5bbc160ce6c74100d",
+    "size_bytes": 399360,
+    "type": "regular file",
+    "rejected_alternative": {
+      "path": "/run/media/multiplic/AGI/prismagi/mount/PRIME/toolchain/prismpm/vendor/lean4-prod/lean.tar",
+      "sha256": "7a1a716a57040ea2307f7a34e895a75ebdca7438cf9d5d0364007acb594366bf",
+      "failure": "PP5008: repository exporter archive is missing, aliased, changed, or differs from the compiled pin"
+    }
+  },
+  "rejected_verifier": {
+    "candidate": "locally built prismpm 0.11.1",
+    "commit": "3b5ac767672959f48b3d5943f3e652b769439179",
+    "failure": "PP5008: required executable lake has an unpinned digest",
+    "stdout": "evidence/adoption-study/prismpm-0111-namespace-verify.stdout",
+    "stderr": "evidence/adoption-study/prismpm-0111-namespace-verify.stderr",
+    "disposition": "decision input only; canonical verifier remains prismpm 0.5.0"
+  },
+  "links": {
+    "adr": "docs/ADR-0017.md",
+    "evidence_register": "production/evidence/ADR-0017-prismpm-verification.json",
+    "tools_lock": "tools.lock",
+    "scope": "Provenance for model-content adoption only; not a production attestation."
+  }
+}

@@ -1,0 +1,157 @@
+\begin{lexlean}{Foundation.Browser.Application.V1.SessionJournalRecovery}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Browser.Application.V1.Session}
+\importmodule{Foundation.Browser.Application.V1.SessionWire}
+\importmodule{Foundation.Browser.Application.V1.EffectsWire}
+\importmodule{Foundation.Codec.Cbor.V1.Primitive}
+\importmodule{Foundation.View.Browser.V1.Model}
+\title{Browser session journal recovery}
+\begin{semanticmodule}
+definition{
+  name: sourceRecoveryAuthorityFits,
+  parameters: [
+    state : Foundation.Browser.Application.V1.Session::SourceSession,
+    authority : Foundation.Browser.Application.V1.Session::SourceAuthority
+  ],
+  result: Bool,
+  body: ((Foundation.Browser.Application.V1.Session::sourceAuthorityValid authority (project state limits)) && ((prim equal (project authority principal) (project (project (project state durable) authority) principal) : Bool) && ((prim equal (project authority scope) (project (project (project state durable) authority) scope) : Bool) && (((project (project (project state durable) authority) epoch) <=? (project authority epoch)) && true)))),
+  axioms: []
+}
+
+definition{
+  name: recoverQuiescentSourceSession,
+  parameters: [
+    state : Foundation.Browser.Application.V1.Session::SourceSession,
+    authority : Foundation.Browser.Application.V1.Session::SourceAuthority,
+    execution : Bytes,
+    selector : Bytes,
+    presentation : Foundation.View.Browser.V1.Model::Presentation
+  ],
+  result: (Result Foundation.Browser.Application.V1.Session::SourceSession Foundation.Browser.Application.V1.Session::SourceSessionError),
+  body: (match (Foundation.Browser.Application.V1.Session::sourceSessionValid state)
+    | Bool.false => (ctor Result.error [Foundation.Browser.Application.V1.Session::SourceSession, Foundation.Browser.Application.V1.Session::SourceSessionError] (ctor Foundation.Browser.Application.V1.Session::SourceSessionError.BadState))
+    | Bool.true => (match (((project (project state volatile) phase) =? 0) || ((project (project state volatile) phase) =? 3))
+      | Bool.false => (ctor Result.error [Foundation.Browser.Application.V1.Session::SourceSession, Foundation.Browser.Application.V1.Session::SourceSessionError] (ctor Foundation.Browser.Application.V1.Session::SourceSessionError.Busy))
+      | Bool.true => (match (match (project (project state durable) pending)
+          | Option.none => true
+          | Option.some pending => false)
+        | Bool.false => (ctor Result.error [Foundation.Browser.Application.V1.Session::SourceSession, Foundation.Browser.Application.V1.Session::SourceSessionError] (ctor Foundation.Browser.Application.V1.Session::SourceSessionError.Busy))
+        | Bool.true => (match (sourceRecoveryAuthorityFits state authority)
+          | Bool.false => (ctor Result.error [Foundation.Browser.Application.V1.Session::SourceSession, Foundation.Browser.Application.V1.Session::SourceSessionError] (ctor Foundation.Browser.Application.V1.Session::SourceSessionError.BadAuthority))
+          | Bool.true => (match (((prim length execution : Nat) =? 32) && ((not (prim equal execution (project (project state volatile) execution) : Bool)) && true))
+            | Bool.false => (ctor Result.error [Foundation.Browser.Application.V1.Session::SourceSession, Foundation.Browser.Application.V1.Session::SourceSessionError] (ctor Foundation.Browser.Application.V1.Session::SourceSessionError.WrongExecution))
+            | Bool.true => (match ((prim length selector : Nat) <=? (project (project state limits) selectorMaximum))
+              | Bool.false => (ctor Result.error [Foundation.Browser.Application.V1.Session::SourceSession, Foundation.Browser.Application.V1.Session::SourceSessionError] (ctor Foundation.Browser.Application.V1.Session::SourceSessionError.BadLimits))
+              | Bool.true => (match (Foundation.Browser.Application.V1.Session::sourcePresentationBounded presentation (project (project state limits) presentationMaximum))
+                | Bool.false => (ctor Result.error [Foundation.Browser.Application.V1.Session::SourceSession, Foundation.Browser.Application.V1.Session::SourceSessionError] (ctor Foundation.Browser.Application.V1.Session::SourceSessionError.BadView))
+                | Bool.true => (match (Foundation.Browser.Application.V1.Session::sourceViewValid presentation 0 0)
+                  | Bool.false => (ctor Result.error [Foundation.Browser.Application.V1.Session::SourceSession, Foundation.Browser.Application.V1.Session::SourceSessionError] (ctor Foundation.Browser.Application.V1.Session::SourceSessionError.BadView))
+                  | Bool.true => (Foundation.Browser.Application.V1.Session::sourceCheckedReply (record Foundation.Browser.Application.V1.Session::SourceSession {binding := (project state binding), limits := (project state limits), manifest := (project state manifest), durable := (record Foundation.Browser.Application.V1.Session::SourceDurable {instance := (project (project state durable) instance), nextCommand := (project (project state durable) nextCommand), application := (project (project state durable) application), authority := authority, pending := (project (project state durable) pending)}), volatile := (record Foundation.Browser.Application.V1.Session::SourceVolatile {execution := execution, nextEffect := 0, revision := 0, selector := selector, presentation := presentation, phase := 0})})))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeRecoveryContextValue,
+  parameters: [value : Foundation.Browser.Application.V1.Session::SourceSession],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Browser.Application.V1.SessionWire::sourceStateAssemble (record Foundation.Browser.Application.V1.SessionWire::SourceStatePieces {prefix := (Foundation.Browser.Application.V1.EffectsWire::effectWireOutput (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x83010485) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.SessionWire::writeSessionSourceSessionBinding (project value binding)) (Foundation.Browser.Application.V1.SessionWire::writeSessionSourceSessionLimits (project value limits)))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.SessionWire::writeSourceEffectManifest (project value manifest)) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 5 (Foundation.Browser.Application.V1.SessionWire::sourceWireLimits))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.SessionWire::writeSourceWireBytes (project (project value durable) instance)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat (project (project value durable) nextCommand)))))), application := (Foundation.Browser.Application.V1.EffectsWire::effectWireOutput (Foundation.Browser.Application.V1.SessionWire::writeSourceWireBytes (project (project value durable) application))), authorityPrefix := (Foundation.Browser.Application.V1.EffectsWire::effectWireOutput (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 4 (Foundation.Browser.Application.V1.SessionWire::sourceWireLimits)) (Foundation.Browser.Application.V1.SessionWire::writeSourceWireBytes (project (project (project value durable) authority) principal))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.SessionWire::writeSourceWireBytes (project (project (project value durable) authority) scope)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat (project (project (project value durable) authority) epoch))))), evidence := (Foundation.Browser.Application.V1.EffectsWire::effectWireOutput (Foundation.Browser.Application.V1.SessionWire::writeSourceWireBytes (project (project (project value durable) authority) evidence))), pending := (Foundation.Browser.Application.V1.EffectsWire::effectWireOutput (Foundation.Browser.Application.V1.SessionWire::writeCompactOptionalPending (project (project value durable) pending) (project (project value durable) authority))), volatilePrefix := (Foundation.Browser.Application.V1.EffectsWire::effectWireOutput (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 3 (Foundation.Browser.Application.V1.SessionWire::sourceWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.SessionWire::writeSourceWireBytes (project (project value volatile) execution)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat (project (project value volatile) nextEffect))))), selector := (Foundation.Browser.Application.V1.EffectsWire::effectWireOutput (Foundation.Browser.Application.V1.SessionWire::writeSourceWireBytes (project (project value volatile) selector))), presentation := (Foundation.Browser.Application.V1.EffectsWire::effectWireOutput (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x)), phase := (Foundation.Browser.Application.V1.EffectsWire::effectWireOutput (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x))})),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeRecoveryContext,
+  parameters: [value : Foundation.Browser.Application.V1.Session::SourceSession],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.Session::sourceSessionValid value)
+    | Bool.false => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (Foundation.Browser.Application.V1.SessionWire::sourceProtocolFailure (ctor Foundation.Browser.Application.V1.Session::SourceSessionError.BadState)))
+    | Bool.true => (writeRecoveryContextValue value)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readRecoveryContext,
+  parameters: [input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input 0 3)
+    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok outer => (match ((project outer count) =? 3)
+      | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project outer cursor))
+        | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok version => (match ((project version value) =? 1)
+          | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project version cursor))
+            | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok status => (match ((project status value) =? 0)
+              | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+              | Bool.true => (match (Foundation.Browser.Application.V1.SessionWire::readCompactState input (project status cursor))
+                | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok parsed => (match ((project parsed cursor) =? (prim length (project input bytes) : Nat))
+                  | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                  | Bool.true => (writeRecoveryContext (project parsed value)))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readRecoveryOperation,
+  parameters: [input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input 0 2)
+    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok outer => (match ((project outer count) =? 2)
+      | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project outer cursor))
+        | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok version => (match ((project version value) =? 1)
+          | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input (project version cursor) 6)
+            | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok operation => (match ((project operation count) =? 6)
+              | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+              | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project operation cursor))
+                | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok tag => (match ((project tag value) =? 1)
+                  | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                  | Bool.true => (match (Foundation.Browser.Application.V1.SessionWire::readCompactState input (project tag cursor))
+                    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                    | Result.ok parsed => (match (Foundation.Browser.Application.V1.SessionWire::readSessionSourceAuthority input (project parsed cursor))
+                      | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                      | Result.ok admitted => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project admitted cursor) 67108864)
+                        | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                        | Result.ok execution => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project execution cursor) 67108864)
+                          | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                          | Result.ok selector => (match (Foundation.Browser.Application.V1.SessionWire::readSourcePresentation input (project selector cursor))
+                            | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                            | Result.ok presentation => (match ((project presentation cursor) =? (prim length (project input bytes) : Nat))
+                              | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                              | Bool.true => (Foundation.Browser.Application.V1.SessionWire::writeSourceSessionResult (recoverQuiescentSourceSession (project parsed value) (project admitted value) (project execution value) (project selector value) (project presentation value))))))))))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: sourceRecoveryContextBytes,
+  parameters: [input : Bytes],
+  result: Bytes,
+  body: (match ((prim length input : Nat) <=? 67108864)
+    | Bool.false => 0x83010206
+    | Bool.true => (match (readRecoveryContext (record Foundation.Browser.Application.V1.EffectsWire::EffectWireInput {bytes := input}))
+      | Result.error cause => (Foundation.Browser.Application.V1.SessionWire::sourceWireFailure cause)
+      | Result.ok output => output)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: sourceRecoveryWireBytes,
+  parameters: [input : Bytes],
+  result: Bytes,
+  body: (match ((prim length input : Nat) <=? 67108864)
+    | Bool.false => 0x83010206
+    | Bool.true => (match (readRecoveryOperation (record Foundation.Browser.Application.V1.EffectsWire::EffectWireInput {bytes := input}))
+      | Result.error cause => (Foundation.Browser.Application.V1.SessionWire::sourceWireFailure cause)
+      | Result.ok output => output)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+\end{semanticmodule}
+\end{lexlean}

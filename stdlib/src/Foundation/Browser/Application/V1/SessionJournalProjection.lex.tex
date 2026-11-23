@@ -1,0 +1,197 @@
+\begin{lexlean}{Foundation.Browser.Application.V1.SessionJournalProjection}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Browser.Application.V1.Session}
+\importmodule{Foundation.Browser.Application.V1.SessionWire}
+\importmodule{Foundation.Browser.Application.V1.Effects}
+\importmodule{Foundation.Browser.Application.V1.EffectsWire}
+\importmodule{Foundation.View.Browser.V1.Model}
+\importmodule{Foundation.View.Browser.V1.Wire}
+\importmodule{Foundation.Codec.Cbor.V1.Primitive}
+\title{Browser session journal projection}
+\begin{semanticmodule}
+definition{
+  name: projectSessionOperationPredecessor,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    operation : Nat,
+    count : Nat,
+    cursor : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (operation =? 0)
+    | Bool.false => (match (operation =? 1)
+      | Bool.false => (match (operation =? 2)
+        | Bool.false => (match (operation =? 3)
+          | Bool.false => (match (operation =? 4)
+            | Bool.false => (match (operation =? 5)
+              | Bool.false => (match (operation =? 6)
+                | Bool.false => (match (operation =? 7)
+                  | Bool.false => (match (operation =? 8)
+                    | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                    | Bool.true => (match (count =? 6)
+                      | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                      | Bool.true => (match (Foundation.Browser.Application.V1.SessionWire::readCompactState input cursor)
+                        | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                        | Result.ok argument0 => (match (Foundation.Browser.Application.V1.SessionWire::readReferenceState input (project argument0 cursor) (ctor Option.some [Foundation.Browser.Application.V1.Session::SourceSession] (project argument0 value)))
+                          | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                          | Result.ok argument1 => (match (Foundation.Browser.Application.V1.SessionWire::readCompactCommand input (project argument1 cursor) (project (project (project argument0 value) durable) authority))
+                            | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                            | Result.ok argument2 => (match (Foundation.Browser.Application.V1.SessionWire::readCompactPlan input (project argument2 cursor) (project argument0 value) (ctor Option.some [Foundation.Browser.Application.V1.Session::SourceCommand] (project argument2 value)) (ctor Option.none [Foundation.Browser.Application.V1.Session::SourceCompletion]))
+                              | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                              | Result.ok argument3 => (match (Foundation.Browser.Application.V1.SessionWire::readSourcePresentation input (project argument3 cursor))
+                                | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                                | Result.ok argument4 => (match ((project argument4 cursor) =? (prim length (project input bytes) : Nat))
+                                  | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                                  | Bool.true => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))))))))))
+                  | Bool.true => (match (count =? 5)
+                    | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                    | Bool.true => (match (Foundation.Browser.Application.V1.SessionWire::readCompactState input cursor)
+                      | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                      | Result.ok argument0 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project argument0 cursor) 67108864)
+                        | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                        | Result.ok argument1 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project argument1 cursor) 67108864)
+                          | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                          | Result.ok argument2 => (match (Foundation.Browser.Application.V1.SessionWire::readSourcePresentation input (project argument2 cursor))
+                            | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                            | Result.ok argument3 => (match ((project argument3 cursor) =? (prim length (project input bytes) : Nat))
+                              | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                              | Bool.true => (Foundation.Browser.Application.V1.SessionWire::writeSourceStateSuccess (project argument0 value)))))))))
+                | Bool.true => (match (count =? 3)
+                  | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                  | Bool.true => (match (Foundation.Browser.Application.V1.SessionWire::readCompactState input cursor)
+                    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                    | Result.ok argument0 => (match (Foundation.Browser.Application.V1.SessionWire::readSourcePresentation input (project argument0 cursor))
+                      | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                      | Result.ok argument1 => (match ((project argument1 cursor) =? (prim length (project input bytes) : Nat))
+                        | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                        | Bool.true => (Foundation.Browser.Application.V1.SessionWire::writeSourceStateSuccess (project argument0 value)))))))
+              | Bool.true => (match (count =? 4)
+                | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                | Bool.true => (match (Foundation.Browser.Application.V1.SessionWire::readCompactState input cursor)
+                  | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                  | Result.ok argument0 => (match (Foundation.Browser.Application.V1.SessionWire::readCompactCompletion input (project argument0 cursor) (project argument0 value))
+                    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                    | Result.ok argument1 => (match (Foundation.Browser.Application.V1.SessionWire::readSourcePresentation input (project argument1 cursor))
+                      | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                      | Result.ok argument2 => (match ((project argument2 cursor) =? (prim length (project input bytes) : Nat))
+                        | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                        | Bool.true => (Foundation.Browser.Application.V1.SessionWire::writeSourceStateSuccess (project argument0 value))))))))
+            | Bool.true => (match (count =? 6)
+              | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+              | Bool.true => (match (Foundation.Browser.Application.V1.SessionWire::readCompactState input cursor)
+                | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok argument0 => (match (Foundation.Browser.Application.V1.SessionWire::readCompactCompletion input (project argument0 cursor) (project argument0 value))
+                  | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                  | Result.ok argument1 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project argument1 cursor) 67108864)
+                    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                    | Result.ok argument2 => (match (Foundation.Browser.Application.V1.SessionWire::readCompactPlan input (project argument2 cursor) (project argument0 value) (match (project (project (project argument0 value) durable) pending)
+                        | Option.none => (ctor Option.none [Foundation.Browser.Application.V1.Session::SourceCommand])
+                        | Option.some contextPending => (ctor Option.some [Foundation.Browser.Application.V1.Session::SourceCommand] (project contextPending command))) (ctor Option.some [Foundation.Browser.Application.V1.Session::SourceCompletion] (project argument1 value)))
+                      | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                      | Result.ok argument3 => (match (Foundation.Browser.Application.V1.SessionWire::readSourcePresentation input (project argument3 cursor))
+                        | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                        | Result.ok argument4 => (match ((project argument4 cursor) =? (prim length (project input bytes) : Nat))
+                          | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                          | Bool.true => (Foundation.Browser.Application.V1.SessionWire::writeSourceStateSuccess (project argument0 value))))))))))
+          | Bool.true => (match (count =? 6)
+            | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+            | Bool.true => (match (Foundation.Browser.Application.V1.SessionWire::readCompactState input cursor)
+              | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok argument0 => (match (Foundation.Browser.Application.V1.SessionWire::readCompactCompletion input (project argument0 cursor) (project argument0 value))
+                | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok argument1 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project argument1 cursor) 67108864)
+                  | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                  | Result.ok argument2 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project argument2 cursor) 67108864)
+                    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                    | Result.ok argument3 => (match (Foundation.Browser.Application.V1.SessionWire::readSourcePresentation input (project argument3 cursor))
+                      | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                      | Result.ok argument4 => (match ((project argument4 cursor) =? (prim length (project input bytes) : Nat))
+                        | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                        | Bool.true => (Foundation.Browser.Application.V1.SessionWire::writeSourceStateSuccess (project argument0 value))))))))))
+        | Bool.true => (match (count =? 5)
+          | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (match (Foundation.Browser.Application.V1.SessionWire::readCompactState input cursor)
+            | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok argument0 => (match (Foundation.Browser.Application.V1.SessionWire::readCompactCommand input (project argument0 cursor) (project (project (project argument0 value) durable) authority))
+              | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok argument1 => (match (Foundation.Browser.Application.V1.SessionWire::readCompactPlan input (project argument1 cursor) (project argument0 value) (ctor Option.some [Foundation.Browser.Application.V1.Session::SourceCommand] (project argument1 value)) (ctor Option.none [Foundation.Browser.Application.V1.Session::SourceCompletion]))
+                | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok argument2 => (match (Foundation.Browser.Application.V1.SessionWire::readSourcePresentation input (project argument2 cursor))
+                  | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                  | Result.ok argument3 => (match ((project argument3 cursor) =? (prim length (project input bytes) : Nat))
+                    | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                    | Bool.true => (Foundation.Browser.Application.V1.SessionWire::writeSourceStateSuccess (project argument0 value)))))))))
+      | Bool.true => (match (count =? 5)
+        | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+        | Bool.true => (match (Foundation.Browser.Application.V1.SessionWire::readCompactState input cursor)
+          | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok argument0 => (match (Foundation.Browser.Application.V1.SessionWire::readCompactCommand input (project argument0 cursor) (project (project (project argument0 value) durable) authority))
+            | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok argument1 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project argument1 cursor) 67108864)
+              | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok argument2 => (match (Foundation.Browser.Application.V1.SessionWire::readSourcePresentation input (project argument2 cursor))
+                | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok argument3 => (match ((project argument3 cursor) =? (prim length (project input bytes) : Nat))
+                  | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                  | Bool.true => (Foundation.Browser.Application.V1.SessionWire::writeSourceStateSuccess (project argument0 value)))))))))
+    | Bool.true => (match (count =? 10)
+      | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Foundation.Browser.Application.V1.SessionWire::readSessionSourceSessionBinding input cursor)
+        | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok argument0 => (match (Foundation.Browser.Application.V1.SessionWire::readSessionSourceSessionLimits input (project argument0 cursor))
+          | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok argument1 => (match (Foundation.Browser.Application.V1.SessionWire::readSourceEffectManifest input (project argument1 cursor))
+            | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok argument2 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project argument2 cursor) 67108864)
+              | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok argument3 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project argument3 cursor) 67108864)
+                | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok argument4 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project argument4 cursor) 67108864)
+                  | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                  | Result.ok argument5 => (match (Foundation.Browser.Application.V1.SessionWire::readSessionSourceAuthority input (project argument5 cursor))
+                    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                    | Result.ok argument6 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project argument6 cursor) 67108864)
+                      | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                      | Result.ok argument7 => (match (Foundation.Browser.Application.V1.SessionWire::readSourcePresentation input (project argument7 cursor))
+                        | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                        | Result.ok argument8 => (match ((project argument8 cursor) =? (prim length (project input bytes) : Nat))
+                          | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                          | Bool.true => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x820103))))))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readSessionPredecessor,
+  parameters: [input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input 0 2)
+    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok outer => (match ((project outer count) =? 2)
+      | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project outer cursor))
+        | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok version => (match ((project version value) =? 1)
+          | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input (project version cursor) 11)
+            | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok operation => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project operation cursor))
+              | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok tag => (projectSessionOperationPredecessor input (project tag value) (project operation count) (project tag cursor)))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: sourceSessionPredecessorBytes,
+  parameters: [input : Bytes],
+  result: Bytes,
+  body: (match ((prim length input : Nat) <=? 67108864)
+    | Bool.false => 0x83010206
+    | Bool.true => (match (readSessionPredecessor (record Foundation.Browser.Application.V1.EffectsWire::EffectWireInput {bytes := input}))
+      | Result.error cause => (Foundation.Browser.Application.V1.SessionWire::sourceWireFailure cause)
+      | Result.ok output => output)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+\end{semanticmodule}
+\end{lexlean}

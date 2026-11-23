@@ -1,0 +1,14 @@
+Creating rc-init-check in /tmp/opencode/prism-init-check
+  prism.toml             application rc-init-check 0.1.0, no capabilities granted
+  the canonical template 58 files of UOR-Foundation/template, blake3:e8c71d17317191977cea2f4236af407fcefceea93ca9e5d382907fb4ea937b45
+  app/src/               the model to edit: replace the template's contract checker with your app
+                         until then, build names the holo for the template's app: template-contract.holo
+  prism.project          a new project ID: it names this project's holospace, and no build reads it
+  .claude/skills/prism   the Prism skill, for the agent that works here
+  .agents/skills/prism   the Prism skill, for the agent that works here
+Next, every step in this process:
+  cd .
+  npx prism-code@0.11.1 check --json     the model checks and every theorem is proved
+  npx prism-code@0.11.1 build --json     check, then write the app
+  npx prism-code@0.11.1 verify --json    judge what was built and replay every acceptance vector
+  npx prism-code@0.11.1 run              build when the model changed, then serve the app; --input <text> for one request

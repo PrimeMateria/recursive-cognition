@@ -1,0 +1,118 @@
+\begin{lexlean}{Foundation.Browser.Application.V1.SignedContext}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Browser.Application.V1.Session}
+\importmodule{Foundation.Browser.Application.V1.Effects}
+\importmodule{Foundation.Crypto.P256.Model}
+\title{Browser signed context}
+\begin{semanticmodule}
+structure{
+  name: SignedContext,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: binding, type: Foundation.Browser.Application.V1.Session::SourceSessionBinding},
+    {name: origin, type: Bytes},
+    {name: purpose, type: Nat},
+    {name: subject, type: Bytes},
+    {name: scope, type: Bytes},
+    {name: state, type: Bytes},
+    {name: request, type: Bytes},
+    {name: credentialEpoch, type: Nat},
+    {name: challenge, type: Bytes}
+  ]
+}
+
+structure{
+  name: SignedContextEnvelope,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: context, type: SignedContext},
+    {name: publicKey, type: Bytes},
+    {name: signature, type: Bytes}
+  ]
+}
+
+inductive{
+  name: SignedContextError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: BadContext, fields: []},
+    {name: BadKey, fields: []},
+    {name: BadSignature, fields: []},
+    {name: ContextMismatch, fields: []},
+    {name: KeyMismatch, fields: []},
+    {name: UnexpectedOperation, fields: []}
+  ]
+}
+
+definition{
+  name: signedContextSigningContext,
+  parameters: [purpose : Nat],
+  result: String,
+  body: (match (purpose =? 0)
+    | Bool.false => (match (purpose =? 1)
+      | Bool.false => (match (purpose =? 2)
+        | Bool.false => (match (purpose =? 3)
+          | Bool.false => ""
+          | Bool.true => "prismpm/session-journal-context/1")
+        | Bool.true => "prismpm/organization-approval/1")
+      | Bool.true => "prismpm/account-request/1")
+    | Bool.true => "prismpm/account-binding/1"),
+  axioms: []
+}
+
+definition{
+  name: signedContextValid,
+  parameters: [value : SignedContext],
+  result: Bool,
+  body: ((Foundation.Browser.Application.V1.Session::sourceBindingValid (project value binding)) && (((prim length (project value origin) : Nat) =? 32) && (((prim length (project value subject) : Nat) =? 32) && (((prim length (project value scope) : Nat) =? 32) && (((prim length (project value state) : Nat) =? 32) && (((prim length (project value request) : Nat) =? 32) && (((prim length (project value challenge) : Nat) =? 32) && (((project value purpose) <=? 3) && (((project value credentialEpoch) <=? 4294967295) && true))))))))),
+  axioms: []
+}
+
+definition{
+  name: signedContextEqual,
+  parameters: [left : SignedContext, right : SignedContext],
+  result: Bool,
+  body: ((Foundation.Browser.Application.V1.Session::sourceBindingEqual (project left binding) (project right binding)) && ((prim equal (project left origin) (project right origin) : Bool) && ((prim equal (project left subject) (project right subject) : Bool) && ((prim equal (project left scope) (project right scope) : Bool) && ((prim equal (project left state) (project right state) : Bool) && ((prim equal (project left request) (project right request) : Bool) && ((prim equal (project left challenge) (project right challenge) : Bool) && (((project left purpose) =? (project right purpose)) && (((project left credentialEpoch) =? (project right credentialEpoch)) && true))))))))),
+  axioms: []
+}
+
+definition{
+  name: signedContextKeyValid,
+  parameters: [key : Bytes, purpose : Nat],
+  result: Bool,
+  body: ((Foundation.Browser.Application.V1.Effects::effectSigningGrantValid (record Foundation.Browser.Application.V1.Effects::EffectSigningGrant {publicKey := key, context := (signedContextSigningContext purpose)})) && (Foundation.Crypto.P256.Model::p256PublicKeyValid key)),
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: signedContextEnvelopeValid,
+  parameters: [value : SignedContextEnvelope],
+  result: Bool,
+  body: ((signedContextValid (project value context)) && ((signedContextKeyValid (project value publicKey) (project (project value context) purpose)) && (((prim length (project value signature) : Nat) =? 64) && true))),
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: matchSignedContext,
+  parameters: [expected : SignedContext, key : Bytes, envelope : SignedContextEnvelope],
+  result: (Result Bool SignedContextError),
+  body: (match ((signedContextValid expected) && ((signedContextValid (project envelope context)) && true))
+    | Bool.false => (ctor Result.error [Bool, SignedContextError] (ctor SignedContextError.BadContext))
+    | Bool.true => (match ((signedContextKeyValid key (project expected purpose)) && ((signedContextKeyValid (project envelope publicKey) (project (project envelope context) purpose)) && true))
+      | Bool.false => (ctor Result.error [Bool, SignedContextError] (ctor SignedContextError.BadKey))
+      | Bool.true => (match ((prim length (project envelope signature) : Nat) =? 64)
+        | Bool.false => (ctor Result.error [Bool, SignedContextError] (ctor SignedContextError.BadSignature))
+        | Bool.true => (match (signedContextEqual expected (project envelope context))
+          | Bool.false => (ctor Result.error [Bool, SignedContextError] (ctor SignedContextError.ContextMismatch))
+          | Bool.true => (match (prim equal key (project envelope publicKey) : Bool)
+            | Bool.false => (ctor Result.error [Bool, SignedContextError] (ctor SignedContextError.KeyMismatch))
+            | Bool.true => (ctor Result.ok [Bool, SignedContextError] true)))))),
+  axioms: [Quot.sound, propext]
+}
+\end{semanticmodule}
+\end{lexlean}

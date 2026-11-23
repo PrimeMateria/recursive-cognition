@@ -1,0 +1,91 @@
+\begin{lexlean}{Spike.SpectralBins}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{rctitles@1.0.0}
+\title{Prime boundary spectral bin partition conformance spike}
+\begin{semanticmodule}
+structure{
+  name: SpectralBin,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: lowerHz, type: Nat}, {name: upperExclusiveHz, type: Nat}]
+}
+
+structure{
+  name: PrimeBinPartition,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: bin01, type: SpectralBin},
+    {name: bin02, type: SpectralBin},
+    {name: bin03, type: SpectralBin},
+    {name: bin04, type: SpectralBin},
+    {name: bin05, type: SpectralBin},
+    {name: bin06, type: SpectralBin},
+    {name: bin07, type: SpectralBin},
+    {name: bin08, type: SpectralBin},
+    {name: bin09, type: SpectralBin},
+    {name: bin10, type: SpectralBin},
+    {name: bin11, type: SpectralBin}
+  ]
+}
+
+definition{
+  name: makeBin,
+  parameters: [lo : Nat, hi : Nat],
+  result: SpectralBin,
+  body: (record SpectralBin {lowerHz := lo, upperExclusiveHz := hi})
+}
+
+definition{
+  name: defaultPartition,
+  parameters: [],
+  result: PrimeBinPartition,
+  body: (record PrimeBinPartition {bin01 := (makeBin 1 2), bin02 := (makeBin 2 3), bin03 := (makeBin 3 5), bin04 := (makeBin 5 7), bin05 := (makeBin 7 11), bin06 := (makeBin 11 13), bin07 := (makeBin 13 17), bin08 := (makeBin 17 19), bin09 := (makeBin 19 23), bin10 := (makeBin 23 29), bin11 := (makeBin 29 31)})
+}
+
+definition{name: binLower, parameters: [b : SpectralBin], result: Nat, body: (project b lowerHz)}
+
+definition{
+  name: binUpper,
+  parameters: [b : SpectralBin],
+  result: Nat,
+  body: (project b upperExclusiveHz)
+}
+
+definition{
+  name: binWellFormed,
+  parameters: [b : SpectralBin],
+  result: Bool,
+  body: ((binLower b) <? (binUpper b))
+}
+
+definition{
+  name: adjacent,
+  parameters: [a : SpectralBin, b : SpectralBin],
+  result: Bool,
+  body: ((binUpper a) =? (binLower b))
+}
+
+definition{
+  name: isPrimeBoundary,
+  parameters: [n : Nat],
+  result: Bool,
+  body: ((((((((((n =? 2) || (n =? 3)) || (n =? 5)) || (n =? 7)) || (n =? 11)) || (n =? 13)) || (n =? 17)) || (n =? 19)) || (n =? 23)) || (n =? 29))
+}
+
+definition{
+  name: primeBinPartitionHolds,
+  parameters: [p : PrimeBinPartition],
+  result: Bool,
+  body: ((((((((((((((((((((((((((((((((((binLower (project p bin01)) =? 1) && ((binUpper (project p bin11)) =? 31)) && (binWellFormed (project p bin01))) && (binWellFormed (project p bin02))) && (binWellFormed (project p bin03))) && (binWellFormed (project p bin04))) && (binWellFormed (project p bin05))) && (binWellFormed (project p bin06))) && (binWellFormed (project p bin07))) && (binWellFormed (project p bin08))) && (binWellFormed (project p bin09))) && (binWellFormed (project p bin10))) && (binWellFormed (project p bin11))) && (adjacent (project p bin01) (project p bin02))) && (adjacent (project p bin02) (project p bin03))) && (adjacent (project p bin03) (project p bin04))) && (adjacent (project p bin04) (project p bin05))) && (adjacent (project p bin05) (project p bin06))) && (adjacent (project p bin06) (project p bin07))) && (adjacent (project p bin07) (project p bin08))) && (adjacent (project p bin08) (project p bin09))) && (adjacent (project p bin09) (project p bin10))) && (adjacent (project p bin10) (project p bin11))) && (isPrimeBoundary (binUpper (project p bin01)))) && (isPrimeBoundary (binUpper (project p bin02)))) && (isPrimeBoundary (binUpper (project p bin03)))) && (isPrimeBoundary (binUpper (project p bin04)))) && (isPrimeBoundary (binUpper (project p bin05)))) && (isPrimeBoundary (binUpper (project p bin06)))) && (isPrimeBoundary (binUpper (project p bin07)))) && (isPrimeBoundary (binUpper (project p bin08)))) && (isPrimeBoundary (binUpper (project p bin09)))) && (isPrimeBoundary (binUpper (project p bin10))))
+}
+
+theorem{
+  name: prime_bin_partition,
+  parameters: [],
+  statement: ((primeBinPartitionHolds (defaultPartition)) = true),
+  proof: reflexivity{}
+}
+\end{semanticmodule}
+\end{lexlean}

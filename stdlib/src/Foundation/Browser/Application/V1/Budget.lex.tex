@@ -1,0 +1,129 @@
+\begin{lexlean}{Foundation.Browser.Application.V1.Budget}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Browser.Application.V1.Effects}
+\importmodule{Foundation.Browser.Application.V1.Custody}
+\title{Browser application resource budget}
+\begin{semanticmodule}
+structure{
+  name: ResourceBudget,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: resource, type: String}, {name: maximum, type: Nat}]
+}
+
+structure{
+  name: EffectBudget,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: application, type: Bytes},
+    {name: manifest, type: Bytes},
+    {name: requestedPolicy, type: Bytes},
+    {name: effectivePolicy, type: Bytes},
+    {name: resources, type: (List ResourceBudget)}
+  ]
+}
+
+definition{
+  name: budgetAdapterFits,
+  parameters: [adapter : Foundation.Browser.Application.V1.Effects::EffectAdapter, maximum : Nat],
+  result: Bool,
+  body: (match adapter
+    | Foundation.Browser.Application.V1.Effects::EffectAdapter.Guest guest => (prim equal maximum (project guest inputMaximum) : Bool)
+    | Foundation.Browser.Application.V1.Effects::EffectAdapter.Random => ((0 <? maximum) && ((maximum <=? 65536) && true))
+    | Foundation.Browser.Application.V1.Effects::EffectAdapter.Digest => ((0 <? maximum) && ((maximum <=? 1048576) && true))
+    | Foundation.Browser.Application.V1.Effects::EffectAdapter.Signer signing => ((0 <? maximum) && ((maximum <=? 1048576) && true))
+    | Foundation.Browser.Application.V1.Effects::EffectAdapter.Verifier verification => ((0 <? maximum) && ((maximum <=? 1048576) && true))
+    | Foundation.Browser.Application.V1.Effects::EffectAdapter.Store storage => (prim equal maximum (project storage maxObjectBytes) : Bool)),
+  axioms: []
+}
+
+definition{
+  name: budgetRowsFit,
+  parameters: [
+    items : (List ResourceBudget),
+    grants : (List Foundation.Browser.Application.V1.Effects::EffectGrant),
+    previous : String,
+    fuel : Nat
+  ],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => (match items
+      | List.nil => (match grants | List.nil => true | List.cons grant other => false)
+      | List.cons head tail => false)
+    | Nat.succ rest => (match items
+      | List.nil => (match grants | List.nil => true | List.cons grant other => false)
+      | List.cons head tail => (match grants
+        | List.nil => false
+        | List.cons grant other => ((prim equal (project head resource) (project grant resource) : Bool) && ((Foundation.Browser.Application.V1.Custody::custodyTextLess previous (project head resource)) && ((budgetAdapterFits (project grant adapter) (project head maximum)) && ((budgetRowsFit tail other (project head resource) rest) && true))))))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: effectBudgetFitsManifest,
+  parameters: [
+    budget : EffectBudget,
+    manifest : Foundation.Browser.Application.V1.Effects::EffectManifest
+  ],
+  result: Bool,
+  body: ((prim equal (prim length (project budget application) : Nat) 32 : Bool) && ((prim equal (prim length (project budget manifest) : Nat) 32 : Bool) && ((prim equal (prim length (project budget requestedPolicy) : Nat) 32 : Bool) && ((prim equal (prim length (project budget effectivePolicy) : Nat) 32 : Bool) && ((Foundation.Browser.Application.V1.Effects::effectManifestValid manifest) && ((prim equal (project budget application) (project manifest application) : Bool) && ((prim equal (project budget manifest) (project manifest manifest) : Bool) && ((budgetRowsFit (project budget resources) (project manifest grants) "" 64) && true)))))))),
+  axioms: []
+}
+
+definition{
+  name: budgetOperationFits,
+  parameters: [
+    operation : Foundation.Browser.Application.V1.Effects::EffectOperation,
+    maximum : Nat
+  ],
+  result: Bool,
+  body: (match operation
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.InvokeGuest invocation => ((prim length (project invocation input) : Nat) <=? maximum)
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.RandomBytes amount => (amount <=? maximum)
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.DigestBytes payload => ((prim length payload : Nat) <=? maximum)
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.SignBytes payload => ((prim length payload : Nat) <=? maximum)
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.VerifyBytes verification => ((prim length (project verification value) : Nat) <=? maximum)
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.ReadObject digest => true
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.ReadHead name => true
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.Commit commit => (Foundation.Browser.Application.V1.Effects::effectObjectsValid (project commit objects) maximum)),
+  axioms: []
+}
+
+definition{
+  name: budgetRequestResourceFits,
+  parameters: [
+    items : (List ResourceBudget),
+    request : Foundation.Browser.Application.V1.Effects::EffectRequest,
+    fuel : Nat
+  ],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => false
+    | Nat.succ rest => (match items
+      | List.nil => false
+      | List.cons head tail => (match (prim equal (project head resource) (project request resource) : Bool)
+        | Bool.false => (budgetRequestResourceFits tail request rest)
+        | Bool.true => (budgetOperationFits (project request effect) (project head maximum))))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: effectiveRequestFits,
+  parameters: [
+    budget : EffectBudget,
+    manifest : Foundation.Browser.Application.V1.Effects::EffectManifest,
+    requestedPolicy : Bytes,
+    effectivePolicy : Bytes,
+    session : Bytes,
+    request : Foundation.Browser.Application.V1.Effects::EffectRequest
+  ],
+  result: Bool,
+  body: ((effectBudgetFitsManifest budget manifest) && ((prim equal (project budget requestedPolicy) requestedPolicy : Bool) && ((prim equal (project budget effectivePolicy) effectivePolicy : Bool) && ((prim equal (prim length session : Nat) 32 : Bool) && ((Foundation.Browser.Application.V1.Effects::effectRequestValid request manifest session) && ((budgetRequestResourceFits (project budget resources) request 64) && true)))))),
+  axioms: []
+}
+\end{semanticmodule}
+\end{lexlean}

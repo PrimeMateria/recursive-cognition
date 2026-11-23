@@ -1,0 +1,219 @@
+\begin{lexlean}{Foundation.Browser.Application.V1.SignedContextWire}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Browser.Application.V1.SignedContext}
+\importmodule{Foundation.Browser.Application.V1.SessionWire}
+\importmodule{Foundation.Browser.Application.V1.EffectsWire}
+\importmodule{Foundation.Codec.Cbor.V1.Primitive}
+\title{Browser signed context wire format}
+\begin{semanticmodule}
+structure{
+  name: SignedContextRead,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.SignedContext::SignedContext},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readSignedContext,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result SignedContextRead Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 9)
+    | Result.error wireCause => (ctor Result.error [SignedContextRead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match ((project header count) =? 9)
+      | Bool.false => (ctor Result.error [SignedContextRead, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Foundation.Browser.Application.V1.SessionWire::readSessionSourceSessionBinding input (project header cursor))
+        | Result.error wireCause => (ctor Result.error [SignedContextRead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok field0 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project field0 cursor) 2048)
+          | Result.error wireCause => (ctor Result.error [SignedContextRead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok field1 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project field1 cursor))
+            | Result.error wireCause => (ctor Result.error [SignedContextRead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok field2 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project field2 cursor) 2048)
+              | Result.error wireCause => (ctor Result.error [SignedContextRead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok field3 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project field3 cursor) 2048)
+                | Result.error wireCause => (ctor Result.error [SignedContextRead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok field4 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project field4 cursor) 2048)
+                  | Result.error wireCause => (ctor Result.error [SignedContextRead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                  | Result.ok field5 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project field5 cursor) 2048)
+                    | Result.error wireCause => (ctor Result.error [SignedContextRead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                    | Result.ok field6 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project field6 cursor))
+                      | Result.error wireCause => (ctor Result.error [SignedContextRead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                      | Result.ok field7 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project field7 cursor) 2048)
+                        | Result.error wireCause => (ctor Result.error [SignedContextRead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                        | Result.ok field8 => (ctor Result.ok [SignedContextRead, Foundation.Codec.Cbor.V1.Primitive::CborError] (record SignedContextRead {value := (record Foundation.Browser.Application.V1.SignedContext::SignedContext {binding := (project field0 value), origin := (project field1 value), purpose := (project field2 value), subject := (project field3 value), scope := (project field4 value), state := (project field5 value), request := (project field6 value), credentialEpoch := (project field7 value), challenge := (project field8 value)}), cursor := (project field8 cursor)}))))))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeSignedContext,
+  parameters: [value : Foundation.Browser.Application.V1.SignedContext::SignedContext],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 9 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.SessionWire::writeSessionSourceSessionBinding (project value binding))) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value origin))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat (project value purpose)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value subject)))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value scope)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value state))) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value request))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat (project value credentialEpoch)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value challenge))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: SignedContextEnvelopeRead,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.SignedContext::SignedContextEnvelope},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readSignedContextEnvelope,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result SignedContextEnvelopeRead Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 4)
+    | Result.error wireCause => (ctor Result.error [SignedContextEnvelopeRead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match ((project header count) =? 4)
+      | Bool.false => (ctor Result.error [SignedContextEnvelopeRead, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project header cursor))
+        | Result.error wireCause => (ctor Result.error [SignedContextEnvelopeRead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok field0 => (match ((project field0 value) =? 1)
+          | Bool.false => (ctor Result.error [SignedContextEnvelopeRead, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (match (readSignedContext input (project field0 cursor))
+            | Result.error wireCause => (ctor Result.error [SignedContextEnvelopeRead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok field1 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project field1 cursor) 2048)
+              | Result.error wireCause => (ctor Result.error [SignedContextEnvelopeRead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok field2 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project field2 cursor) 2048)
+                | Result.error wireCause => (ctor Result.error [SignedContextEnvelopeRead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok field3 => (ctor Result.ok [SignedContextEnvelopeRead, Foundation.Codec.Cbor.V1.Primitive::CborError] (record SignedContextEnvelopeRead {value := (record Foundation.Browser.Application.V1.SignedContext::SignedContextEnvelope {context := (project field1 value), publicKey := (project field2 value), signature := (project field3 value)}), cursor := (project field3 cursor)}))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeSignedContextEnvelope,
+  parameters: [value : Foundation.Browser.Application.V1.SignedContext::SignedContextEnvelope],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 4 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat 1)) (writeSignedContext (project value context))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value publicKey)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value signature)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeSignedContextUnsigned,
+  parameters: [value : Foundation.Browser.Application.V1.SignedContext::SignedContextEnvelope],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 3 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat 1)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (writeSignedContext (project value context)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value publicKey)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeSignedContextProjection,
+  parameters: [value : Foundation.Browser.Application.V1.SignedContext::SignedContextEnvelope],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (writeSignedContextUnsigned value)
+    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok unsigned => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 4 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value publicKey))) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireText (Foundation.Browser.Application.V1.SignedContext::signedContextSigningContext (project (project value context) purpose)))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes unsigned) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value signature))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: signedContextErrorBytes,
+  parameters: [cause : Foundation.Browser.Application.V1.SignedContext::SignedContextError],
+  result: Bytes,
+  body: (match cause
+    | Foundation.Browser.Application.V1.SignedContext::SignedContextError.BadContext => 0x83010100
+    | Foundation.Browser.Application.V1.SignedContext::SignedContextError.BadKey => 0x83010101
+    | Foundation.Browser.Application.V1.SignedContext::SignedContextError.BadSignature => 0x83010102
+    | Foundation.Browser.Application.V1.SignedContext::SignedContextError.ContextMismatch => 0x83010103
+    | Foundation.Browser.Application.V1.SignedContext::SignedContextError.KeyMismatch => 0x83010104
+    | Foundation.Browser.Application.V1.SignedContext::SignedContextError.UnexpectedOperation => 0x83010105),
+  axioms: []
+}
+
+definition{
+  name: emitSignedContext,
+  parameters: [
+    operation : Nat,
+    expected : Foundation.Browser.Application.V1.SignedContext::SignedContext,
+    key : Bytes,
+    envelope : Foundation.Browser.Application.V1.SignedContext::SignedContextEnvelope
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.SignedContext::matchSignedContext expected key envelope)
+    | Result.error cause => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (signedContextErrorBytes cause))
+    | Result.ok matched => (match (operation =? 0)
+      | Bool.false => (match (operation =? 1)
+        | Bool.false => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 3 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat 1)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat 0) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBool (ctor Bool.true))))
+        | Bool.true => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 3 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat 1)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat 0) (writeSignedContextProjection envelope))))
+      | Bool.true => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 3 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat 1)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat 0) (writeSignedContextEnvelope envelope))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: dispatchSignedContext,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    operation : Nat,
+    count : Nat,
+    cursor : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (operation <=? 1)
+    | Bool.false => (match (operation =? 2)
+      | Bool.false => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (signedContextErrorBytes (ctor Foundation.Browser.Application.V1.SignedContext::SignedContextError.UnexpectedOperation)))
+      | Bool.true => (match (count =? 5)
+        | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+        | Bool.true => (match (readSignedContext input cursor)
+          | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok expected => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project expected cursor) 2048)
+            | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok key => (match (readSignedContextEnvelope input (project key cursor))
+              | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok decoded => (match ((project decoded cursor) =? (prim length (project input bytes) : Nat))
+                | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                | Bool.true => (emitSignedContext operation (project expected value) (project key value) (project decoded value))))))))
+    | Bool.true => (match (count =? 3)
+      | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readSignedContextEnvelope input cursor)
+        | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok decoded => (match ((project decoded cursor) =? (prim length (project input bytes) : Nat))
+          | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+          | Bool.true => (emitSignedContext operation (project (project decoded value) context) (project (project decoded value) publicKey) (project decoded value)))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readSignedContextRequest,
+  parameters: [input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input 0 5)
+    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project header cursor))
+      | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok version => (match ((project version value) =? 1)
+        | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+        | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project version cursor))
+          | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok operation => (dispatchSignedContext input (project operation value) (project header count) (project operation cursor)))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: signedContextWireBytes,
+  parameters: [input : Bytes],
+  result: Bytes,
+  body: (match ((prim length input : Nat) <=? 2048)
+    | Bool.false => 0x83010206
+    | Bool.true => (match (readSignedContextRequest (record Foundation.Browser.Application.V1.EffectsWire::EffectWireInput {bytes := input}))
+      | Result.error cause => (Foundation.Browser.Application.V1.EffectsWire::effectWireErrorBytes cause)
+      | Result.ok response => (match ((prim length response : Nat) <=? 2048)
+        | Bool.false => 0x83010206
+        | Bool.true => response))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+\end{semanticmodule}
+\end{lexlean}

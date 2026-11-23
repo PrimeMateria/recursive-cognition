@@ -1,0 +1,42 @@
+\begin{lexlean}{Spike.RatOrder}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{rctitles@1.0.0}
+\title{Rational order helper conformance spike}
+\begin{semanticmodule}
+structure{
+  name: RationalScaled,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: numerator, type: Nat}, {name: denominator, type: Nat}]
+}
+
+definition{
+  name: oneThird,
+  parameters: [],
+  result: RationalScaled,
+  body: (record RationalScaled {numerator := 1, denominator := 3})
+}
+
+definition{
+  name: oneHalf,
+  parameters: [],
+  result: RationalScaled,
+  body: (record RationalScaled {numerator := 1, denominator := 2})
+}
+
+definition{
+  name: ratLt,
+  parameters: [a : RationalScaled, b : RationalScaled],
+  result: Bool,
+  body: ((prim multiply (project a numerator) (project b denominator) : Nat) <? (prim multiply (project b numerator) (project a denominator) : Nat))
+}
+
+theorem{
+  name: rat_order_helper,
+  parameters: [],
+  statement: ((ratLt (oneThird) (oneHalf)) = true),
+  proof: reflexivity{}
+}
+\end{semanticmodule}
+\end{lexlean}

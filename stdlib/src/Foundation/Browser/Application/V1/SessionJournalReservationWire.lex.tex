@@ -1,0 +1,140 @@
+\begin{lexlean}{Foundation.Browser.Application.V1.SessionJournalReservationWire}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Browser.Application.V1.EffectsWire}
+\importmodule{Foundation.Browser.Application.V1.OperationJournalWire}
+\importmodule{Foundation.Browser.Application.V1.SessionJournal}
+\importmodule{Foundation.Browser.Application.V1.SessionJournalReservation}
+\importmodule{Foundation.Browser.Application.V1.SessionJournalWire}
+\importmodule{Foundation.Codec.Cbor.V1.Primitive}
+\title{Browser session journal reservation wire format}
+\begin{semanticmodule}
+definition{
+  name: writeSessionJournalReservationCost,
+  parameters: [
+    value : (Result Nat Foundation.Browser.Application.V1.SessionJournal::SessionJournalError)
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Result.error cause => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (Foundation.Browser.Application.V1.SessionJournalWire::sessionJournalProtocolFailure cause))
+    | Result.ok state => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x830100) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat state))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: dispatchSessionJournalReservationWire,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    operation : Nat,
+    count : Nat,
+    cursor : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (operation =? 6)
+    | Bool.false => (match (operation =? 0)
+      | Bool.false => (match (operation =? 1)
+        | Bool.false => (match (operation =? 2)
+          | Bool.false => (match (operation =? 3)
+            | Bool.false => (match (operation =? 4)
+              | Bool.false => (match (operation =? 5)
+                | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                | Bool.true => (match (count =? 3)
+                  | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                  | Bool.true => (match (Foundation.Browser.Application.V1.SessionJournalWire::readSessionJournalSessionJournalPosition input cursor)
+                    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                    | Result.ok argument0 => (match ((project argument0 cursor) =? (prim length (project input bytes) : Nat))
+                      | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                      | Bool.true => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (match (Foundation.Browser.Application.V1.SessionJournal::sessionJournalPositionValid (project argument0 value))
+                        | Bool.false => 0x830100f4
+                        | Bool.true => 0x830100f5))))))
+              | Bool.true => (match (count =? 3)
+                | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                | Bool.true => (match (Foundation.Browser.Application.V1.SessionJournalWire::readSessionJournalSessionJournalRecord input cursor)
+                  | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                  | Result.ok argument0 => (match ((project argument0 cursor) =? (prim length (project input bytes) : Nat))
+                    | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                    | Bool.true => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (match (Foundation.Browser.Application.V1.SessionJournal::sessionJournalRecordValid (project argument0 value))
+                      | Bool.false => 0x830100f4
+                      | Bool.true => 0x830100f5))))))
+            | Bool.true => (match (count =? 3)
+              | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+              | Bool.true => (match (Foundation.Browser.Application.V1.SessionJournalWire::readSessionJournalSessionJournalState input cursor)
+                | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok argument0 => (match ((project argument0 cursor) =? (prim length (project input bytes) : Nat))
+                  | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                  | Bool.true => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (match (Foundation.Browser.Application.V1.SessionJournalReservation::sessionJournalReservationValid (project argument0 value))
+                    | Bool.false => 0x830100f4
+                    | Bool.true => 0x830100f5))))))
+          | Bool.true => (match (count =? 4)
+            | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+            | Bool.true => (match (Foundation.Browser.Application.V1.SessionJournalWire::readSessionJournalSessionJournalState input cursor)
+              | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok argument0 => (match (Foundation.Browser.Application.V1.SessionJournalWire::readSessionJournalEntries input (project argument0 cursor))
+                | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok argument1 => (match ((project argument1 cursor) =? (prim length (project input bytes) : Nat))
+                  | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                  | Bool.true => (Foundation.Browser.Application.V1.SessionJournalWire::writeSessionJournalResult (Foundation.Browser.Application.V1.SessionJournalReservation::replayReservedSessionJournal (project argument0 value) (project argument1 value))))))))
+        | Bool.true => (match (count =? 5)
+          | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (match (Foundation.Browser.Application.V1.SessionJournalWire::readSessionJournalSessionJournalState input cursor)
+            | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok argument0 => (match (Foundation.Browser.Application.V1.SessionJournalWire::readSessionJournalSessionJournalRecord input (project argument0 cursor))
+              | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok argument1 => (match (Foundation.Browser.Application.V1.OperationJournalWire::readJournalWireJournalPayload input (project argument1 cursor))
+                | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok argument2 => (match ((project argument2 cursor) =? (prim length (project input bytes) : Nat))
+                  | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                  | Bool.true => (Foundation.Browser.Application.V1.SessionJournalWire::writeSessionJournalResult (Foundation.Browser.Application.V1.SessionJournalReservation::appendReservedSessionJournal (project argument0 value) (project argument1 value) (project argument2 value)))))))))
+      | Bool.true => (match (count =? 6)
+        | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+        | Bool.true => (match (Foundation.Browser.Application.V1.SessionJournalWire::readSessionJournalSessionJournalBinding input cursor)
+          | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok argument0 => (match (Foundation.Browser.Application.V1.OperationJournalWire::readJournalWireJournalPayload input (project argument0 cursor))
+            | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok argument1 => (match (Foundation.Browser.Application.V1.SessionJournalWire::readSessionJournalSessionJournalPosition input (project argument1 cursor))
+              | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok argument2 => (match (Foundation.Browser.Application.V1.OperationJournalWire::readJournalWireJournalPayload input (project argument2 cursor))
+                | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok argument3 => (match ((project argument3 cursor) =? (prim length (project input bytes) : Nat))
+                  | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                  | Bool.true => (Foundation.Browser.Application.V1.SessionJournalWire::writeSessionJournalResult (Foundation.Browser.Application.V1.SessionJournalReservation::initializeReservedSessionJournal (project argument0 value) (project argument1 value) (project argument2 value) (project argument3 value))))))))))
+    | Bool.true => (match (count =? 3)
+      | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Foundation.Browser.Application.V1.SessionJournalWire::readSessionJournalSessionJournalState input cursor)
+        | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok argument0 => (match ((project argument0 cursor) =? (prim length (project input bytes) : Nat))
+          | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+          | Bool.true => (writeSessionJournalReservationCost (Foundation.Browser.Application.V1.SessionJournalReservation::sessionJournalRequiredOrdinals (project argument0 value))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readSessionJournalReservationWire,
+  parameters: [input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input 0 6)
+    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok outer => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project outer cursor))
+      | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok version => (match ((project version value) =? 1)
+        | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+        | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project version cursor))
+          | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok tag => (dispatchSessionJournalReservationWire input (project tag value) (project outer count) (project tag cursor)))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: sessionJournalReservationBytes,
+  parameters: [input : Bytes],
+  result: Bytes,
+  body: (match ((prim length input : Nat) <=? 67108864)
+    | Bool.false => 0x83010206
+    | Bool.true => (match (readSessionJournalReservationWire (record Foundation.Browser.Application.V1.EffectsWire::EffectWireInput {bytes := input}))
+      | Result.error cause => (Foundation.Browser.Application.V1.SessionJournalWire::sessionJournalWireFailure cause)
+      | Result.ok output => output)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+\end{semanticmodule}
+\end{lexlean}

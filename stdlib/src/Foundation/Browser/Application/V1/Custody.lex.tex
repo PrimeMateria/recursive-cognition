@@ -1,0 +1,585 @@
+\begin{lexlean}{Foundation.Browser.Application.V1.Custody}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Browser.Application.V1.Effects}
+\title{Browser credential custody}
+\begin{semanticmodule}
+structure{
+  name: CustodyResource,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: resource, type: String},
+    {name: slot, type: String},
+    {name: context, type: String},
+    {name: maximum, type: Nat}
+  ]
+}
+
+structure{
+  name: CustodyPolicy,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: application, type: Bytes},
+    {name: policy, type: Bytes},
+    {name: slots, type: (List String)},
+    {name: resources, type: (List CustodyResource)}
+  ]
+}
+
+structure{
+  name: CredentialBinding,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: application, type: Bytes},
+    {name: policy, type: Bytes},
+    {name: slot, type: String},
+    {name: publicKey, type: Bytes},
+    {name: principal, type: String}
+  ]
+}
+
+structure{
+  name: CustodySnapshot,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: policy, type: CustodyPolicy}, {name: bindings, type: (List CredentialBinding)}]
+}
+
+structure{
+  name: CustodyAuthorization,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: resource, type: String},
+    {name: slot, type: String},
+    {name: context, type: String},
+    {name: maximum, type: Nat},
+    {name: publicKey, type: Bytes},
+    {name: principal, type: String}
+  ]
+}
+
+inductive{
+  name: CustodyReply,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Policy, fields: [CustodyPolicy]},
+    {name: Snapshot, fields: [CustodySnapshot]},
+    {name: Authorization, fields: [CustodyAuthorization]}
+  ]
+}
+
+inductive{
+  name: CustodyError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: BadPolicy, fields: []},
+    {name: BadSnapshot, fields: []},
+    {name: AlreadyInitialized, fields: []},
+    {name: MissingCustody, fields: []},
+    {name: PolicyMismatch, fields: []},
+    {name: BadBindings, fields: []},
+    {name: UnknownResource, fields: []},
+    {name: PayloadLimit, fields: []}
+  ]
+}
+
+definition{
+  name: custodySlugOctetNat0,
+  parameters: [value : UInt8],
+  result: Nat,
+  body: (match (prim equal value (68 : UInt8) : Bool)
+    | Bool.false => (match (prim equal value (67 : UInt8) : Bool)
+      | Bool.false => (match (prim equal value (66 : UInt8) : Bool)
+        | Bool.false => (match (prim equal value (65 : UInt8) : Bool)
+          | Bool.false => (match (prim equal value (57 : UInt8) : Bool)
+            | Bool.false => (match (prim equal value (56 : UInt8) : Bool)
+              | Bool.false => (match (prim equal value (55 : UInt8) : Bool)
+                | Bool.false => (match (prim equal value (54 : UInt8) : Bool)
+                  | Bool.false => (match (prim equal value (53 : UInt8) : Bool)
+                    | Bool.false => (match (prim equal value (52 : UInt8) : Bool)
+                      | Bool.false => (match (prim equal value (51 : UInt8) : Bool)
+                        | Bool.false => (match (prim equal value (50 : UInt8) : Bool)
+                          | Bool.false => (match (prim equal value (49 : UInt8) : Bool)
+                            | Bool.false => (match (prim equal value (48 : UInt8) : Bool)
+                              | Bool.false => (match (prim equal value (46 : UInt8) : Bool)
+                                | Bool.false => (match (prim equal value (45 : UInt8) : Bool)
+                                  | Bool.false => 256
+                                  | Bool.true => 45)
+                                | Bool.true => 46)
+                              | Bool.true => 48)
+                            | Bool.true => 49)
+                          | Bool.true => 50)
+                        | Bool.true => 51)
+                      | Bool.true => 52)
+                    | Bool.true => 53)
+                  | Bool.true => 54)
+                | Bool.true => 55)
+              | Bool.true => 56)
+            | Bool.true => 57)
+          | Bool.true => 65)
+        | Bool.true => 66)
+      | Bool.true => 67)
+    | Bool.true => 68),
+  axioms: []
+}
+
+definition{
+  name: custodySlugOctetNat1,
+  parameters: [value : UInt8],
+  result: Nat,
+  body: (match (prim equal value (84 : UInt8) : Bool)
+    | Bool.false => (match (prim equal value (83 : UInt8) : Bool)
+      | Bool.false => (match (prim equal value (82 : UInt8) : Bool)
+        | Bool.false => (match (prim equal value (81 : UInt8) : Bool)
+          | Bool.false => (match (prim equal value (80 : UInt8) : Bool)
+            | Bool.false => (match (prim equal value (79 : UInt8) : Bool)
+              | Bool.false => (match (prim equal value (78 : UInt8) : Bool)
+                | Bool.false => (match (prim equal value (77 : UInt8) : Bool)
+                  | Bool.false => (match (prim equal value (76 : UInt8) : Bool)
+                    | Bool.false => (match (prim equal value (75 : UInt8) : Bool)
+                      | Bool.false => (match (prim equal value (74 : UInt8) : Bool)
+                        | Bool.false => (match (prim equal value (73 : UInt8) : Bool)
+                          | Bool.false => (match (prim equal value (72 : UInt8) : Bool)
+                            | Bool.false => (match (prim equal value (71 : UInt8) : Bool)
+                              | Bool.false => (match (prim equal value (70 : UInt8) : Bool)
+                                | Bool.false => (match (prim equal value (69 : UInt8) : Bool)
+                                  | Bool.false => (custodySlugOctetNat0 value)
+                                  | Bool.true => 69)
+                                | Bool.true => 70)
+                              | Bool.true => 71)
+                            | Bool.true => 72)
+                          | Bool.true => 73)
+                        | Bool.true => 74)
+                      | Bool.true => 75)
+                    | Bool.true => 76)
+                  | Bool.true => 77)
+                | Bool.true => 78)
+              | Bool.true => 79)
+            | Bool.true => 80)
+          | Bool.true => 81)
+        | Bool.true => 82)
+      | Bool.true => 83)
+    | Bool.true => 84),
+  axioms: []
+}
+
+definition{
+  name: custodySlugOctetNat2,
+  parameters: [value : UInt8],
+  result: Nat,
+  body: (match (prim equal value (105 : UInt8) : Bool)
+    | Bool.false => (match (prim equal value (104 : UInt8) : Bool)
+      | Bool.false => (match (prim equal value (103 : UInt8) : Bool)
+        | Bool.false => (match (prim equal value (102 : UInt8) : Bool)
+          | Bool.false => (match (prim equal value (101 : UInt8) : Bool)
+            | Bool.false => (match (prim equal value (100 : UInt8) : Bool)
+              | Bool.false => (match (prim equal value (99 : UInt8) : Bool)
+                | Bool.false => (match (prim equal value (98 : UInt8) : Bool)
+                  | Bool.false => (match (prim equal value (97 : UInt8) : Bool)
+                    | Bool.false => (match (prim equal value (95 : UInt8) : Bool)
+                      | Bool.false => (match (prim equal value (90 : UInt8) : Bool)
+                        | Bool.false => (match (prim equal value (89 : UInt8) : Bool)
+                          | Bool.false => (match (prim equal value (88 : UInt8) : Bool)
+                            | Bool.false => (match (prim equal value (87 : UInt8) : Bool)
+                              | Bool.false => (match (prim equal value (86 : UInt8) : Bool)
+                                | Bool.false => (match (prim equal value (85 : UInt8) : Bool)
+                                  | Bool.false => (custodySlugOctetNat1 value)
+                                  | Bool.true => 85)
+                                | Bool.true => 86)
+                              | Bool.true => 87)
+                            | Bool.true => 88)
+                          | Bool.true => 89)
+                        | Bool.true => 90)
+                      | Bool.true => 95)
+                    | Bool.true => 97)
+                  | Bool.true => 98)
+                | Bool.true => 99)
+              | Bool.true => 100)
+            | Bool.true => 101)
+          | Bool.true => 102)
+        | Bool.true => 103)
+      | Bool.true => 104)
+    | Bool.true => 105),
+  axioms: []
+}
+
+definition{
+  name: custodySlugOctetNat3,
+  parameters: [value : UInt8],
+  result: Nat,
+  body: (match (prim equal value (121 : UInt8) : Bool)
+    | Bool.false => (match (prim equal value (120 : UInt8) : Bool)
+      | Bool.false => (match (prim equal value (119 : UInt8) : Bool)
+        | Bool.false => (match (prim equal value (118 : UInt8) : Bool)
+          | Bool.false => (match (prim equal value (117 : UInt8) : Bool)
+            | Bool.false => (match (prim equal value (116 : UInt8) : Bool)
+              | Bool.false => (match (prim equal value (115 : UInt8) : Bool)
+                | Bool.false => (match (prim equal value (114 : UInt8) : Bool)
+                  | Bool.false => (match (prim equal value (113 : UInt8) : Bool)
+                    | Bool.false => (match (prim equal value (112 : UInt8) : Bool)
+                      | Bool.false => (match (prim equal value (111 : UInt8) : Bool)
+                        | Bool.false => (match (prim equal value (110 : UInt8) : Bool)
+                          | Bool.false => (match (prim equal value (109 : UInt8) : Bool)
+                            | Bool.false => (match (prim equal value (108 : UInt8) : Bool)
+                              | Bool.false => (match (prim equal value (107 : UInt8) : Bool)
+                                | Bool.false => (match (prim equal value (106 : UInt8) : Bool)
+                                  | Bool.false => (custodySlugOctetNat2 value)
+                                  | Bool.true => 106)
+                                | Bool.true => 107)
+                              | Bool.true => 108)
+                            | Bool.true => 109)
+                          | Bool.true => 110)
+                        | Bool.true => 111)
+                      | Bool.true => 112)
+                    | Bool.true => 113)
+                  | Bool.true => 114)
+                | Bool.true => 115)
+              | Bool.true => 116)
+            | Bool.true => 117)
+          | Bool.true => 118)
+        | Bool.true => 119)
+      | Bool.true => 120)
+    | Bool.true => 121),
+  axioms: []
+}
+
+definition{
+  name: custodySlugOctetNat4,
+  parameters: [value : UInt8],
+  result: Nat,
+  body: (match (prim equal value (122 : UInt8) : Bool)
+    | Bool.false => (custodySlugOctetNat3 value)
+    | Bool.true => 122),
+  axioms: []
+}
+
+definition{
+  name: custodySlugOctetNat,
+  parameters: [value : UInt8],
+  result: Nat,
+  body: (custodySlugOctetNat4 value),
+  axioms: []
+}
+
+definition{
+  name: custodyBytesLess,
+  parameters: [left : Bytes, right : Bytes, offset : Nat, fuel : Nat],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => (((prim length left : Nat) <=? offset) && ((offset <? (prim length right : Nat)) && true))
+    | Nat.succ rest => (match ((prim length left : Nat) <=? offset)
+      | Bool.false => (match ((prim length right : Nat) <=? offset)
+        | Bool.false => (match (prim index left offset : (Option UInt8))
+          | Option.none => false
+          | Option.some leftByte => (match (prim index right offset : (Option UInt8))
+            | Option.none => false
+            | Option.some rightByte => (match (prim equal leftByte rightByte : Bool)
+              | Bool.false => ((custodySlugOctetNat leftByte) <? (custodySlugOctetNat rightByte))
+              | Bool.true => (custodyBytesLess left right (offset + 1) rest))))
+        | Bool.true => false)
+      | Bool.true => (offset <? (prim length right : Nat)))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: custodyTextLess,
+  parameters: [left : String, right : String],
+  result: Bool,
+  body: (((prim length (prim utf8_encode left : Bytes) : Nat) <=? 128) && (((prim length (prim utf8_encode right : Bytes) : Nat) <=? 128) && ((custodyBytesLess (prim utf8_encode left : Bytes) (prim utf8_encode right : Bytes) 0 128) && true))),
+  axioms: []
+}
+
+definition{
+  name: custodyHasSlot,
+  parameters: [slots : (List String), slot : String, fuel : Nat],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => (match slots | List.nil => false | List.cons unusedHead unusedTail => false)
+    | Nat.succ rest => (match slots
+      | List.nil => false
+      | List.cons head tail => ((prim equal head slot : Bool) || ((custodyHasSlot tail slot rest) || false)))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: custodySlotUsed,
+  parameters: [resources : (List CustodyResource), slot : String, fuel : Nat],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => (match resources | List.nil => false | List.cons unusedHead unusedTail => false)
+    | Nat.succ rest => (match resources
+      | List.nil => false
+      | List.cons head tail => ((prim equal (project head slot) slot : Bool) || ((custodySlotUsed tail slot rest) || false)))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: custodySlotsValid,
+  parameters: [
+    slots : (List String),
+    resources : (List CustodyResource),
+    previous : String,
+    fuel : Nat
+  ],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => (match slots | List.nil => true | List.cons unusedHead unusedTail => false)
+    | Nat.succ rest => (match slots
+      | List.nil => true
+      | List.cons head tail => ((Foundation.Browser.Application.V1.Effects::effectNameValid head 0) && ((custodyTextLess previous head) && ((custodySlotUsed resources head 64) && ((custodySlotsValid tail resources head rest) && true)))))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: custodyResourcesValid,
+  parameters: [
+    resources : (List CustodyResource),
+    slots : (List String),
+    previous : String,
+    fuel : Nat
+  ],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => (match resources | List.nil => true | List.cons unusedHead unusedTail => false)
+    | Nat.succ rest => (match resources
+      | List.nil => true
+      | List.cons head tail => ((Foundation.Browser.Application.V1.Effects::effectNameValid (project head resource) 0) && ((Foundation.Browser.Application.V1.Effects::effectNameValid (project head slot) 0) && ((custodyTextLess previous (project head resource)) && ((custodyHasSlot slots (project head slot) 64) && ((Foundation.Browser.Application.V1.Effects::effectNameValid (project head context) 1) && ((0 <? (project head maximum)) && (((project head maximum) <=? 1048576) && ((custodyResourcesValid tail slots (project head resource) rest) && true)))))))))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: custodySlotsPresent,
+  parameters: [items : (List String)],
+  result: Bool,
+  body: (match items | List.nil => false | List.cons unusedHead unusedTail => true),
+  axioms: []
+}
+
+definition{
+  name: custodyResourcesPresent,
+  parameters: [items : (List CustodyResource)],
+  result: Bool,
+  body: (match items | List.nil => false | List.cons unusedHead unusedTail => true),
+  axioms: []
+}
+
+definition{
+  name: custodyPolicyValid,
+  parameters: [policy : CustodyPolicy],
+  result: Bool,
+  body: (((prim length (project policy application) : Nat) =? 32) && (((prim length (project policy policy) : Nat) =? 32) && ((custodySlotsPresent (project policy slots)) && ((custodyResourcesPresent (project policy resources)) && ((custodySlotsValid (project policy slots) (project policy resources) "" 64) && ((custodyResourcesValid (project policy resources) (project policy slots) "" 64) && true)))))),
+  axioms: []
+}
+
+definition{
+  name: custodySlotsEqual,
+  parameters: [left : (List String), right : (List String), fuel : Nat],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => ((not (match left
+      | List.nil => false
+      | List.cons unusedHead unusedTail => true)) && ((not (match right
+      | List.nil => false
+      | List.cons unusedHead unusedTail => true)) && true))
+    | Nat.succ rest => (match left
+      | List.nil => (not (match right
+        | List.nil => false
+        | List.cons unusedHead unusedTail => true))
+      | List.cons leftHead leftTail => (match right
+        | List.nil => false
+        | List.cons rightHead rightTail => ((prim equal leftHead rightHead : Bool) && ((custodySlotsEqual leftTail rightTail rest) && true))))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: custodyResourcesEqual,
+  parameters: [left : (List CustodyResource), right : (List CustodyResource), fuel : Nat],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => ((not (match left
+      | List.nil => false
+      | List.cons unusedHead unusedTail => true)) && ((not (match right
+      | List.nil => false
+      | List.cons unusedHead unusedTail => true)) && true))
+    | Nat.succ rest => (match left
+      | List.nil => (not (match right
+        | List.nil => false
+        | List.cons unusedHead unusedTail => true))
+      | List.cons leftHead leftTail => (match right
+        | List.nil => false
+        | List.cons rightHead rightTail => (((prim equal (project leftHead resource) (project rightHead resource) : Bool) && ((prim equal (project leftHead slot) (project rightHead slot) : Bool) && ((prim equal (project leftHead context) (project rightHead context) : Bool) && (((project leftHead maximum) =? (project rightHead maximum)) && true)))) && ((custodyResourcesEqual leftTail rightTail rest) && true))))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: custodyPolicyEqual,
+  parameters: [left : CustodyPolicy, right : CustodyPolicy],
+  result: Bool,
+  body: ((prim equal (project left application) (project right application) : Bool) && ((prim equal (project left policy) (project right policy) : Bool) && ((custodySlotsEqual (project left slots) (project right slots) 64) && ((custodyResourcesEqual (project left resources) (project right resources) 64) && true)))),
+  axioms: []
+}
+
+definition{
+  name: custodyDuplicateBinding,
+  parameters: [bindings : (List CredentialBinding), binding : CredentialBinding, fuel : Nat],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => (match bindings | List.nil => false | List.cons unusedHead unusedTail => false)
+    | Nat.succ rest => (match bindings
+      | List.nil => false
+      | List.cons head tail => ((prim equal (project head publicKey) (project binding publicKey) : Bool) || ((prim equal (project head principal) (project binding principal) : Bool) || ((custodyDuplicateBinding tail binding rest) || false))))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: custodyBindingsValid,
+  parameters: [
+    policy : CustodyPolicy,
+    slots : (List String),
+    bindings : (List CredentialBinding),
+    fuel : Nat
+  ],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => ((not (match slots
+      | List.nil => false
+      | List.cons unusedHead unusedTail => true)) && ((not (match bindings
+      | List.nil => false
+      | List.cons unusedHead unusedTail => true)) && true))
+    | Nat.succ rest => (match slots
+      | List.nil => (not (match bindings
+        | List.nil => false
+        | List.cons unusedHead unusedTail => true))
+      | List.cons slot remainingSlots => (match bindings
+        | List.nil => false
+        | List.cons head tail => ((prim equal (project head slot) slot : Bool) && ((prim equal (project head application) (project policy application) : Bool) && ((prim equal (project head policy) (project policy policy) : Bool) && ((((prim length (project head publicKey) : Nat) =? 65) && ((match (prim index (project head publicKey) 0 : (Option UInt8))
+          | Option.none => false
+          | Option.some firstByte => (prim equal firstByte (4 : UInt8) : Bool)) && true)) && ((Foundation.Browser.Application.V1.Effects::effectDigestValid (project head principal)) && ((not (custodyDuplicateBinding tail head 64)) && ((custodyBindingsValid policy remainingSlots tail rest) && true)))))))))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: custodySnapshotValid,
+  parameters: [snapshot : CustodySnapshot],
+  result: Bool,
+  body: ((custodyPolicyValid (project snapshot policy)) && ((custodyBindingsValid (project snapshot policy) (project (project snapshot policy) slots) (project snapshot bindings) 64) && true)),
+  axioms: []
+}
+
+definition{
+  name: inspectCustodyPolicy,
+  parameters: [policy : CustodyPolicy],
+  result: (Result CustodyReply CustodyError),
+  body: (match (custodyPolicyValid policy)
+    | Bool.false => (ctor Result.error [CustodyReply, CustodyError] (ctor CustodyError.BadPolicy))
+    | Bool.true => (ctor Result.ok [CustodyReply, CustodyError] (ctor CustodyReply.Policy policy))),
+  axioms: []
+}
+
+definition{
+  name: initializeCustody,
+  parameters: [
+    policy : CustodyPolicy,
+    existing : (Option CustodySnapshot),
+    candidates : (List CredentialBinding)
+  ],
+  result: (Result CustodyReply CustodyError),
+  body: (match (custodyPolicyValid policy)
+    | Bool.false => (ctor Result.error [CustodyReply, CustodyError] (ctor CustodyError.BadPolicy))
+    | Bool.true => (match existing
+      | Option.some current => (match (custodySnapshotValid current)
+        | Bool.false => (ctor Result.error [CustodyReply, CustodyError] (ctor CustodyError.BadSnapshot))
+        | Bool.true => (ctor Result.error [CustodyReply, CustodyError] (ctor CustodyError.AlreadyInitialized)))
+      | Option.none => (match (custodyBindingsValid policy (project policy slots) candidates 64)
+        | Bool.false => (ctor Result.error [CustodyReply, CustodyError] (ctor CustodyError.BadBindings))
+        | Bool.true => (ctor Result.ok [CustodyReply, CustodyError] (ctor CustodyReply.Snapshot (record CustodySnapshot {policy := policy, bindings := candidates})))))),
+  axioms: []
+}
+
+definition{
+  name: openCustody,
+  parameters: [policy : CustodyPolicy, existing : (Option CustodySnapshot)],
+  result: (Result CustodyReply CustodyError),
+  body: (match (custodyPolicyValid policy)
+    | Bool.false => (ctor Result.error [CustodyReply, CustodyError] (ctor CustodyError.BadPolicy))
+    | Bool.true => (match existing
+      | Option.none => (ctor Result.error [CustodyReply, CustodyError] (ctor CustodyError.MissingCustody))
+      | Option.some current => (match (custodySnapshotValid current)
+        | Bool.false => (ctor Result.error [CustodyReply, CustodyError] (ctor CustodyError.BadSnapshot))
+        | Bool.true => (match (custodyPolicyEqual policy (project current policy))
+          | Bool.false => (ctor Result.error [CustodyReply, CustodyError] (ctor CustodyError.PolicyMismatch))
+          | Bool.true => (ctor Result.ok [CustodyReply, CustodyError] (ctor CustodyReply.Snapshot current)))))),
+  axioms: []
+}
+
+definition{
+  name: custodyFindResource,
+  parameters: [items : (List CustodyResource), reference : String, fuel : Nat],
+  result: (Option CustodyResource),
+  body: (match fuel
+    | Nat.zero => (ctor Option.none [CustodyResource])
+    | Nat.succ rest => (match items
+      | List.nil => (ctor Option.none [CustodyResource])
+      | List.cons head tail => (match (prim equal (project head resource) reference : Bool)
+        | Bool.false => (custodyFindResource tail reference rest)
+        | Bool.true => (ctor Option.some [CustodyResource] head)))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: custodyFindBinding,
+  parameters: [items : (List CredentialBinding), reference : String, fuel : Nat],
+  result: (Option CredentialBinding),
+  body: (match fuel
+    | Nat.zero => (ctor Option.none [CredentialBinding])
+    | Nat.succ rest => (match items
+      | List.nil => (ctor Option.none [CredentialBinding])
+      | List.cons head tail => (match (prim equal (project head slot) reference : Bool)
+        | Bool.false => (custodyFindBinding tail reference rest)
+        | Bool.true => (ctor Option.some [CredentialBinding] head)))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: admitCustodySign,
+  parameters: [
+    snapshot : CustodySnapshot,
+    application : Bytes,
+    policy : Bytes,
+    resource : String,
+    payload : Bytes
+  ],
+  result: (Result CustodyReply CustodyError),
+  body: (match (custodySnapshotValid snapshot)
+    | Bool.false => (ctor Result.error [CustodyReply, CustodyError] (ctor CustodyError.BadSnapshot))
+    | Bool.true => (match ((prim equal (project (project snapshot policy) application) application : Bool) && ((prim equal (project (project snapshot policy) policy) policy : Bool) && true))
+      | Bool.false => (ctor Result.error [CustodyReply, CustodyError] (ctor CustodyError.PolicyMismatch))
+      | Bool.true => (match (custodyFindResource (project (project snapshot policy) resources) resource 64)
+        | Option.none => (ctor Result.error [CustodyReply, CustodyError] (ctor CustodyError.UnknownResource))
+        | Option.some selected => (match ((prim length payload : Nat) <=? (project selected maximum))
+          | Bool.false => (ctor Result.error [CustodyReply, CustodyError] (ctor CustodyError.PayloadLimit))
+          | Bool.true => (match (custodyFindBinding (project snapshot bindings) (project selected slot) 64)
+            | Option.none => (ctor Result.error [CustodyReply, CustodyError] (ctor CustodyError.BadBindings))
+            | Option.some binding => (ctor Result.ok [CustodyReply, CustodyError] (ctor CustodyReply.Authorization (record CustodyAuthorization {resource := (project selected resource), slot := (project selected slot), context := (project selected context), maximum := (project selected maximum), publicKey := (project binding publicKey), principal := (project binding principal)})))))))),
+  axioms: []
+}
+\end{semanticmodule}
+\end{lexlean}

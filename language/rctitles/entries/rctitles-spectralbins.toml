@@ -1,0 +1,16 @@
+spec = "lexlean/entry/1"
+id = "rctitles-spectralbins"
+category = "label-word"
+surface_arity = 0
+frame = "atom"
+
+[denotation]
+kind = "defined"
+value = "(const lexlean.std.nat::nat)"
+
+[[form]]
+id = "rctitles-spectralbins"
+channel = "text"
+surface = "Prime boundary spectral bin partition conformance spike"
+canonical_source = true
+features = ["sentence-case", "singular"]

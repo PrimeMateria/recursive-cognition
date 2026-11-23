@@ -1,0 +1,38 @@
+\begin{lexlean}{Foundation.Holo.V1.Capability}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\title{Hologram capability request}
+\begin{semanticmodule}
+structure{
+  name: CapabilityRequest,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: storageRoots, type: (List String)},
+    {name: storageQuotaBytes, type: UInt64},
+    {name: networkFetchEndpoints, type: (List String)},
+    {name: networkAnnounceEndpoints, type: (List String)},
+    {name: publishChannels, type: (List String)},
+    {name: subscribeChannels, type: (List String)},
+    {name: memoryMaximumBytes, type: UInt64},
+    {name: cpuMillisecondsPerEvent, type: UInt64},
+    {name: priorityWeight, type: UInt32}
+  ]
+}
+
+structure{
+  name: ChildDelegation,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: applicationKappa, type: Bytes}, {name: capabilitiesKappa, type: Bytes}]
+}
+
+definition{
+  name: emptyRequest,
+  parameters: [],
+  result: CapabilityRequest,
+  body: (record CapabilityRequest {storageRoots := (nil String), storageQuotaBytes := (0 : UInt64), networkFetchEndpoints := (nil String), networkAnnounceEndpoints := (nil String), publishChannels := (nil String), subscribeChannels := (nil String), memoryMaximumBytes := (0 : UInt64), cpuMillisecondsPerEvent := (0 : UInt64), priorityWeight := (0 : UInt32)})
+}
+\end{semanticmodule}
+\end{lexlean}

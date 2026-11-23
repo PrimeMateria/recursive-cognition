@@ -1,0 +1,176 @@
+The v3.3 planning baseline established *what* to build and *why* each safety argument is conditional. This ADR plan addresses *how* to build it with an auditable decision trail, using **LexLean** for the single-source formal-artifact pipeline and **PrismPM** for the governed execution and evidence register. It is deliberately scoped to close the gap that surfaced repeatedly in the review: claims that were asserted but not evidenced.
+
+---
+
+# ADR Plan — Grounded Multiplicity-Recursive Cognition Engine (v3.3 → Verified Prototype)
+
+## 1. Tooling role definition
+
+| Tool | Role in this project | What it replaces | Primary evidence output |
+|---|---|---|---|
+| **LexLean** | Single-source LaTeX-to-Lean 4 compiler. The DT-CBF theorems, the `m_inter_bounds_drift` TCB hypothesis, the spectral-binning invariants, and the dwell-time lemma are authored once in a closed-lexicon `.lex.tex` source. LexLean generates the canonical document *and* the prose-free Lean module from the same IR, then `lexlean verify` runs the pinned `leanprover/lean4:v4.32.1` toolchain, replays with `leanchecker`, audits axioms via `#print axioms`, and publishes a content-addressed attestation. | Hand-maintained Lean files + separate LaTeX spec that drift apart; unverifiable "paste the compiler output" claims. | `CONFORMANCE.md`, `VERIFICATION.md`, tamper-evident attestation per release. |
+| **PrismPM** | Project portfolio management layer. Hosts the ADR register as governed decision objects, the RAID log for formal-verification risks (the five open obligations), phase-gate management (PDR/CDR/TRR) for the prototype upgrade, resource allocation across Lean/Rust/Kani workstreams, and the roll-up risk register that maps each ADR to its mitigation. | Scattered notes, ad-hoc tracking, unlinked obligations. | Phase-gate exit criteria, risk register roll-up, ADR↔task↔evidence traceability. |
+
+**LexLean is an unconventional choice and must itself be governed by an ADR.** It is at v0.4, does not claim the full 1.0 specification, and parts of its own compiler are written in LexLean and pass its own checks. That is good evidence of dogfooding, not evidence of fitness for this domain. ADR-001 below makes that risk explicit and gates adoption behind a conformance spike.
+
+---
+
+## 2. ADR methodology
+
+Adopt the **Y-statement model** (Zdun et al.) for lean ADR capture, and the **five-phase ADR lifecycle** — Capture, Context, Decide, Record, Link — with three refinements taken from safety-critical ADR practice:
+
+1. **Every ADR names its enforcement site.** Not just "we decided X," but "X is enforced at `<artifact>` and verified by `<harness/theorem>`, or it is a TCB hypothesis with residual risk logged in PrismPM".
+2. **Every ADR carries a Design Class** — `Safety-First` (proof required), `Base` (Lean proofs sufficient), or `Deferred` (explicitly trusted, not proven). This mirrors the "proof budget scales with structural complexity" pattern.
+3. **Every ADR is a PrismPM object, not a file.** The ADR text lives in the repository; its status, owner, linked risk, linked phase-gate, and linked LexLean module are governed in PrismPM. A decision that is not linked is not made.
+
+### ADR template (Y-statement + enforcement)
+
+```markdown
+# ADR-NNN: <short imperative title>
+
+## Y-statement
+In the context of <use case / component>,
+facing <concern / force>,
+we decided for <option>
+and against <alternatives>,
+to achieve <quality / goal>,
+accepting <downside / risk>.
+
+## Design class
+Safety-First | Base | Deferred
+
+## Enforcement site
+- LexLean module: `<path>.lex.tex`
+- Lean theorem: `theorem <name>`
+- Kani harness: `<path>#<harness>`, unwind bound N = <n>
+- Runtime component: `<crate>::<module>::<fn>`
+- If Deferred: TCB component, residual risk ID in PrismPM
+
+## Consequences
+- Positive:
+- Negative:
+- Residual risk (PrismPM risk ID):
+
+## Links
+- Supersedes / superseded by:
+- Related ADRs:
+- Phase gate: PDR / CDR / TRR
+```
+
+---
+
+## 3. ADR register (proposed, 14 records)
+
+The register is grouped by the four pillars plus the tooling and governance layer. IDs are stable; titles are imperative.
+
+### Group A — Tooling and provenance
+
+| ID | Title | Design class | Enforcement / evidence |
+|---|---|---|---|
+| **ADR-001** | Adopt LexLean as the single-source formal-artifact compiler, gated by a conformance spike | Safety-First | LexLean `verify` attestation on the spike; rollback to hand-maintained Lean if the spike fails |
+| **ADR-002** | Pin `leanprover/lean4:v4.32.1` and forbid Mathlib in Tier-1 modules | Safety-First | `lean-toolchain` file; CI rejects `import Mathlib` in `formal/` |
+| **ADR-003** | Record all architecture decisions in PrismPM, not in repository markdown alone | Base | PrismPM ADR object ↔ repository file bidirectional link |
+
+### Group B — Discrete safety (Pillar 3)
+
+| ID | Title | Design class | Enforcement / evidence |
+|---|---|---|---|
+| **ADR-004** | Use the discrete-time CBF condition `h(x_{k+1}) ≥ (1−γ)h(x_k) + m_inter` with `γ ∈ (0,1]` | Safety-First | `dt_cbf_forward_invariant` in LexLean; Kani harness REQ-SAF-01 |
+| **ADR-005** | Treat `m_inter` as a named TCB hypothesis (`m_inter_bounds_drift`) rather than a proven bound | Deferred | Axiom in LexLean source; residual risk `RISK-MINTER` in PrismPM; blocks TRR |
+| **ADR-006** | Enforce the passive `M_0` check as `A_c u_nom + b_c ≥ 0` (no double-count of `m_inter`) | Safety-First | Kani harness on `cbf::filter::passive_check` |
+| **ADR-007** | Require slack horizon bound proof before certifying `ξ_candidate` | Safety-First | Open obligation #2 in v3.3; gate on LexLean theorem `slack_horizon_bound` |
+
+### Group C — Spectral telemetry (Pillar 1)
+
+| ID | Title | Design class | Enforcement / evidence |
+|---|---|---|---|
+| **ADR-008** | Partition 1–30 Hz into 11 disjoint prime-boundary bins; forbid center-frequency prime schemes | Base | `prime_bin_partition` invariant in LexLean; property test on bin boundaries |
+| **ADR-009** | Use normalized JS distance `D_JS^norm ∈ [0,1]` with base-2 logs and Dirichlet prior `α_i = 1/K` | Base | LexLean definition + property test on synthetic distributions |
+
+### Group D — Hybrid stability and audit (Pillar 2)
+
+| ID | Title | Design class | Enforcement / evidence |
+|---|---|---|---|
+| **ADR-010** | Require `μ_{j,i} > 1` or explicit `τ_min > 0` for every mode transition | Safety-First | `zeno_prevention_dwell` in LexLean; Kani harness REQ-HYB-01 (N=12) |
+| **ADR-011** | Restrict the meta-cognitive audit to a typed trace grammar; no free-form reasoning in the safety path | Safety-First | `trace_grammar_complete` in LexLean; Kani harness REQ-AUD-01 |
+
+### Group E — Solver and runtime (Pillar 3 boundary)
+
+| ID | Title | Design class | Enforcement / evidence |
+|---|---|---|---|
+| **ADR-012** | Isolate OSQP as an unverified TCB component behind a residual-checking wrapper with a 2.5 ms budget | Deferred | TCB entry §3.5; runtime watchdog; residual risk `RISK-OSQP` in PrismPM |
+
+### Group F — Readiness governance
+
+| ID | Title | Design class | Enforcement / evidence |
+|---|---|---|---|
+| **ADR-013** | Freeze v3.3 as the planning baseline; no "verified" claim until all five open obligations are closed | Base | PrismPM phase-gate `TRR-1` cannot pass while any `RISK-*` is open |
+| **ADR-014** | Require every PR touching `formal/` to attach a LexLean `verify` receipt | Safety-First | CI gate; receipt hash recorded in PrismPM task front-matter |
+
+---
+
+## 4. PrismPM execution plan
+
+### 4.1 Portfolio structure
+
+```
+Portfolio: Grounded Cognition Engine
+├── Program: Formal Core (LexLean)
+│   ├── Project: DT-CBF (ADR-004, 005, 006)
+│   ├── Project: Spectral Invariants (ADR-008, 009)
+│   └── Project: Hybrid Stability (ADR-010, 011)
+├── Program: Runtime Safety (Rust/Kani)
+│   ├── Project: CBF Filter Harnesses (REQ-SAF-01, REQ-OPT-01)
+│   └── Project: Mode Machine Harnesses (REQ-HYB-01, REQ-AUD-01)
+└── Program: Verification Governance
+    ├── Project: TCB Register (ADR-005, 012)
+    └── Project: Phase-Gate Evidence (ADR-013, 014)
+```
+
+### 4.2 Phase gates with explicit exit criteria
+
+| Gate | Exit criteria | PrismPM artifact |
+|---|---|---|
+| **PDR** (Preliminary Design Review) | ADR-001 through ADR-014 captured, all Design Classes assigned, all Deferred ADRs have a PrismPM risk ID | ADR register completeness report |
+| **CDR** (Critical Design Review) | LexLean spike passes (ADR-001); all Base and Safety-First ADRs have an enforcement site; the five open obligations are scheduled | Traceability matrix roll-up |
+| **TRR-1** (Test Readiness, planning) | v3.3 baseline frozen; no implementation artifact claims "verified" | Baseline freeze record |
+| **TRR-2** (Test Readiness, prototype) | All Safety-First ADRs have a passing LexLean `verify` receipt and a passing Kani harness; Deferred ADRs have a closed or accepted residual risk | Evidence bundle: attestations + harness output + risk acceptance |
+
+### 4.3 RAID log seeds
+
+| Risk | Linked ADR | Mitigation | Owner |
+|---|---|---|---|
+| `RISK-LEXLEAN-IMMATURITY` | ADR-001 | Conformance spike; rollback path to hand-maintained Lean | Formal Core lead |
+| `RISK-MINTER` | ADR-005 | TCB hypothesis; blocks TRR-2 until proven or accepted | Control theory lead |
+| `RISK-SLACK` | ADR-007 | Open obligation #2; schedule before TRR-2 | Control theory lead |
+| `RISK-OSQP` | ADR-012 | Wrapper + watchdog; residual risk acceptance at TRR-2 | Runtime lead |
+| `RISK-TOOLCHAIN-DRIFT` | ADR-002 | Pinned `lean-toolchain`; CI rejects drift | Formal Core lead |
+| `RISK-EVIDENCE-FABRICATION` | ADR-014 | LexLean receipts; PrismPM-linked CI gate | Verification governance lead |
+
+---
+
+## 5. Implementation sequence
+
+**Phase 0 — ADR capture (1 week).** Draft ADR-001 through ADR-014 in PrismPM. Assign Design Class and enforcement site to each. No code yet.
+
+**Phase 1 — LexLean conformance spike (2–3 weeks).** Encode three representative artifacts in `.lex.tex`: a `Rat`-order helper lemma, the `dt_cbf_forward_invariant` statement, and the `prime_bin_partition` invariant. Run `lexlean verify`. Record the attestation in PrismPM. **ADR-001 is accepted only if all three verify and the attestation is reproducible.**
+
+**Phase 2 — Formal Core (4–6 weeks).** Move the discrete CBF, spectral, and hybrid-stability modules into LexLean. Each module is an ADR enforcement site. The `m_inter_bounds_drift` axiom is declared in the LexLean source with an explicit `@[deferred]` annotation and a PrismPM risk link.
+
+**Phase 3 — Runtime harnesses (3–4 weeks).** Kani harnesses for REQ-SAF-01, REQ-OPT-01, REQ-HYB-01, REQ-AUD-01. Each harness attaches its real `cargo kani` output to the PrismPM task; no pasted claims accepted (this is the ADR-014 gate).
+
+**Phase 4 — TRR-2 evidence assembly (2 weeks).** LexLean attestations + Kani outputs + risk acceptances roll up into the TRR-2 evidence bundle. The prototype is declared "verified prototype" only when every Safety-First ADR has a passing receipt and every Deferred ADR has a signed residual-risk acceptance.
+
+---
+
+## 6. What this plan deliberately does not do
+
+- It does **not** claim LexLean replaces Mathlib for the `m_inter` proof. ADR-005 keeps that as a TCB hypothesis until a real-analysis proof exists. LexLean proves the *discrete algebraic* layer; it does not fabricate the continuous layer.
+- It does **not** treat PrismPM as a source of truth for correctness. PrismPM is the governance and evidence-linking layer; the correctness evidence is the LexLean attestation and the Kani output.
+- It does **not** upgrade readiness. v3.3 remains the planning baseline until TRR-2 passes with real evidence.
+
+---
+
+## 7. Immediate next action
+
+Draft **ADR-001** and run the LexLean conformance spike. If `lexlean verify` produces a reproducible attestation for the three spike artifacts, ADR-001 is accepted and Phase 2 begins. If it does not, ADR-001 is rejected and the fallback (hand-maintained Lean + CI-pinned toolchain) is recorded as a superseding ADR. Either outcome is evidence, which is the point.

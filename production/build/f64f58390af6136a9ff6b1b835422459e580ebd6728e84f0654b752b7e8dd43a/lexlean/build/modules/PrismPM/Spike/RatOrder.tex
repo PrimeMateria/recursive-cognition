@@ -1,0 +1,30 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\begin{document}
+\section*{Semantic declarations}
+\subsection*{\texttt{RationalScaled}}
+\noindent Kind: \texttt{structure}.\par
+\noindent Field \texttt{numerator}: \texttt{Nat}.\par
+\noindent Field \texttt{denominator}: \texttt{Nat}.\par
+\subsection*{\texttt{oneThird}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Type: \texttt{RationalScaled}.\par
+\noindent Definition: \texttt{(\{ numerator := 1, denominator := 3 \} : RationalScaled)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{oneHalf}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Type: \texttt{RationalScaled}.\par
+\noindent Definition: \texttt{(\{ numerator := 1, denominator := 2 \} : RationalScaled)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{ratLt}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(a : RationalScaled) (b : RationalScaled)}.\par
+\noindent Type: \texttt{Bool}.\par
+\noindent Definition: \texttt{(Nat.blt ((LexLeanRuntime.multiply ((a).numerator) ((b).denominator) : Nat)) ((LexLeanRuntime.multiply ((b).numerator) ((a).denominator) : Nat)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{rat\_order\_helper}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{(ratLt (oneThird) (oneHalf) = true)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\end{document}

@@ -1,0 +1,174 @@
+\begin{lexlean}{Production.Operations}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\title{Production operations model}
+\begin{semanticmodule}
+inductive{
+  name: AcceptanceKind,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Positive, fields: []},
+    {name: Negative, fields: []},
+    {name: Fault, fields: []},
+    {name: Load, fields: []},
+    {name: Upgrade, fields: []},
+    {name: Downgrade, fields: []},
+    {name: Recovery, fields: []},
+    {name: Rollback, fields: []}
+  ]
+}
+
+structure{
+  name: Observability,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: logs, type: (List String)},
+    {name: metrics, type: (List String)},
+    {name: traces, type: (List String)},
+    {name: alerts, type: (List String)},
+    {name: slos, type: (List String)},
+    {name: redactedFields, type: (List String)}
+  ]
+}
+
+structure{
+  name: Sli,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: String},
+    {name: kind, type: String},
+    {name: value, type: String},
+    {name: dependsOn, type: (List String)},
+    {name: signal, type: String},
+    {name: unit, type: String},
+    {name: windowSeconds, type: UInt64}
+  ]
+}
+
+structure{
+  name: Slo,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: String},
+    {name: kind, type: String},
+    {name: value, type: String},
+    {name: dependsOn, type: (List String)},
+    {name: comparison, type: String},
+    {name: threshold, type: UInt64},
+    {name: unit, type: String},
+    {name: percentileMillionths, type: (Option UInt64)},
+    {name: windowSeconds, type: UInt64}
+  ]
+}
+
+structure{
+  name: ArchitectureBinding,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: String},
+    {name: kind, type: String},
+    {name: value, type: String},
+    {name: dependsOn, type: (List String)},
+    {name: owner, type: String},
+    {name: viewpoint, type: String},
+    {name: verifies, type: (List String)},
+    {name: measurement, type: (Option String)}
+  ]
+}
+
+structure{
+  name: Alert,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: String},
+    {name: kind, type: String},
+    {name: value, type: String},
+    {name: dependsOn, type: (List String)}
+  ]
+}
+
+structure{
+  name: Control,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: String},
+    {name: kind, type: String},
+    {name: value, type: String},
+    {name: dependsOn, type: (List String)},
+    {name: owner, type: String},
+    {name: verification, type: (List String)}
+  ]
+}
+
+structure{
+  name: Rollout,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: String},
+    {name: kind, type: String},
+    {name: value, type: String},
+    {name: dependsOn, type: (List String)}
+  ]
+}
+
+structure{
+  name: Rollback,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: String},
+    {name: kind, type: String},
+    {name: value, type: String},
+    {name: dependsOn, type: (List String)}
+  ]
+}
+
+structure{
+  name: Drift,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: String},
+    {name: kind, type: String},
+    {name: value, type: String},
+    {name: dependsOn, type: (List String)}
+  ]
+}
+
+structure{
+  name: Retirement,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: String},
+    {name: kind, type: String},
+    {name: value, type: String},
+    {name: dependsOn, type: (List String)}
+  ]
+}
+
+structure{
+  name: Acceptance,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: String},
+    {name: kind, type: String},
+    {name: target, type: String},
+    {name: component, type: String},
+    {name: command, type: (List String)},
+    {name: evidence, type: String},
+    {name: bounded, type: Bool}
+  ]
+}
+\end{semanticmodule}
+\end{lexlean}

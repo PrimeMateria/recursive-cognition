@@ -1,0 +1,74 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\begin{document}
+\section*{Semantic declarations}
+\subsection*{\texttt{SpectralBin}}
+\noindent Kind: \texttt{structure}.\par
+\noindent Field \texttt{lowerHz}: \texttt{Nat}.\par
+\noindent Field \texttt{upperExclusiveHz}: \texttt{Nat}.\par
+\subsection*{\texttt{PrimeBinPartition}}
+\noindent Kind: \texttt{structure}.\par
+\noindent Field \texttt{bin01}: \texttt{SpectralBin}.\par
+\noindent Field \texttt{bin02}: \texttt{SpectralBin}.\par
+\noindent Field \texttt{bin03}: \texttt{SpectralBin}.\par
+\noindent Field \texttt{bin04}: \texttt{SpectralBin}.\par
+\noindent Field \texttt{bin05}: \texttt{SpectralBin}.\par
+\noindent Field \texttt{bin06}: \texttt{SpectralBin}.\par
+\noindent Field \texttt{bin07}: \texttt{SpectralBin}.\par
+\noindent Field \texttt{bin08}: \texttt{SpectralBin}.\par
+\noindent Field \texttt{bin09}: \texttt{SpectralBin}.\par
+\noindent Field \texttt{bin10}: \texttt{SpectralBin}.\par
+\noindent Field \texttt{bin11}: \texttt{SpectralBin}.\par
+\subsection*{\texttt{makeBin}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(lo : Nat) (hi : Nat)}.\par
+\noindent Type: \texttt{SpectralBin}.\par
+\noindent Definition: \texttt{(\{ lowerHz := lo, upperExclusiveHz := hi \} : SpectralBin)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{defaultPartition}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Type: \texttt{PrimeBinPartition}.\par
+\noindent Definition: \texttt{(\{ bin01 := makeBin (1) (2), bin02 := makeBin (2) (3), bin03 := makeBin (3) (5), bin04 := makeBin (5) (7), bin05 := makeBin (7) (11), bin06 := makeBin (11) (13), bin07 := makeBin (13) (17), bin08 := makeBin (17) (19), bin09 := makeBin (19) (23), bin10 := makeBin (23) (29), bin11 := makeBin (29) (31) \} : PrimeBinPartition)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{binLower}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(b : SpectralBin)}.\par
+\noindent Type: \texttt{Nat}.\par
+\noindent Definition: \texttt{(b).lowerHz}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{binUpper}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(b : SpectralBin)}.\par
+\noindent Type: \texttt{Nat}.\par
+\noindent Definition: \texttt{(b).upperExclusiveHz}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{binWellFormed}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(b : SpectralBin)}.\par
+\noindent Type: \texttt{Bool}.\par
+\noindent Definition: \texttt{(Nat.blt (binLower (b)) (binUpper (b)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{adjacent}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(a : SpectralBin) (b : SpectralBin)}.\par
+\noindent Type: \texttt{Bool}.\par
+\noindent Definition: \texttt{(Nat.beq (binUpper (a)) (binLower (b)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{isPrimeBoundary}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(n : Nat)}.\par
+\noindent Type: \texttt{Bool}.\par
+\noindent Definition: \texttt{((((((((((Nat.beq (n) (2)) || (Nat.beq (n) (3))) || (Nat.beq (n) (5))) || (Nat.beq (n) (7))) || (Nat.beq (n) (11))) || (Nat.beq (n) (13))) || (Nat.beq (n) (17))) || (Nat.beq (n) (19))) || (Nat.beq (n) (23))) || (Nat.beq (n) (29)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{primeBinPartitionHolds}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Parameters: \texttt{(p : PrimeBinPartition)}.\par
+\noindent Type: \texttt{Bool}.\par
+\noindent Definition: \texttt{(((((((((((((((((((((((((((((((((Nat.beq (binLower ((p).bin01)) (1)) \&\& (Nat.beq (binUpper ((p).bin11)) (31))) \&\& binWellFormed ((p).bin01)) \&\& binWellFormed ((p).bin02)) \&\& binWellFormed ((p).bin03)) \&\& binWellFormed ((p).bin04)) \&\& binWellFormed ((p).bin05)) \&\& binWellFormed ((p).bin06)) \&\& binWellFormed ((p).bin07)) \&\& binWellFormed ((p).bin08)) \&\& binWellFormed ((p).bin09)) \&\& binWellFormed ((p).bin10)) \&\& binWellFormed ((p).bin11)) \&\& adjacent ((p).bin01) ((p).bin02)) \&\& adjacent ((p).bin02) ((p).bin03)) \&\& adjacent ((p).bin03) ((p).bin04)) \&\& adjacent ((p).bin04) ((p).bin05)) \&\& adjacent ((p).bin05) ((p).bin06)) \&\& adjacent ((p).bin06) ((p).bin07)) \&\& adjacent ((p).bin07) ((p).bin08)) \&\& adjacent ((p).bin08) ((p).bin09)) \&\& adjacent ((p).bin09) ((p).bin10)) \&\& adjacent ((p).bin10) ((p).bin11)) \&\& isPrimeBoundary (binUpper ((p).bin01))) \&\& isPrimeBoundary (binUpper ((p).bin02))) \&\& isPrimeBoundary (binUpper ((p).bin03))) \&\& isPrimeBoundary (binUpper ((p).bin04))) \&\& isPrimeBoundary (binUpper ((p).bin05))) \&\& isPrimeBoundary (binUpper ((p).bin06))) \&\& isPrimeBoundary (binUpper ((p).bin07))) \&\& isPrimeBoundary (binUpper ((p).bin08))) \&\& isPrimeBoundary (binUpper ((p).bin09))) \&\& isPrimeBoundary (binUpper ((p).bin10)))}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{prime\_bin\_partition}}
+\noindent Kind: \texttt{theorem}.\par
+\noindent Statement: \texttt{(primeBinPartitionHolds (defaultPartition) = true)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\end{document}

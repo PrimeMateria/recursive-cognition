@@ -1,0 +1,333 @@
+\begin{lexlean}{Production.System}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Production.Core}
+\importmodule{Production.Interface}
+\importmodule{Production.Runtime}
+\importmodule{Production.Operations}
+\importmodule{Production.Validation}
+\title{Production system manifest validation}
+\begin{semanticmodule}
+structure{
+  name: ModelTerm,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: String},
+    {name: kind, type: String},
+    {name: value, type: String},
+    {name: dependsOn, type: (List String)}
+  ]
+}
+
+structure{
+  name: Lifecycle,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: backup, type: String},
+    {name: drift, type: String},
+    {name: migration, type: String},
+    {name: recovery, type: String},
+    {name: retirement, type: String},
+    {name: rollback, type: String},
+    {name: rollout, type: String}
+  ]
+}
+
+structure{
+  name: ApplicationErrorBinding,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: wireName, type: String}, {name: modelName, type: String}]
+}
+
+structure{
+  name: TransactionalCommandView,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: title, type: String},
+    {name: heading, type: String},
+    {name: identityHeading, type: String},
+    {name: commandFormHeading, type: String},
+    {name: historyHeading, type: String},
+    {name: principalLabel, type: String},
+    {name: principalDefault, type: String},
+    {name: roleLabel, type: String},
+    {name: submitterRoleLabel, type: String},
+    {name: observerRoleLabel, type: String},
+    {name: deniedRoleLabel, type: String},
+    {name: authenticateLabel, type: String},
+    {name: commandIdLabel, type: String},
+    {name: inputALabel, type: String},
+    {name: operationLabel, type: String},
+    {name: inputBLabel, type: String},
+    {name: annotationLabel, type: String},
+    {name: submitLabel, type: String},
+    {name: refreshLabel, type: String},
+    {name: emptyText, type: String},
+    {name: loadingText, type: String},
+    {name: authenticatedText, type: String},
+    {name: accessDeniedText, type: String},
+    {name: retryLabel, type: String},
+    {name: sequenceHeading, type: String},
+    {name: commandColumnHeading, type: String},
+    {name: inputSummaryHeading, type: String},
+    {name: outcomeHeading, type: String},
+    {name: annotationHeading, type: String},
+    {name: releasePrefix, type: String},
+    {name: historyLoadedText, type: String},
+    {name: historyEmptyText, type: String},
+    {name: authenticatingText, type: String},
+    {name: authenticationFailedText, type: String},
+    {name: submittingText, type: String},
+    {name: outcomePrefix, type: String},
+    {name: commandFailedText, type: String},
+    {name: historyFailedText, type: String}
+  ]
+}
+
+structure{
+  name: TransactionalCommandServiceProfile,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: contract, type: String},
+    {name: applicationErrors, type: (List ApplicationErrorBinding)},
+    {name: applicationModelDigest, type: String},
+    {name: commandEncoding, type: String},
+    {name: responseVersion, type: String},
+    {name: optionalAnnotation, type: String},
+    {name: coreArtifact, type: String},
+    {name: identityAudience, type: String},
+    {name: submitterRole, type: String},
+    {name: observerRole, type: String},
+    {name: eventSource, type: String},
+    {name: acceptedEventType, type: String},
+    {name: rejectedEventType, type: String},
+    {name: databaseName, type: String},
+    {name: databaseUser, type: String},
+    {name: eventExchange, type: String},
+    {name: auditQueue, type: String},
+    {name: commandIdPattern, type: String},
+    {name: commandPath, type: String},
+    {name: tokenPath, type: String},
+    {name: commandOperations, type: (List String)},
+    {name: annotationMaxScalars, type: UInt32},
+    {name: historyDefaultLimit, type: UInt32},
+    {name: historyMaxLimit, type: UInt32},
+    {name: maxRequestBytes, type: UInt64},
+    {name: availabilityThresholdMillionths, type: UInt64},
+    {name: outboxLagThresholdMillis, type: UInt64},
+    {name: commandIdField, type: String},
+    {name: operationField, type: String},
+    {name: inputAField, type: String},
+    {name: inputBField, type: String},
+    {name: annotationField, type: String},
+    {name: commandIdColumn, type: String},
+    {name: operationColumn, type: String},
+    {name: inputAColumn, type: String},
+    {name: inputBColumn, type: String},
+    {name: annotationColumn, type: String},
+    {name: acceptanceErrorOperation, type: String},
+    {name: acceptanceErrorInputA, type: String},
+    {name: acceptanceErrorInputB, type: String},
+    {name: acceptanceExpectedError, type: String},
+    {name: acceptanceConflictInputB, type: String},
+    {name: acceptanceSuccessOperation, type: String},
+    {name: acceptanceSuccessInputA, type: String},
+    {name: acceptanceSuccessInputB, type: String},
+    {name: acceptanceExpectedResult, type: String},
+    {name: view, type: TransactionalCommandView},
+    {name: brokerUser, type: String},
+    {name: historyTable, type: String},
+    {name: outboxTable, type: String},
+    {name: auditTable, type: String},
+    {name: publicHostnameParameter, type: String}
+  ]
+}
+
+structure{
+  name: SystemModel,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: product, type: Production.Core::Product},
+    {name: artifacts, type: (List Production.Core::Artifact)},
+    {name: components, type: (List Production.Core::Component)},
+    {name: interfaces, type: (List Production.Interface::Interface)},
+    {name: schemas, type: (List Production.Interface::Schema)},
+    {name: calls, type: (List Production.Interface::Call)},
+    {name: events, type: (List Production.Interface::Event)},
+    {name: flows, type: (List Production.Interface::Flow)},
+    {name: topology, type: (List Production.Runtime::Topology)},
+    {name: platformRequirements, type: (List Production.Runtime::PlatformRequirement)},
+    {name: scalingPolicies, type: (List Production.Runtime::ScalingPolicy)},
+    {name: storageClasses, type: (List Production.Runtime::StorageClass)},
+    {name: parameters, type: (List Production.Core::Configuration)},
+    {name: secretReferences, type: (List Production.Core::SecretReference)},
+    {name: identityRequirements, type: (List Production.Core::IdentityRequirement)},
+    {name: persistence, type: (List Production.Runtime::Persistence)},
+    {name: migrations, type: (List Production.Runtime::Migration)},
+    {name: backups, type: (List Production.Runtime::BackupRecovery)},
+    {name: observability, type: Production.Operations::Observability},
+    {name: slis, type: (List Production.Operations::Sli)},
+    {name: slos, type: (List Production.Operations::Slo)},
+    {name: alerts, type: (List Production.Operations::Alert)},
+    {name: controls, type: (List Production.Operations::Control)},
+    {name: capabilities, type: (List Production.Core::Capability)},
+    {name: architecture, type: (List Production.Operations::ArchitectureBinding)},
+    {name: targets, type: (List Production.Runtime::TargetBinding)},
+    {name: rollouts, type: (List Production.Operations::Rollout)},
+    {name: rollbacks, type: (List Production.Operations::Rollback)},
+    {name: drifts, type: (List Production.Operations::Drift)},
+    {name: retirements, type: (List Production.Operations::Retirement)},
+    {name: acceptance, type: (List Production.Operations::Acceptance)},
+    {name: lifecycle, type: Lifecycle},
+    {name: applicationProfile, type: TransactionalCommandServiceProfile},
+    {name: standards, type: (List String)}
+  ]
+}
+
+structure{
+  name: SystemManifest,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: closure, type: Production.Validation::ValidationRelation},
+    {name: uniqueness, type: Production.Validation::ValidationRelation},
+    {name: referentialIntegrity, type: Production.Validation::ValidationRelation},
+    {name: compatibility, type: Production.Validation::ValidationRelation},
+    {name: capabilitySatisfaction, type: Production.Validation::ValidationRelation},
+    {name: secretFlow, type: Production.Validation::ValidationRelation},
+    {name: deploymentOrder, type: Production.Validation::ValidationRelation},
+    {name: migrationOrder, type: Production.Validation::ValidationRelation},
+    {name: rollbackSafety, type: Production.Validation::ValidationRelation},
+    {name: evidenceClosure, type: Production.Validation::ValidationRelation},
+    {name: licenseClosure, type: Production.Validation::ValidationRelation},
+    {name: releaseCompleteness, type: Production.Validation::ValidationRelation}
+  ]
+}
+
+definition{
+  name: validateManifestClosure,
+  parameters: [manifest : SystemManifest],
+  result: Bool,
+  body: (Production.Validation::validateClosure (project (project manifest closure) bound) (project (project manifest closure) values)),
+  axioms: []
+}
+
+definition{
+  name: validateManifestUniqueness,
+  parameters: [manifest : SystemManifest],
+  result: Bool,
+  body: (Production.Validation::validateUniqueness (project (project manifest uniqueness) values)),
+  axioms: []
+}
+
+definition{
+  name: validateManifestReferentialIntegrity,
+  parameters: [manifest : SystemManifest],
+  result: Bool,
+  body: (Production.Validation::validateReferentialIntegrity (project (project manifest referentialIntegrity) bound) (project (project manifest referentialIntegrity) values)),
+  axioms: []
+}
+
+definition{
+  name: validateManifestCompatibility,
+  parameters: [manifest : SystemManifest],
+  result: Bool,
+  body: (Production.Validation::validateCompatibility (project (project manifest compatibility) bound) (project (project manifest compatibility) values)),
+  axioms: []
+}
+
+definition{
+  name: validateManifestCapabilitySatisfaction,
+  parameters: [manifest : SystemManifest],
+  result: Bool,
+  body: (Production.Validation::validateCapabilitySatisfaction (project (project manifest capabilitySatisfaction) bound) (project (project manifest capabilitySatisfaction) values)),
+  axioms: []
+}
+
+definition{
+  name: validateManifestSecretFlow,
+  parameters: [manifest : SystemManifest],
+  result: Bool,
+  body: (Production.Validation::validateSecretFlow (project (project manifest secretFlow) bound) (project (project manifest secretFlow) values)),
+  axioms: []
+}
+
+definition{
+  name: validateManifestDeploymentOrder,
+  parameters: [manifest : SystemManifest],
+  result: Bool,
+  body: (Production.Validation::validateDeploymentOrder (project (project manifest deploymentOrder) values)),
+  axioms: []
+}
+
+definition{
+  name: validateManifestMigrationOrder,
+  parameters: [manifest : SystemManifest],
+  result: Bool,
+  body: (Production.Validation::validateMigrationOrder (project (project manifest migrationOrder) values)),
+  axioms: []
+}
+
+definition{
+  name: validateManifestRollbackSafety,
+  parameters: [manifest : SystemManifest],
+  result: Bool,
+  body: (Production.Validation::validateRollbackSafety (project (project manifest rollbackSafety) bound) (project (project manifest rollbackSafety) values)),
+  axioms: []
+}
+
+definition{
+  name: validateManifestEvidenceClosure,
+  parameters: [manifest : SystemManifest],
+  result: Bool,
+  body: (Production.Validation::validateEvidenceClosure (project (project manifest evidenceClosure) bound) (project (project manifest evidenceClosure) values)),
+  axioms: []
+}
+
+definition{
+  name: validateManifestLicenseClosure,
+  parameters: [manifest : SystemManifest],
+  result: Bool,
+  body: (Production.Validation::validateLicenseClosure (project (project manifest licenseClosure) values)),
+  axioms: []
+}
+
+definition{
+  name: validateManifestReleaseCompleteness,
+  parameters: [manifest : SystemManifest],
+  result: Bool,
+  body: (Production.Validation::validateReleaseCompleteness (project (project manifest releaseCompleteness) values)),
+  axioms: []
+}
+
+definition{
+  name: validateManifest,
+  parameters: [manifest : SystemManifest],
+  result: Bool,
+  body: ((Production.Validation::validateClosure (project (project manifest closure) bound) (project (project manifest closure) values)) && ((Production.Validation::validateUniqueness (project (project manifest uniqueness) values)) && ((Production.Validation::validateReferentialIntegrity (project (project manifest referentialIntegrity) bound) (project (project manifest referentialIntegrity) values)) && ((Production.Validation::validateCompatibility (project (project manifest compatibility) bound) (project (project manifest compatibility) values)) && ((Production.Validation::validateCapabilitySatisfaction (project (project manifest capabilitySatisfaction) bound) (project (project manifest capabilitySatisfaction) values)) && ((Production.Validation::validateSecretFlow (project (project manifest secretFlow) bound) (project (project manifest secretFlow) values)) && ((Production.Validation::validateDeploymentOrder (project (project manifest deploymentOrder) values)) && ((Production.Validation::validateMigrationOrder (project (project manifest migrationOrder) values)) && ((Production.Validation::validateRollbackSafety (project (project manifest rollbackSafety) bound) (project (project manifest rollbackSafety) values)) && ((Production.Validation::validateEvidenceClosure (project (project manifest evidenceClosure) bound) (project (project manifest evidenceClosure) values)) && ((Production.Validation::validateLicenseClosure (project (project manifest licenseClosure) values)) && (Production.Validation::validateReleaseCompleteness (project (project manifest releaseCompleteness) values))))))))))))),
+  axioms: []
+}
+
+definition{
+  name: manifestValid,
+  parameters: [manifest : SystemManifest],
+  result: Prop,
+  body: ((validateManifest manifest) = true),
+  axioms: []
+}
+
+theorem{
+  name: manifestValidation_sound_complete,
+  parameters: [manifest : SystemManifest],
+  statement: (((validateManifest manifest) = true) <-> (manifestValid manifest)),
+  proof: reflexivity{}
+}
+\end{semanticmodule}
+\end{lexlean}

@@ -1,0 +1,15 @@
+# Lean / Lake / LexLean build artifacts
+.lake/
+.lexlean/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Timestamped reports archive (preserves living LATEST reports)
+reports/*_20*.md
+reports/*_20*.json
+reports/logs/
+
+# Temporary files
+*.tmp

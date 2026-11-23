@@ -1,0 +1,175 @@
+\begin{lexlean}{Foundation.Browser.V1.WorkspaceEnvelope}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Browser.V1.Workspace}
+\title{Browser workspace envelope}
+\begin{semanticmodule}
+structure{
+  name: WorkspaceEnvelope,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: publicKey, type: Bytes},
+    {name: signature, type: Bytes},
+    {name: eventBytes, type: Bytes}
+  ]
+}
+
+definition{
+  name: workspaceEventEncodingPresent,
+  parameters: [event : (Option Foundation.Browser.V1.Workspace::AuthenticatedEvent)],
+  result: Bool,
+  body: (match event | Option.none => false | Option.some candidate => true),
+  axioms: []
+}
+
+definition{
+  name: workspaceEnvelopeFieldsValid,
+  parameters: [candidate : WorkspaceEnvelope],
+  result: Bool,
+  body: (((prim length (project candidate publicKey) : Nat) =? 65) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindow (project candidate publicKey) 0 1) 0x04) && (((prim length (project candidate signature) : Nat) =? 64) && ((workspaceEventEncodingPresent (Foundation.Browser.V1.Workspace::decodeAuthenticatedEvent (project candidate eventBytes))) && true)))),
+  axioms: [propext]
+}
+
+definition{
+  name: encodeWorkspaceEnvelope,
+  parameters: [candidate : WorkspaceEnvelope],
+  result: (Option Bytes),
+  body: (if (workspaceEnvelopeFieldsValid candidate) then (ctor Option.some [Bytes] (prim append (prim append (prim append (prim append 0x 0x50574501 : Bytes) (project candidate publicKey) : Bytes) (project candidate signature) : Bytes) (project candidate eventBytes) : Bytes)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: workspaceEnvelopeCandidate,
+  parameters: [value : Bytes],
+  result: WorkspaceEnvelope,
+  body: (record WorkspaceEnvelope {publicKey := (Foundation.Browser.V1.Workspace::byteWindow value 4 65), signature := (Foundation.Browser.V1.Workspace::byteWindow value 69 64), eventBytes := (Foundation.Browser.V1.Workspace::byteWindow value 133 (prim subtract (prim length value : Nat) 133 : Nat))}),
+  axioms: []
+}
+
+definition{
+  name: workspaceEnvelopeCheckedCandidate,
+  parameters: [candidate : WorkspaceEnvelope],
+  result: (Option WorkspaceEnvelope),
+  body: (if (workspaceEnvelopeFieldsValid candidate) then (ctor Option.some [WorkspaceEnvelope] candidate) else (ctor Option.none [WorkspaceEnvelope])),
+  axioms: [propext]
+}
+
+definition{
+  name: decodeWorkspaceEnvelope,
+  parameters: [value : Bytes],
+  result: (Option WorkspaceEnvelope),
+  body: (if ((267 <=? (prim length value : Nat)) && (((prim length value : Nat) <=? 4363) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindow value 0 4) 0x50574501) && true))) then (workspaceEnvelopeCheckedCandidate (workspaceEnvelopeCandidate value)) else (ctor Option.none [WorkspaceEnvelope])),
+  axioms: [propext]
+}
+
+definition{
+  name: workspaceEnvelopeUnsignedEventFromEvent,
+  parameters: [event : (Option Foundation.Browser.V1.Workspace::AuthenticatedEvent)],
+  result: (Option Bytes),
+  body: (match event
+    | Option.none => (ctor Option.none [Bytes])
+    | Option.some candidate => (ctor Option.some [Bytes] (Foundation.Browser.V1.Workspace::encodeUnsignedEvent candidate))),
+  axioms: []
+}
+
+definition{
+  name: workspaceEnvelopeUnsignedEvent,
+  parameters: [candidate : WorkspaceEnvelope],
+  result: (Option Bytes),
+  body: (if (workspaceEnvelopeFieldsValid candidate) then (workspaceEnvelopeUnsignedEventFromEvent (Foundation.Browser.V1.Workspace::decodeAuthenticatedEvent (project candidate eventBytes))) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: workspaceEnvelopeSigningPreimageFromEvent,
+  parameters: [event : (Option Foundation.Browser.V1.Workspace::AuthenticatedEvent)],
+  result: (Option Bytes),
+  body: (match event
+    | Option.none => (ctor Option.none [Bytes])
+    | Option.some candidate => (ctor Option.some [Bytes] (Foundation.Browser.V1.Workspace::workspaceSigningPreimage candidate))),
+  axioms: []
+}
+
+definition{
+  name: workspaceEnvelopeSigningPreimage,
+  parameters: [candidate : WorkspaceEnvelope],
+  result: (Option Bytes),
+  body: (if (workspaceEnvelopeFieldsValid candidate) then (workspaceEnvelopeSigningPreimageFromEvent (Foundation.Browser.V1.Workspace::decodeAuthenticatedEvent (project candidate eventBytes))) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: workspaceEnvelopeAuthorFromEvent,
+  parameters: [event : (Option Foundation.Browser.V1.Workspace::AuthenticatedEvent)],
+  result: (Option Bytes),
+  body: (match event
+    | Option.none => (ctor Option.none [Bytes])
+    | Option.some candidate => (ctor Option.some [Bytes] (project candidate author))),
+  axioms: []
+}
+
+definition{
+  name: workspaceEnvelopeAuthor,
+  parameters: [candidate : WorkspaceEnvelope],
+  result: (Option Bytes),
+  body: (if (workspaceEnvelopeFieldsValid candidate) then (workspaceEnvelopeAuthorFromEvent (Foundation.Browser.V1.Workspace::decodeAuthenticatedEvent (project candidate eventBytes))) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: workspaceEnvelopeEventIdFromEvent,
+  parameters: [event : (Option Foundation.Browser.V1.Workspace::AuthenticatedEvent)],
+  result: (Option Bytes),
+  body: (match event
+    | Option.none => (ctor Option.none [Bytes])
+    | Option.some candidate => (ctor Option.some [Bytes] (project candidate eventId))),
+  axioms: []
+}
+
+definition{
+  name: workspaceEnvelopeEventId,
+  parameters: [candidate : WorkspaceEnvelope],
+  result: (Option Bytes),
+  body: (if (workspaceEnvelopeFieldsValid candidate) then (workspaceEnvelopeEventIdFromEvent (Foundation.Browser.V1.Workspace::decodeAuthenticatedEvent (project candidate eventBytes))) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: workspaceEnvelopeResponse,
+  parameters: [value : (Option Bytes)],
+  result: Bytes,
+  body: (match value
+    | Option.none => 0x01
+    | Option.some part => (prim append (prim append 0x 0x00 : Bytes) part : Bytes)),
+  axioms: []
+}
+
+definition{
+  name: workspaceEnvelopeOperation,
+  parameters: [operation : Bytes, candidate : WorkspaceEnvelope],
+  result: Bytes,
+  body: (if (Foundation.Browser.V1.Workspace::workspaceBytesEqual operation 0x00) then (workspaceEnvelopeResponse (encodeWorkspaceEnvelope candidate)) else (if (Foundation.Browser.V1.Workspace::workspaceBytesEqual operation 0x01) then (workspaceEnvelopeResponse (workspaceEnvelopeUnsignedEvent candidate)) else (if (Foundation.Browser.V1.Workspace::workspaceBytesEqual operation 0x02) then (workspaceEnvelopeResponse (workspaceEnvelopeSigningPreimage candidate)) else (if (Foundation.Browser.V1.Workspace::workspaceBytesEqual operation 0x03) then (workspaceEnvelopeResponse (ctor Option.some [Bytes] (project candidate publicKey))) else (if (Foundation.Browser.V1.Workspace::workspaceBytesEqual operation 0x04) then (workspaceEnvelopeResponse (ctor Option.some [Bytes] (project candidate signature))) else (if (Foundation.Browser.V1.Workspace::workspaceBytesEqual operation 0x05) then (workspaceEnvelopeResponse (ctor Option.some [Bytes] (project candidate eventBytes))) else (if (Foundation.Browser.V1.Workspace::workspaceBytesEqual operation 0x06) then (workspaceEnvelopeResponse (workspaceEnvelopeAuthor candidate)) else (if (Foundation.Browser.V1.Workspace::workspaceBytesEqual operation 0x07) then (workspaceEnvelopeResponse (workspaceEnvelopeEventId candidate)) else 0x02)))))))),
+  axioms: [propext]
+}
+
+definition{
+  name: workspaceEnvelopeDecodedOperation,
+  parameters: [operation : Bytes, candidate : (Option WorkspaceEnvelope)],
+  result: Bytes,
+  body: (match candidate
+    | Option.none => 0x01
+    | Option.some value => (workspaceEnvelopeOperation operation value)),
+  axioms: [propext]
+}
+
+definition{
+  name: workspaceEnvelopeBytes,
+  parameters: [request : Bytes],
+  result: Bytes,
+  body: (if ((1 <=? (prim length request : Nat)) && (((prim length request : Nat) <=? 4364) && true)) then (workspaceEnvelopeDecodedOperation (Foundation.Browser.V1.Workspace::byteWindow request 0 1) (decodeWorkspaceEnvelope (Foundation.Browser.V1.Workspace::byteWindow request 1 (prim subtract (prim length request : Nat) 1 : Nat)))) else 0x01),
+  axioms: [propext]
+}
+\end{semanticmodule}
+\end{lexlean}

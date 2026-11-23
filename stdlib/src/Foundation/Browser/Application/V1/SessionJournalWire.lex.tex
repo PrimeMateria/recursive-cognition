@@ -1,0 +1,838 @@
+\begin{lexlean}{Foundation.Browser.Application.V1.SessionJournalWire}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Browser.Application.V1.SessionJournal}
+\importmodule{Foundation.Browser.Application.V1.Session}
+\importmodule{Foundation.Browser.Application.V1.SessionWire}
+\importmodule{Foundation.Browser.Application.V1.OperationJournal}
+\importmodule{Foundation.Browser.Application.V1.OperationJournalWire}
+\importmodule{Foundation.Browser.Application.V1.EffectsWire}
+\importmodule{Foundation.Codec.Cbor.V1.Primitive}
+\importmodule{Foundation.Bytes}
+\title{Browser session journal wire format}
+\begin{semanticmodule}
+structure{
+  name: SessionJournalReadSessionJournalBinding,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.SessionJournal::SessionJournalBinding},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readSessionJournalSessionJournalBinding,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result SessionJournalReadSessionJournalBinding Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 10)
+    | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalBinding, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match ((project header count) =? 10)
+      | Bool.false => (ctor Result.error [SessionJournalReadSessionJournalBinding, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Foundation.Browser.Application.V1.SessionWire::readSessionSourceSessionBinding input (project header cursor))
+        | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalBinding, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok field0 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project field0 cursor) 65536)
+          | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalBinding, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok field1 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project field1 cursor) 65536)
+            | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalBinding, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok field2 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project field2 cursor) 65536)
+              | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalBinding, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok field3 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireText input (project field3 cursor))
+                | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalBinding, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok field4 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireText input (project field4 cursor))
+                  | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalBinding, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                  | Result.ok field5 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireText input (project field5 cursor))
+                    | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalBinding, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                    | Result.ok field6 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireText input (project field6 cursor))
+                      | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalBinding, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                      | Result.ok field7 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project field7 cursor))
+                        | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalBinding, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                        | Result.ok field8 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project field8 cursor) 65536)
+                          | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalBinding, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                          | Result.ok field9 => (ctor Result.ok [SessionJournalReadSessionJournalBinding, Foundation.Codec.Cbor.V1.Primitive::CborError] (record SessionJournalReadSessionJournalBinding {value := (record Foundation.Browser.Application.V1.SessionJournal::SessionJournalBinding {source := (project field0 value), instance := (project field1 value), origin := (project field2 value), signingKey := (project field3 value), signingContext := (project field4 value), namespace := (project field5 value), head := (project field6 value), stagingHead := (project field7 value), maximumRecords := (project field8 value), witnessPolicy := (project field9 value)}), cursor := (project field9 cursor)})))))))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeSessionJournalSessionJournalBinding,
+  parameters: [value : Foundation.Browser.Application.V1.SessionJournal::SessionJournalBinding],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 10 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.SessionWire::writeSessionSourceSessionBinding (project value source))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value instance)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value origin)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value signingKey))))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireText (project value signingContext)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireText (project value namespace)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireText (project value head)))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireText (project value stagingHead)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat (project value maximumRecords)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value witnessPolicy)))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: SessionJournalReadSessionJournalStep,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.SessionJournal::SessionJournalStep},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readSessionJournalSessionJournalStep,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result SessionJournalReadSessionJournalStep Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 3)
+    | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalStep, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match ((project header count) =? 3)
+      | Bool.false => (ctor Result.error [SessionJournalReadSessionJournalStep, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project header cursor))
+        | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalStep, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok field0 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project field0 cursor))
+          | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalStep, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok field1 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project field1 cursor))
+            | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalStep, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok field2 => (ctor Result.ok [SessionJournalReadSessionJournalStep, Foundation.Codec.Cbor.V1.Primitive::CborError] (record SessionJournalReadSessionJournalStep {value := (record Foundation.Browser.Application.V1.SessionJournal::SessionJournalStep {command := (project field0 value), step := (project field1 value), maximumSteps := (project field2 value)}), cursor := (project field2 cursor)}))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeSessionJournalSessionJournalStep,
+  parameters: [value : Foundation.Browser.Application.V1.SessionJournal::SessionJournalStep],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 3 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat (project value command))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat (project value step)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat (project value maximumSteps)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: SessionJournalReadOptionalSessionJournalStep,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {
+      name: value,
+      type: (Option Foundation.Browser.Application.V1.SessionJournal::SessionJournalStep)
+    },
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readSessionJournalOptionalSessionJournalStep,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result SessionJournalReadOptionalSessionJournalStep Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 2)
+    | Result.error wireCause => (ctor Result.error [SessionJournalReadOptionalSessionJournalStep, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project header cursor))
+      | Result.error wireCause => (ctor Result.error [SessionJournalReadOptionalSessionJournalStep, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok tag => (match ((project tag value) =? 0)
+        | Bool.false => (match ((project tag value) =? 1)
+          | Bool.false => (ctor Result.error [SessionJournalReadOptionalSessionJournalStep, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (match ((project header count) =? 2)
+            | Bool.false => (ctor Result.error [SessionJournalReadOptionalSessionJournalStep, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+            | Bool.true => (match (readSessionJournalSessionJournalStep input (project tag cursor))
+              | Result.error wireCause => (ctor Result.error [SessionJournalReadOptionalSessionJournalStep, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok item => (ctor Result.ok [SessionJournalReadOptionalSessionJournalStep, Foundation.Codec.Cbor.V1.Primitive::CborError] (record SessionJournalReadOptionalSessionJournalStep {value := (ctor Option.some [Foundation.Browser.Application.V1.SessionJournal::SessionJournalStep] (project item value)), cursor := (project item cursor)})))))
+        | Bool.true => (match ((project header count) =? 1)
+          | Bool.false => (ctor Result.error [SessionJournalReadOptionalSessionJournalStep, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (ctor Result.ok [SessionJournalReadOptionalSessionJournalStep, Foundation.Codec.Cbor.V1.Primitive::CborError] (record SessionJournalReadOptionalSessionJournalStep {value := (ctor Option.none [Foundation.Browser.Application.V1.SessionJournal::SessionJournalStep]), cursor := (project tag cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeSessionJournalOptionalSessionJournalStep,
+  parameters: [
+    value : (Option Foundation.Browser.Application.V1.SessionJournal::SessionJournalStep)
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Option.none => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat 0))
+    | Option.some item => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat 1) (writeSessionJournalSessionJournalStep item)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: SessionJournalReadSessionJournalPosition,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.SessionJournal::SessionJournalPosition},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readSessionJournalSessionJournalPosition,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result SessionJournalReadSessionJournalPosition Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 5)
+    | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalPosition, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match ((project header count) =? 5)
+      | Bool.false => (ctor Result.error [SessionJournalReadSessionJournalPosition, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Foundation.Browser.Application.V1.OperationJournalWire::readJournalWireJournalPayload input (project header cursor))
+        | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalPosition, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok field0 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project field0 cursor))
+          | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalPosition, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok field1 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project field1 cursor))
+            | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalPosition, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok field2 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project field2 cursor))
+              | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalPosition, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok field3 => (match (readSessionJournalOptionalSessionJournalStep input (project field3 cursor))
+                | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalPosition, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok field4 => (ctor Result.ok [SessionJournalReadSessionJournalPosition, Foundation.Codec.Cbor.V1.Primitive::CborError] (record SessionJournalReadSessionJournalPosition {value := (record Foundation.Browser.Application.V1.SessionJournal::SessionJournalPosition {payload := (project field0 value), authorityEpoch := (project field1 value), phase := (project field2 value), nextCommand := (project field3 value), pending := (project field4 value)}), cursor := (project field4 cursor)}))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeSessionJournalSessionJournalPosition,
+  parameters: [value : Foundation.Browser.Application.V1.SessionJournal::SessionJournalPosition],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 5 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.OperationJournalWire::writeJournalWireJournalPayload (project value payload)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat (project value authorityEpoch)))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat (project value phase)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat (project value nextCommand)) (writeSessionJournalOptionalSessionJournalStep (project value pending))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: SessionJournalReadOptionalJournalPayload,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {
+      name: value,
+      type: (Option Foundation.Browser.Application.V1.OperationJournal::JournalPayload)
+    },
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readSessionJournalOptionalJournalPayload,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result SessionJournalReadOptionalJournalPayload Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 2)
+    | Result.error wireCause => (ctor Result.error [SessionJournalReadOptionalJournalPayload, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project header cursor))
+      | Result.error wireCause => (ctor Result.error [SessionJournalReadOptionalJournalPayload, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok tag => (match ((project tag value) =? 0)
+        | Bool.false => (match ((project tag value) =? 1)
+          | Bool.false => (ctor Result.error [SessionJournalReadOptionalJournalPayload, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (match ((project header count) =? 2)
+            | Bool.false => (ctor Result.error [SessionJournalReadOptionalJournalPayload, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+            | Bool.true => (match (Foundation.Browser.Application.V1.OperationJournalWire::readJournalWireJournalPayload input (project tag cursor))
+              | Result.error wireCause => (ctor Result.error [SessionJournalReadOptionalJournalPayload, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok item => (ctor Result.ok [SessionJournalReadOptionalJournalPayload, Foundation.Codec.Cbor.V1.Primitive::CborError] (record SessionJournalReadOptionalJournalPayload {value := (ctor Option.some [Foundation.Browser.Application.V1.OperationJournal::JournalPayload] (project item value)), cursor := (project item cursor)})))))
+        | Bool.true => (match ((project header count) =? 1)
+          | Bool.false => (ctor Result.error [SessionJournalReadOptionalJournalPayload, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (ctor Result.ok [SessionJournalReadOptionalJournalPayload, Foundation.Codec.Cbor.V1.Primitive::CborError] (record SessionJournalReadOptionalJournalPayload {value := (ctor Option.none [Foundation.Browser.Application.V1.OperationJournal::JournalPayload]), cursor := (project tag cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeSessionJournalOptionalJournalPayload,
+  parameters: [value : (Option Foundation.Browser.Application.V1.OperationJournal::JournalPayload)],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Option.none => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat 0))
+    | Option.some item => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat 1) (Foundation.Browser.Application.V1.OperationJournalWire::writeJournalWireJournalPayload item)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: SessionJournalReadSessionJournalAnchor,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.SessionJournal::SessionJournalAnchor},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readSessionJournalSessionJournalAnchor,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result SessionJournalReadSessionJournalAnchor Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 4)
+    | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalAnchor, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match ((project header count) =? 4)
+      | Bool.false => (ctor Result.error [SessionJournalReadSessionJournalAnchor, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Foundation.Browser.Application.V1.OperationJournalWire::readJournalWireJournalPayload input (project header cursor))
+        | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalAnchor, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok field0 => (match (readSessionJournalSessionJournalPosition input (project field0 cursor))
+          | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalAnchor, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok field1 => (match (readSessionJournalSessionJournalStep input (project field1 cursor))
+            | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalAnchor, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok field2 => (match (readSessionJournalOptionalJournalPayload input (project field2 cursor))
+              | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalAnchor, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok field3 => (ctor Result.ok [SessionJournalReadSessionJournalAnchor, Foundation.Codec.Cbor.V1.Primitive::CborError] (record SessionJournalReadSessionJournalAnchor {value := (record Foundation.Browser.Application.V1.SessionJournal::SessionJournalAnchor {envelope := (project field0 value), position := (project field1 value), step := (project field2 value), observedReceipt := (project field3 value)}), cursor := (project field3 cursor)})))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeSessionJournalSessionJournalAnchor,
+  parameters: [value : Foundation.Browser.Application.V1.SessionJournal::SessionJournalAnchor],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 4 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.OperationJournalWire::writeJournalWireJournalPayload (project value envelope))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (writeSessionJournalSessionJournalPosition (project value position)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (writeSessionJournalSessionJournalStep (project value step)) (writeSessionJournalOptionalJournalPayload (project value observedReceipt))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: SessionJournalReadSessionJournalRecoveryPlan,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {
+      name: value,
+      type: Foundation.Browser.Application.V1.SessionJournal::SessionJournalRecoveryPlan
+    },
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readSessionJournalSessionJournalRecoveryPlan,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result SessionJournalReadSessionJournalRecoveryPlan Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 7)
+    | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalRecoveryPlan, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match ((project header count) =? 7)
+      | Bool.false => (ctor Result.error [SessionJournalReadSessionJournalRecoveryPlan, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Foundation.Browser.Application.V1.OperationJournalWire::readJournalWireJournalPayload input (project header cursor))
+        | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalRecoveryPlan, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok field0 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project field0 cursor) 65536)
+          | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalRecoveryPlan, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok field1 => (match (readSessionJournalSessionJournalPosition input (project field1 cursor))
+            | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalRecoveryPlan, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok field2 => (match (Foundation.Browser.Application.V1.OperationJournalWire::readJournalWireJournalPayload input (project field2 cursor))
+              | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalRecoveryPlan, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok field3 => (match (readSessionJournalSessionJournalPosition input (project field3 cursor))
+                | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalRecoveryPlan, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok field4 => (match (Foundation.Browser.Application.V1.OperationJournalWire::readJournalWireJournalPayload input (project field4 cursor))
+                  | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalRecoveryPlan, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                  | Result.ok field5 => (match (Foundation.Browser.Application.V1.OperationJournalWire::readJournalWireJournalPayload input (project field5 cursor))
+                    | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalRecoveryPlan, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                    | Result.ok field6 => (ctor Result.ok [SessionJournalReadSessionJournalRecoveryPlan, Foundation.Codec.Cbor.V1.Primitive::CborError] (record SessionJournalReadSessionJournalRecoveryPlan {value := (record Foundation.Browser.Application.V1.SessionJournal::SessionJournalRecoveryPlan {preparedEnvelope := (project field0 value), context := (project field1 value), settleBefore := (project field2 value), settleOperation := (project field3 value), settled := (project field4 value), rebindOperation := (project field5 value), receipt := (project field6 value)}), cursor := (project field6 cursor)}))))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeSessionJournalSessionJournalRecoveryPlan,
+  parameters: [
+    value : Foundation.Browser.Application.V1.SessionJournal::SessionJournalRecoveryPlan
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 7 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.OperationJournalWire::writeJournalWireJournalPayload (project value preparedEnvelope))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value context)) (writeSessionJournalSessionJournalPosition (project value settleBefore)))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.OperationJournalWire::writeJournalWireJournalPayload (project value settleOperation)) (writeSessionJournalSessionJournalPosition (project value settled))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.OperationJournalWire::writeJournalWireJournalPayload (project value rebindOperation)) (Foundation.Browser.Application.V1.OperationJournalWire::writeJournalWireJournalPayload (project value receipt))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: SessionJournalReadOptionalSessionJournalRecoveryPlan,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {
+      name: value,
+      type: (Option Foundation.Browser.Application.V1.SessionJournal::SessionJournalRecoveryPlan)
+    },
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readSessionJournalOptionalSessionJournalRecoveryPlan,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result SessionJournalReadOptionalSessionJournalRecoveryPlan Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 2)
+    | Result.error wireCause => (ctor Result.error [SessionJournalReadOptionalSessionJournalRecoveryPlan, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project header cursor))
+      | Result.error wireCause => (ctor Result.error [SessionJournalReadOptionalSessionJournalRecoveryPlan, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok tag => (match ((project tag value) =? 0)
+        | Bool.false => (match ((project tag value) =? 1)
+          | Bool.false => (ctor Result.error [SessionJournalReadOptionalSessionJournalRecoveryPlan, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (match ((project header count) =? 2)
+            | Bool.false => (ctor Result.error [SessionJournalReadOptionalSessionJournalRecoveryPlan, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+            | Bool.true => (match (readSessionJournalSessionJournalRecoveryPlan input (project tag cursor))
+              | Result.error wireCause => (ctor Result.error [SessionJournalReadOptionalSessionJournalRecoveryPlan, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok item => (ctor Result.ok [SessionJournalReadOptionalSessionJournalRecoveryPlan, Foundation.Codec.Cbor.V1.Primitive::CborError] (record SessionJournalReadOptionalSessionJournalRecoveryPlan {value := (ctor Option.some [Foundation.Browser.Application.V1.SessionJournal::SessionJournalRecoveryPlan] (project item value)), cursor := (project item cursor)})))))
+        | Bool.true => (match ((project header count) =? 1)
+          | Bool.false => (ctor Result.error [SessionJournalReadOptionalSessionJournalRecoveryPlan, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (ctor Result.ok [SessionJournalReadOptionalSessionJournalRecoveryPlan, Foundation.Codec.Cbor.V1.Primitive::CborError] (record SessionJournalReadOptionalSessionJournalRecoveryPlan {value := (ctor Option.none [Foundation.Browser.Application.V1.SessionJournal::SessionJournalRecoveryPlan]), cursor := (project tag cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeSessionJournalOptionalSessionJournalRecoveryPlan,
+  parameters: [
+    value : (Option Foundation.Browser.Application.V1.SessionJournal::SessionJournalRecoveryPlan)
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Option.none => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat 0))
+    | Option.some item => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat 1) (writeSessionJournalSessionJournalRecoveryPlan item)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: SessionJournalReadSessionJournalRecord,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.SessionJournal::SessionJournalRecord},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readSessionJournalSessionJournalRecord,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result SessionJournalReadSessionJournalRecord Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 11)
+    | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalRecord, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match ((project header count) =? 11)
+      | Bool.false => (ctor Result.error [SessionJournalReadSessionJournalRecord, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readSessionJournalSessionJournalBinding input (project header cursor))
+        | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalRecord, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok field0 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project field0 cursor) 65536)
+          | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalRecord, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok field1 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project field1 cursor))
+            | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalRecord, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok field2 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project field2 cursor) 65536)
+              | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalRecord, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok field3 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project field3 cursor))
+                | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalRecord, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok field4 => (match (readSessionJournalSessionJournalPosition input (project field4 cursor))
+                  | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalRecord, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                  | Result.ok field5 => (match (Foundation.Browser.Application.V1.OperationJournalWire::readJournalWireJournalPayload input (project field5 cursor))
+                    | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalRecord, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                    | Result.ok field6 => (match (readSessionJournalSessionJournalPosition input (project field6 cursor))
+                      | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalRecord, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                      | Result.ok field7 => (match (readSessionJournalOptionalJournalPayload input (project field7 cursor))
+                        | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalRecord, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                        | Result.ok field8 => (match (readSessionJournalOptionalJournalPayload input (project field8 cursor))
+                          | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalRecord, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                          | Result.ok field9 => (match (readSessionJournalOptionalSessionJournalRecoveryPlan input (project field9 cursor))
+                            | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalRecord, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                            | Result.ok field10 => (ctor Result.ok [SessionJournalReadSessionJournalRecord, Foundation.Codec.Cbor.V1.Primitive::CborError] (record SessionJournalReadSessionJournalRecord {value := (record Foundation.Browser.Application.V1.SessionJournal::SessionJournalRecord {binding := (project field0 value), genesis := (project field1 value), sequence := (project field2 value), previous := (project field3 value), kind := (project field4 value), before := (project field5 value), operation := (project field6 value), after := (project field7 value), receipt := (project field8 value), frontier := (project field9 value), recovery := (project field10 value)}), cursor := (project field10 cursor)}))))))))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeSessionJournalSessionJournalRecord,
+  parameters: [value : Foundation.Browser.Application.V1.SessionJournal::SessionJournalRecord],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 11 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (writeSessionJournalSessionJournalBinding (project value binding)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value genesis)))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat (project value sequence)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value previous)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat (project value kind))))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (writeSessionJournalSessionJournalPosition (project value before)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.OperationJournalWire::writeJournalWireJournalPayload (project value operation)) (writeSessionJournalSessionJournalPosition (project value after)))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (writeSessionJournalOptionalJournalPayload (project value receipt)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (writeSessionJournalOptionalJournalPayload (project value frontier)) (writeSessionJournalOptionalSessionJournalRecoveryPlan (project value recovery)))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: SessionJournalReadOptionalSessionJournalAnchor,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {
+      name: value,
+      type: (Option Foundation.Browser.Application.V1.SessionJournal::SessionJournalAnchor)
+    },
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readSessionJournalOptionalSessionJournalAnchor,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result SessionJournalReadOptionalSessionJournalAnchor Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 2)
+    | Result.error wireCause => (ctor Result.error [SessionJournalReadOptionalSessionJournalAnchor, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project header cursor))
+      | Result.error wireCause => (ctor Result.error [SessionJournalReadOptionalSessionJournalAnchor, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok tag => (match ((project tag value) =? 0)
+        | Bool.false => (match ((project tag value) =? 1)
+          | Bool.false => (ctor Result.error [SessionJournalReadOptionalSessionJournalAnchor, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (match ((project header count) =? 2)
+            | Bool.false => (ctor Result.error [SessionJournalReadOptionalSessionJournalAnchor, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+            | Bool.true => (match (readSessionJournalSessionJournalAnchor input (project tag cursor))
+              | Result.error wireCause => (ctor Result.error [SessionJournalReadOptionalSessionJournalAnchor, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok item => (ctor Result.ok [SessionJournalReadOptionalSessionJournalAnchor, Foundation.Codec.Cbor.V1.Primitive::CborError] (record SessionJournalReadOptionalSessionJournalAnchor {value := (ctor Option.some [Foundation.Browser.Application.V1.SessionJournal::SessionJournalAnchor] (project item value)), cursor := (project item cursor)})))))
+        | Bool.true => (match ((project header count) =? 1)
+          | Bool.false => (ctor Result.error [SessionJournalReadOptionalSessionJournalAnchor, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (ctor Result.ok [SessionJournalReadOptionalSessionJournalAnchor, Foundation.Codec.Cbor.V1.Primitive::CborError] (record SessionJournalReadOptionalSessionJournalAnchor {value := (ctor Option.none [Foundation.Browser.Application.V1.SessionJournal::SessionJournalAnchor]), cursor := (project tag cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeSessionJournalOptionalSessionJournalAnchor,
+  parameters: [
+    value : (Option Foundation.Browser.Application.V1.SessionJournal::SessionJournalAnchor)
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Option.none => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat 0))
+    | Option.some item => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat 1) (writeSessionJournalSessionJournalAnchor item)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: SessionJournalReadSessionJournalState,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.SessionJournal::SessionJournalState},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readSessionJournalSessionJournalState,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result SessionJournalReadSessionJournalState Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 7)
+    | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalState, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match ((project header count) =? 7)
+      | Bool.false => (ctor Result.error [SessionJournalReadSessionJournalState, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readSessionJournalSessionJournalBinding input (project header cursor))
+        | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalState, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok field0 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project field0 cursor) 65536)
+          | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalState, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok field1 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project field1 cursor))
+            | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalState, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok field2 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project field2 cursor) 65536)
+              | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalState, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok field3 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project field3 cursor))
+                | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalState, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok field4 => (match (readSessionJournalSessionJournalPosition input (project field4 cursor))
+                  | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalState, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                  | Result.ok field5 => (match (readSessionJournalOptionalSessionJournalAnchor input (project field5 cursor))
+                    | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalState, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                    | Result.ok field6 => (ctor Result.ok [SessionJournalReadSessionJournalState, Foundation.Codec.Cbor.V1.Primitive::CborError] (record SessionJournalReadSessionJournalState {value := (record Foundation.Browser.Application.V1.SessionJournal::SessionJournalState {binding := (project field0 value), genesis := (project field1 value), sequence := (project field2 value), head := (project field3 value), retained := (project field4 value), position := (project field5 value), anchor := (project field6 value)}), cursor := (project field6 cursor)}))))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeSessionJournalSessionJournalState,
+  parameters: [value : Foundation.Browser.Application.V1.SessionJournal::SessionJournalState],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 7 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (writeSessionJournalSessionJournalBinding (project value binding))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value genesis)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat (project value sequence)))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes (project value head)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat (project value retained))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (writeSessionJournalSessionJournalPosition (project value position)) (writeSessionJournalOptionalSessionJournalAnchor (project value anchor))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: SessionJournalReadSessionJournalEntry,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.SessionJournal::SessionJournalEntry},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readSessionJournalSessionJournalEntry,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result SessionJournalReadSessionJournalEntry Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 2)
+    | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalEntry, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match ((project header count) =? 2)
+      | Bool.false => (ctor Result.error [SessionJournalReadSessionJournalEntry, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readSessionJournalSessionJournalRecord input (project header cursor))
+        | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalEntry, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok field0 => (match (Foundation.Browser.Application.V1.OperationJournalWire::readJournalWireJournalPayload input (project field0 cursor))
+          | Result.error wireCause => (ctor Result.error [SessionJournalReadSessionJournalEntry, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok field1 => (ctor Result.ok [SessionJournalReadSessionJournalEntry, Foundation.Codec.Cbor.V1.Primitive::CborError] (record SessionJournalReadSessionJournalEntry {value := (record Foundation.Browser.Application.V1.SessionJournal::SessionJournalEntry {record := (project field0 value), envelope := (project field1 value)}), cursor := (project field1 cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeSessionJournalSessionJournalEntry,
+  parameters: [value : Foundation.Browser.Application.V1.SessionJournal::SessionJournalEntry],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (Foundation.Browser.Application.V1.EffectsWire::effectWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (writeSessionJournalSessionJournalRecord (project value record)) (Foundation.Browser.Application.V1.OperationJournalWire::writeJournalWireJournalPayload (project value envelope)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: SessionJournalReadEntries,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {
+      name: value,
+      type: (List Foundation.Browser.Application.V1.SessionJournal::SessionJournalEntry)
+    },
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readSessionJournalEntryTree,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat,
+    remaining : Nat,
+    depth : Nat
+  ],
+  result: (Result SessionJournalReadEntries Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match depth
+    | Nat.zero => (ctor Result.error [SessionJournalReadEntries, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+    | Nat.succ prior => (match (remaining =? 0)
+      | Bool.false => (match (remaining =? 1)
+        | Bool.false => match{
+          branches: [
+            {
+              body: (ctor Result.error [SessionJournalReadEntries, Foundation.Codec.Cbor.V1.Primitive::CborError] cause),
+              binders: [cause],
+              constructor: Result.error
+            },
+            {
+              body: match{
+                branches: [
+                  {
+                    body: (ctor Result.error [SessionJournalReadEntries, Foundation.Codec.Cbor.V1.Primitive::CborError] cause),
+                    binders: [cause],
+                    constructor: Result.error
+                  },
+                  {
+                    body: (ctor Result.ok [SessionJournalReadEntries, Foundation.Codec.Cbor.V1.Primitive::CborError] (record SessionJournalReadEntries {value := (prim append (project var{
+                      name: first
+                    } value) (project var{
+                      name: second
+                    } value) : (List Foundation.Browser.Application.V1.SessionJournal::SessionJournalEntry)), cursor := (project var{
+                      name: second
+                    } cursor)})),
+                    binders: [second],
+                    constructor: Result.ok
+                  }
+                ],
+                scrutinee: (readSessionJournalEntryTree input (project var{
+                  name: first
+                } cursor) (prim subtract remaining (prim quotient remaining 2 0 : Nat) : Nat) prior)
+              },
+              binders: [first],
+              constructor: Result.ok
+            }
+          ],
+          scrutinee: (readSessionJournalEntryTree input cursor (prim quotient remaining 2 0 : Nat) prior)
+        }
+        | Bool.true => (match (readSessionJournalSessionJournalEntry input cursor)
+          | Result.error cause => (ctor Result.error [SessionJournalReadEntries, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+          | Result.ok entry => (ctor Result.ok [SessionJournalReadEntries, Foundation.Codec.Cbor.V1.Primitive::CborError] (record SessionJournalReadEntries {value := (ctor List.cons [Foundation.Browser.Application.V1.SessionJournal::SessionJournalEntry] (project entry value) (ctor List.nil [Foundation.Browser.Application.V1.SessionJournal::SessionJournalEntry])), cursor := (project entry cursor)}))))
+      | Bool.true => (ctor Result.ok [SessionJournalReadEntries, Foundation.Codec.Cbor.V1.Primitive::CborError] (record SessionJournalReadEntries {value := (ctor List.nil [Foundation.Browser.Application.V1.SessionJournal::SessionJournalEntry]), cursor := cursor})))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: depth
+}
+
+definition{
+  name: readSessionJournalEntryItems,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat,
+    remaining : Nat
+  ],
+  result: (Result SessionJournalReadEntries Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (readSessionJournalEntryTree input cursor remaining (remaining + 1)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readSessionJournalEntries,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result SessionJournalReadEntries Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 1024)
+    | Result.error wireCause => (ctor Result.error [SessionJournalReadEntries, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (readSessionJournalEntryItems input (project header cursor) (project header count))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: sessionJournalProtocolFailure,
+  parameters: [error : Foundation.Browser.Application.V1.SessionJournal::SessionJournalError],
+  result: Bytes,
+  body: (match error
+    | Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.BadBinding => 0x83010100
+    | Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.BadPayload => 0x83010101
+    | Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.BadPosition => 0x83010102
+    | Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.BadAnchor => 0x83010103
+    | Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.BadState => 0x83010104
+    | Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.BadRecord => 0x83010105
+    | Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.BindingChanged => 0x83010106
+    | Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.GenesisMismatch => 0x83010107
+    | Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.SequenceMismatch => 0x83010108
+    | Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.PredecessorMismatch => 0x83010109
+    | Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.BeforeMismatch => 0x8301010a
+    | Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.TransitionMismatch => 0x8301010b
+    | Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.EpochMismatch => 0x8301010c
+    | Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.RecordLimit => 0x8301010d
+    | Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.CounterExhausted => 0x8301010e
+    | Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.ReceiptMismatch => 0x8301010f
+    | Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.FrontierMismatch => 0x83010110
+    | Foundation.Browser.Application.V1.SessionJournal::SessionJournalError.EnvelopeMismatch => 0x83010111),
+  axioms: []
+}
+
+definition{
+  name: sessionJournalWireFailure,
+  parameters: [error : Foundation.Codec.Cbor.V1.Primitive::CborError],
+  result: Bytes,
+  body: (match error
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.BadLimits => 0x83010200
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.BadCursor => 0x83010201
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.Truncated => 0x83010202
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType => 0x83010203
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.UnsupportedHead => 0x83010204
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.NonCanonical => 0x83010205
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit => 0x83010206
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.InvalidUtf8 => 0x83010207
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput => 0x83010208),
+  axioms: []
+}
+
+definition{
+  name: writeSessionJournalResult,
+  parameters: [
+    value : (Result Foundation.Browser.Application.V1.SessionJournal::SessionJournalState Foundation.Browser.Application.V1.SessionJournal::SessionJournalError)
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Result.error cause => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (sessionJournalProtocolFailure cause))
+    | Result.ok state => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x830100) (writeSessionJournalSessionJournalState state))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: dispatchSessionJournalWire,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    operation : Nat,
+    count : Nat,
+    cursor : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (operation =? 0)
+    | Bool.false => (match (operation =? 1)
+      | Bool.false => (match (operation =? 2)
+        | Bool.false => (match (operation =? 3)
+          | Bool.false => (match (operation =? 4)
+            | Bool.false => (match (operation =? 5)
+              | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+              | Bool.true => (match (count =? 3)
+                | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                | Bool.true => (match (readSessionJournalSessionJournalPosition input cursor)
+                  | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                  | Result.ok argument0 => (match ((project argument0 cursor) =? (prim length (project input bytes) : Nat))
+                    | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                    | Bool.true => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (match (Foundation.Browser.Application.V1.SessionJournal::sessionJournalPositionValid (project argument0 value))
+                      | Bool.false => 0x830100f4
+                      | Bool.true => 0x830100f5))))))
+            | Bool.true => (match (count =? 3)
+              | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+              | Bool.true => (match (readSessionJournalSessionJournalRecord input cursor)
+                | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok argument0 => (match ((project argument0 cursor) =? (prim length (project input bytes) : Nat))
+                  | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                  | Bool.true => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (match (Foundation.Browser.Application.V1.SessionJournal::sessionJournalRecordValid (project argument0 value))
+                    | Bool.false => 0x830100f4
+                    | Bool.true => 0x830100f5))))))
+          | Bool.true => (match (count =? 3)
+            | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+            | Bool.true => (match (readSessionJournalSessionJournalState input cursor)
+              | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok argument0 => (match ((project argument0 cursor) =? (prim length (project input bytes) : Nat))
+                | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                | Bool.true => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (match (Foundation.Browser.Application.V1.SessionJournal::sessionJournalStateValid (project argument0 value))
+                  | Bool.false => 0x830100f4
+                  | Bool.true => 0x830100f5))))))
+        | Bool.true => (match (count =? 4)
+          | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (match (readSessionJournalSessionJournalState input cursor)
+            | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok argument0 => (match (readSessionJournalEntries input (project argument0 cursor))
+              | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok argument1 => (match ((project argument1 cursor) =? (prim length (project input bytes) : Nat))
+                | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                | Bool.true => (writeSessionJournalResult (Foundation.Browser.Application.V1.SessionJournal::replaySessionJournal (project argument0 value) (project argument1 value))))))))
+      | Bool.true => (match (count =? 5)
+        | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+        | Bool.true => (match (readSessionJournalSessionJournalState input cursor)
+          | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok argument0 => (match (readSessionJournalSessionJournalRecord input (project argument0 cursor))
+            | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok argument1 => (match (Foundation.Browser.Application.V1.OperationJournalWire::readJournalWireJournalPayload input (project argument1 cursor))
+              | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok argument2 => (match ((project argument2 cursor) =? (prim length (project input bytes) : Nat))
+                | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                | Bool.true => (writeSessionJournalResult (Foundation.Browser.Application.V1.SessionJournal::appendSessionJournal (project argument0 value) (project argument1 value) (project argument2 value)))))))))
+    | Bool.true => (match (count =? 6)
+      | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readSessionJournalSessionJournalBinding input cursor)
+        | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok argument0 => (match (Foundation.Browser.Application.V1.OperationJournalWire::readJournalWireJournalPayload input (project argument0 cursor))
+          | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok argument1 => (match (readSessionJournalSessionJournalPosition input (project argument1 cursor))
+            | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok argument2 => (match (Foundation.Browser.Application.V1.OperationJournalWire::readJournalWireJournalPayload input (project argument2 cursor))
+              | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok argument3 => (match ((project argument3 cursor) =? (prim length (project input bytes) : Nat))
+                | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                | Bool.true => (writeSessionJournalResult (Foundation.Browser.Application.V1.SessionJournal::initializeSessionJournal (project argument0 value) (project argument1 value) (project argument2 value) (project argument3 value)))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readSessionJournalWire,
+  parameters: [input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input 0 6)
+    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok outer => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project outer cursor))
+      | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok version => (match ((project version value) =? 1)
+        | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+        | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project version cursor))
+          | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok tag => (dispatchSessionJournalWire input (project tag value) (project outer count) (project tag cursor)))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: sessionJournalWireBytes,
+  parameters: [input : Bytes],
+  result: Bytes,
+  body: (match ((prim length input : Nat) <=? 67108864)
+    | Bool.false => 0x83010206
+    | Bool.true => (match (readSessionJournalWire (record Foundation.Browser.Application.V1.EffectsWire::EffectWireInput {bytes := input}))
+      | Result.error cause => (sessionJournalWireFailure cause)
+      | Result.ok output => output)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+\end{semanticmodule}
+\end{lexlean}

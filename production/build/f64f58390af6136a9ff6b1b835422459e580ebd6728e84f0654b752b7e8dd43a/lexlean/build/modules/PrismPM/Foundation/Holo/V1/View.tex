@@ -1,0 +1,64 @@
+\documentclass[11pt]{article}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath,amssymb}
+\begin{document}
+\section*{Semantic declarations}
+\subsection*{\texttt{PortableAsset}}
+\noindent Kind: \texttt{structure}.\par
+\noindent Field \texttt{path}: \texttt{String}.\par
+\noindent Field \texttt{content}: \texttt{ByteArray}.\par
+\subsection*{\texttt{PortableBundle}}
+\noindent Kind: \texttt{structure}.\par
+\noindent Field \texttt{version}: \texttt{UInt16}.\par
+\noindent Field \texttt{entry}: \texttt{String}.\par
+\noindent Field \texttt{files}: \texttt{List (PortableAsset)}.\par
+\subsection*{\texttt{ViewError}}
+\noindent Kind: \texttt{inductive}.\par
+\noindent Constructor \texttt{BadMagic}: \texttt{()}.\par
+\noindent Constructor \texttt{BadVersion}: \texttt{()}.\par
+\noindent Constructor \texttt{InvalidPath}: \texttt{()}.\par
+\noindent Constructor \texttt{DuplicatePath}: \texttt{()}.\par
+\noindent Constructor \texttt{CaseFoldCollision}: \texttt{()}.\par
+\noindent Constructor \texttt{WrongOrder}: \texttt{()}.\par
+\noindent Constructor \texttt{MissingEntry}: \texttt{()}.\par
+\noindent Constructor \texttt{Truncated}: \texttt{()}.\par
+\noindent Constructor \texttt{TrailingBytes}: \texttt{()}.\par
+\noindent Constructor \texttt{ResourceLimit}: \texttt{()}.\par
+\noindent Constructor \texttt{UnsupportedSurface}: \texttt{()}.\par
+\noindent Constructor \texttt{IntentMismatch}: \texttt{()}.\par
+\subsection*{\texttt{magic}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Type: \texttt{ByteArray}.\par
+\noindent Definition: \texttt{ByteArray.mk \#[72, 79, 76, 79, 86, 73, 69, 87]}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{bundleVersion}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Type: \texttt{UInt16}.\par
+\noindent Definition: \texttt{(1 : UInt16)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{entry}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Type: \texttt{String}.\par
+\noindent Definition: \texttt{"index.html"}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{maximumFiles}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Type: \texttt{UInt32}.\par
+\noindent Definition: \texttt{(4096 : UInt32)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{maximumPathBytes}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Type: \texttt{UInt32}.\par
+\noindent Definition: \texttt{(1024 : UInt32)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{maximumFileBytes}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Type: \texttt{UInt64}.\par
+\noindent Definition: \texttt{(67108864 : UInt64)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\subsection*{\texttt{maximumAggregateBytes}}
+\noindent Kind: \texttt{definition}.\par
+\noindent Type: \texttt{UInt64}.\par
+\noindent Definition: \texttt{(268435456 : UInt64)}.\par
+\noindent Axiom policy: \texttt{none}.\par
+\end{document}

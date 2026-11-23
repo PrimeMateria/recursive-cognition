@@ -1,0 +1,114 @@
+\begin{lexlean}{Production.Interface}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\title{Production interface model}
+\begin{semanticmodule}
+inductive{
+  name: InterfaceKind,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: OpenApi, fields: []},
+    {name: AsyncApi, fields: []},
+    {name: CloudEvents, fields: []},
+    {name: Internal, fields: []}
+  ]
+}
+
+inductive{
+  name: Delivery,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Synchronous, fields: []},
+    {name: AtLeastOnce, fields: []},
+    {name: ExactlyOnceLocal, fields: []}
+  ]
+}
+
+structure{
+  name: Schema,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: String},
+    {name: kind, type: String},
+    {name: value, type: String},
+    {name: dependsOn, type: (List String)},
+    {name: compatibility, type: String}
+  ]
+}
+
+structure{
+  name: Interface,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: String},
+    {name: kind, type: String},
+    {name: document, type: String},
+    {name: authentication, type: String},
+    {name: compatibility, type: String},
+    {name: protocol, type: String},
+    {name: errors, type: (List String)},
+    {name: acceptance, type: (List String)}
+  ]
+}
+
+structure{
+  name: Call,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: String},
+    {name: kind, type: String},
+    {name: value, type: String},
+    {name: dependsOn, type: (List String)},
+    {name: fromComponent, type: String},
+    {name: toComponent, type: String},
+    {name: interfaceId, type: String},
+    {name: failurePropagation, type: String},
+    {name: timeoutMillis, type: UInt64},
+    {name: retryPolicy, type: String},
+    {name: idempotency, type: String}
+  ]
+}
+
+structure{
+  name: Event,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: String},
+    {name: kind, type: String},
+    {name: value, type: String},
+    {name: dependsOn, type: (List String)},
+    {name: producer, type: String},
+    {name: channel, type: String},
+    {name: schemaId, type: String},
+    {name: owner, type: String},
+    {name: delivery, type: String},
+    {name: ordering, type: String},
+    {name: idempotency, type: String},
+    {name: failurePropagation, type: String}
+  ]
+}
+
+structure{
+  name: Flow,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: String},
+    {name: fromComponent, type: String},
+    {name: toComponent, type: String},
+    {name: interfaceId, type: String},
+    {name: delivery, type: String},
+    {name: ordering, type: String},
+    {name: idempotency, type: String},
+    {name: failurePropagation, type: String}
+  ]
+}
+\end{semanticmodule}
+\end{lexlean}

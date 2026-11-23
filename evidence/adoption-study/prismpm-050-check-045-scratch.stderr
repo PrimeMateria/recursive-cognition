@@ -1,0 +1,2 @@
+LEXLEAN ERROR: LexLean project load failed: LexLeanError { class: CliOrConfiguration, diagnostics: [Diagnostic { code: DiagnosticCode("LLC0103"), message: "unsupported project schema `lexlean/project/2`", primary: Some(Span { path: "lexlean.toml", byte_start: 0, byte_end: 0, line_start: 1, column_start: 1, line_end: 1, column_end: 1 }), labels: [], notes: [], help: [], causes: [], detail: None }], source: None }
+PP2001: LexLean project load failed

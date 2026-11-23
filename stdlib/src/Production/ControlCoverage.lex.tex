@@ -1,0 +1,353 @@
+\begin{lexlean}{Production.ControlCoverage}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\title{Control coverage policy}
+\begin{semanticmodule}
+inductive{
+  name: ControlRequirementMode,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: LocalRequired, fields: []}, {name: InheritedRequired, fields: []}]
+}
+
+structure{
+  name: ControlObligation,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: Nat},
+    {name: control, type: Nat},
+    {name: mode, type: ControlRequirementMode},
+    {name: scope, type: String},
+    {name: version, type: String},
+    {name: subject, type: (List UInt8)},
+    {name: evidenceKind, type: String},
+    {name: evidence, type: (List UInt8)},
+    {name: allowedProviders, type: (List Nat)},
+    {name: residualControls, type: (List Nat)}
+  ]
+}
+
+inductive{
+  name: ControlOrigin,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Local, fields: []},
+    {name: Inherited, fields: [Nat, (List UInt8), (List UInt8)]}
+  ]
+}
+
+structure{
+  name: ControlContribution,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: obligation, type: Nat},
+    {name: control, type: Nat},
+    {name: policy, type: (List UInt8)},
+    {name: scope, type: String},
+    {name: version, type: String},
+    {name: subject, type: (List UInt8)},
+    {name: evidenceKind, type: String},
+    {name: evidence, type: (List UInt8)},
+    {name: origin, type: ControlOrigin}
+  ]
+}
+
+structure{
+  name: ControlPolicy,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: digest, type: (List UInt8)}, {name: obligations, type: (List ControlObligation)}]
+}
+
+structure{
+  name: ControlSubmission,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: contributions, type: (List ControlContribution)}]
+}
+
+definition{
+  name: coverageNatMember,
+  parameters: [value : Nat, rows : (List Nat)],
+  result: Bool,
+  body: (match rows
+    | List.nil => false
+    | List.cons row rest => ((value =? row) || (coverageNatMember value rest))),
+  recursive_argument: rows
+}
+
+definition{
+  name: coverageUniqueNats,
+  parameters: [rows : (List Nat)],
+  result: Bool,
+  body: (match rows
+    | List.nil => true
+    | List.cons row rest => ((not (coverageNatMember row rest)) && ((coverageUniqueNats rest) && true))),
+  recursive_argument: rows
+}
+
+definition{
+  name: coverageAllNatsMember,
+  parameters: [rows : (List Nat), allowed : (List Nat)],
+  result: Bool,
+  body: (match rows
+    | List.nil => true
+    | List.cons row rest => ((coverageNatMember row allowed) && ((coverageAllNatsMember rest allowed) && true))),
+  recursive_argument: rows
+}
+
+definition{
+  name: coverageObligationExists,
+  parameters: [value : Nat, rows : (List ControlObligation)],
+  result: Bool,
+  body: (match rows
+    | List.nil => false
+    | List.cons row rest => ((value =? (project row id)) || (coverageObligationExists value rest))),
+  recursive_argument: rows
+}
+
+definition{
+  name: coverageControlExists,
+  parameters: [value : Nat, rows : (List ControlObligation)],
+  result: Bool,
+  body: (match rows
+    | List.nil => false
+    | List.cons row rest => ((value =? (project row control)) || (coverageControlExists value rest))),
+  recursive_argument: rows
+}
+
+definition{
+  name: coverageEarlier,
+  parameters: [provider : Nat, consumer : Nat, rows : (List ControlObligation)],
+  result: Bool,
+  body: (match rows
+    | List.nil => false
+    | List.cons row rest => ((not (consumer =? (project row id))) && (((provider =? (project row id)) || (coverageEarlier provider consumer rest)) && true))),
+  recursive_argument: rows
+}
+
+definition{
+  name: coverageProvidersDeclared,
+  parameters: [rows : (List Nat), all : (List ControlObligation)],
+  result: Bool,
+  body: (match rows
+    | List.nil => true
+    | List.cons row rest => ((coverageObligationExists row all) && ((coverageProvidersDeclared rest all) && true))),
+  recursive_argument: rows
+}
+
+definition{
+  name: coverageResidualControlsDeclared,
+  parameters: [rows : (List Nat), all : (List ControlObligation)],
+  result: Bool,
+  body: (match rows
+    | List.nil => true
+    | List.cons row rest => ((coverageControlExists row all) && ((coverageResidualControlsDeclared rest all) && true))),
+  recursive_argument: rows
+}
+
+definition{
+  name: coverageDigestEqual,
+  parameters: [left : (List UInt8), right : (List UInt8)],
+  result: Bool,
+  body: (match left
+    | List.nil => (match right | List.nil => true | List.cons rightOctet rightRest => false)
+    | List.cons leftOctet leftRest => (match right
+      | List.nil => false
+      | List.cons rightOctet rightRest => ((prim equal leftOctet rightOctet : Bool) && (coverageDigestEqual leftRest rightRest)))),
+  recursive_argument: left
+}
+
+definition{
+  name: coverageDigest,
+  parameters: [value : (List UInt8)],
+  result: Bool,
+  body: ((prim length value : Nat) =? 32)
+}
+
+definition{
+  name: coverageNonEmptyString,
+  parameters: [value : String],
+  result: Bool,
+  body: (not (prim equal value "" : Bool))
+}
+
+definition{
+  name: coverageObligationWellFormed,
+  parameters: [item : ControlObligation, all : (List ControlObligation)],
+  result: Bool,
+  body: ((0 <? (project item id)) && ((0 <? (project item control)) && ((coverageNonEmptyString (project item scope)) && ((coverageNonEmptyString (project item version)) && ((coverageNonEmptyString (project item evidenceKind)) && ((coverageDigest (project item subject)) && ((coverageDigest (project item evidence)) && ((coverageUniqueNats (project item allowedProviders)) && ((coverageUniqueNats (project item residualControls)) && ((coverageProvidersDeclared (project item allowedProviders) all) && ((coverageResidualControlsDeclared (project item residualControls) all) && true)))))))))))
+}
+
+definition{
+  name: coverageSameBinding,
+  parameters: [left : ControlObligation, right : ControlObligation],
+  result: Bool,
+  body: (((project left control) =? (project right control)) && ((prim equal (project left scope) (project right scope) : Bool) && ((prim equal (project left version) (project right version) : Bool) && ((coverageDigestEqual (project left subject) (project right subject)) && true))))
+}
+
+definition{
+  name: coverageBindingAbsent,
+  parameters: [item : ControlObligation, rows : (List ControlObligation)],
+  result: Bool,
+  body: (match rows
+    | List.nil => true
+    | List.cons row rest => ((not (coverageSameBinding item row)) && ((coverageBindingAbsent item rest) && true))),
+  recursive_argument: rows
+}
+
+definition{
+  name: coverageUniqueObligations,
+  parameters: [rows : (List ControlObligation)],
+  result: Bool,
+  body: (match rows
+    | List.nil => true
+    | List.cons row rest => ((not (coverageObligationExists (project row id) rest)) && ((coverageBindingAbsent row rest) && ((coverageUniqueObligations rest) && true)))),
+  recursive_argument: rows
+}
+
+definition{
+  name: coverageContributionExists,
+  parameters: [value : Nat, rows : (List ControlContribution)],
+  result: Bool,
+  body: (match rows
+    | List.nil => false
+    | List.cons row rest => ((value =? (project row obligation)) || (coverageContributionExists value rest))),
+  recursive_argument: rows
+}
+
+definition{
+  name: coverageSubmissionClosed,
+  parameters: [rows : (List ControlContribution), all : (List ControlObligation)],
+  result: Bool,
+  body: (match rows
+    | List.nil => true
+    | List.cons row rest => ((coverageObligationExists (project row obligation) all) && ((not (coverageContributionExists (project row obligation) rest)) && ((coverageSubmissionClosed rest all) && true)))),
+  recursive_argument: rows
+}
+
+definition{
+  name: coverageResidualPresent,
+  parameters: [
+    control : Nat,
+    consumer : ControlObligation,
+    rows : (List ControlObligation),
+    all : (List ControlObligation)
+  ],
+  result: Bool,
+  body: (match rows
+    | List.nil => false
+    | List.cons row rest => (((control =? (project row control)) && ((prim equal (project consumer scope) (project row scope) : Bool) && ((prim equal (project consumer version) (project row version) : Bool) && ((coverageDigestEqual (project consumer subject) (project row subject)) && ((coverageEarlier (project row id) (project consumer id) all) && true))))) || (coverageResidualPresent control consumer rest all))),
+  recursive_argument: rows
+}
+
+definition{
+  name: coverageResidualsPresent,
+  parameters: [rows : (List Nat), consumer : ControlObligation, all : (List ControlObligation)],
+  result: Bool,
+  body: (match rows
+    | List.nil => true
+    | List.cons row rest => ((coverageResidualPresent row consumer all all) && ((coverageResidualsPresent rest consumer all) && true))),
+  recursive_argument: rows
+}
+
+definition{
+  name: coverageProviderPresent,
+  parameters: [
+    provider : Nat,
+    providerSubject : (List UInt8),
+    providerEvidence : (List UInt8),
+    consumer : ControlObligation,
+    rows : (List ControlObligation),
+    all : (List ControlObligation)
+  ],
+  result: Bool,
+  body: (match rows
+    | List.nil => false
+    | List.cons row rest => (((provider =? (project row id)) && (((project consumer control) =? (project row control)) && ((prim equal (project consumer scope) (project row scope) : Bool) && ((prim equal (project consumer version) (project row version) : Bool) && ((prim equal (project consumer evidenceKind) (project row evidenceKind) : Bool) && ((coverageDigestEqual providerSubject (project row subject)) && ((coverageDigestEqual providerEvidence (project row evidence)) && ((coverageEarlier provider (project consumer id) all) && ((coverageAllNatsMember (project row residualControls) (project consumer residualControls)) && ((coverageResidualsPresent (project row residualControls) consumer all) && true)))))))))) || (coverageProviderPresent provider providerSubject providerEvidence consumer rest all))),
+  recursive_argument: rows
+}
+
+definition{
+  name: coverageLocalRequired,
+  parameters: [mode : ControlRequirementMode],
+  result: Bool,
+  body: (match mode
+    | ControlRequirementMode.LocalRequired => true
+    | ControlRequirementMode.InheritedRequired => false)
+}
+
+definition{
+  name: coverageOriginValid,
+  parameters: [
+    origin : ControlOrigin,
+    consumer : ControlObligation,
+    all : (List ControlObligation)
+  ],
+  result: Bool,
+  body: (match origin
+    | ControlOrigin.Local => (coverageLocalRequired (project consumer mode))
+    | ControlOrigin.Inherited provider providerSubject providerEvidence => ((not (coverageLocalRequired (project consumer mode))) && ((coverageNatMember provider (project consumer allowedProviders)) && ((coverageProviderPresent provider providerSubject providerEvidence consumer all all) && true))))
+}
+
+definition{
+  name: coverageContributionMatches,
+  parameters: [
+    item : ControlObligation,
+    contribution : ControlContribution,
+    policy : (List UInt8),
+    all : (List ControlObligation)
+  ],
+  result: Bool,
+  body: (((project item id) =? (project contribution obligation)) && (((project item control) =? (project contribution control)) && ((coverageDigestEqual policy (project contribution policy)) && ((prim equal (project item scope) (project contribution scope) : Bool) && ((prim equal (project item version) (project contribution version) : Bool) && ((coverageDigestEqual (project item subject) (project contribution subject)) && ((prim equal (project item evidenceKind) (project contribution evidenceKind) : Bool) && ((coverageDigestEqual (project item evidence) (project contribution evidence)) && ((coverageOriginValid (project contribution origin) item all) && true)))))))))
+}
+
+definition{
+  name: coverageContributionPresent,
+  parameters: [
+    item : ControlObligation,
+    rows : (List ControlContribution),
+    policy : (List UInt8),
+    all : (List ControlObligation)
+  ],
+  result: Bool,
+  body: (match rows
+    | List.nil => false
+    | List.cons row rest => ((coverageContributionMatches item row policy all) || (coverageContributionPresent item rest policy all))),
+  recursive_argument: rows
+}
+
+definition{
+  name: coverageAllObligations,
+  parameters: [
+    rows : (List ControlObligation),
+    contributions : (List ControlContribution),
+    policy : (List UInt8),
+    all : (List ControlObligation)
+  ],
+  result: Bool,
+  body: (match rows
+    | List.nil => true
+    | List.cons row rest => ((coverageObligationWellFormed row all) && ((coverageContributionPresent row contributions policy all) && ((coverageAllObligations rest contributions policy all) && true)))),
+  recursive_argument: rows
+}
+
+definition{
+  name: coverageNonEmpty,
+  parameters: [rows : (List ControlObligation)],
+  result: Bool,
+  body: (match rows | List.nil => false | List.cons row rest => true)
+}
+
+definition{
+  name: validateControlCoverage,
+  parameters: [policy : ControlPolicy, submission : ControlSubmission],
+  result: Bool,
+  body: ((coverageDigest (project policy digest)) && ((coverageNonEmpty (project policy obligations)) && ((coverageUniqueObligations (project policy obligations)) && ((coverageSubmissionClosed (project submission contributions) (project policy obligations)) && ((coverageAllObligations (project policy obligations) (project submission contributions) (project policy digest) (project policy obligations)) && true)))))
+}
+\end{semanticmodule}
+\end{lexlean}

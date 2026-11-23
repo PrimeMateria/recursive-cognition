@@ -1,0 +1,1491 @@
+\begin{lexlean}{Production.PublicationAdmission.V1}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Bytes}
+\title{Publication admission model}
+\begin{semanticmodule}
+inductive{
+  name: PublicationPhase,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Unready, fields: []},
+    {name: ProducerReady, fields: []},
+    {name: DeploymentAuthorized, fields: []},
+    {name: Accepted, fields: []}
+  ]
+}
+
+inductive{
+  name: PublicationMoment,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: PrePublication, fields: []}, {name: DeploymentOnly, fields: []}]
+}
+
+inductive{
+  name: PublicationAssurance,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: SourceProof, fields: []},
+    {name: Oracle, fields: []},
+    {name: ReproducibleBuild, fields: []},
+    {name: BrowserJourney, fields: []},
+    {name: FaultRecovery, fields: []},
+    {name: HumanAssessment, fields: []},
+    {name: LiveJourney, fields: []},
+    {name: OperationalAssessment, fields: []}
+  ]
+}
+
+inductive{
+  name: PublicationOutcome,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Satisfied, fields: []},
+    {name: Rejected, fields: []},
+    {name: Unknown, fields: []}
+  ]
+}
+
+inductive{
+  name: PublicationTrust,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Candidate, fields: []},
+    {name: Accepted, fields: []},
+    {name: Rejected, fields: []},
+    {name: Unknown, fields: []}
+  ]
+}
+
+inductive{
+  name: PublicationRefKind,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: ProtectedBranch, fields: []}, {name: ProtectedTag, fields: []}]
+}
+
+structure{
+  name: PublicationTarget,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: url, type: String},
+    {name: publisher, type: String},
+    {name: environment, type: String},
+    {name: adapter, type: Bytes}
+  ]
+}
+
+structure{
+  name: PublicationObligation,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: id, type: Nat},
+    {name: moment, type: PublicationMoment},
+    {name: assurance, type: PublicationAssurance},
+    {name: authority, type: Bytes},
+    {name: scope, type: Bytes}
+  ]
+}
+
+structure{
+  name: PublicationObligationChunk,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: items, type: (List PublicationObligation)}]
+}
+
+structure{
+  name: PublicationObligations,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: chunks, type: (List PublicationObligationChunk)}]
+}
+
+structure{
+  name: PublicationDeclaration,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: stage, type: String},
+    {name: policy, type: Bytes},
+    {name: target, type: PublicationTarget},
+    {name: clock, type: Bytes},
+    {name: clockAuthority, type: Bytes},
+    {name: trustAuthority, type: Bytes},
+    {name: decisionAuthority, type: Bytes},
+    {name: refAuthority, type: Bytes},
+    {name: deploymentAuthority, type: Bytes},
+    {name: integrityAuthority, type: Bytes},
+    {name: minimumTrust, type: PublicationTrust},
+    {name: refKind, type: PublicationRefKind},
+    {name: obligations, type: PublicationObligations}
+  ]
+}
+
+structure{
+  name: PublicationSubject,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: producer, type: String},
+    {name: source, type: Bytes},
+    {name: release, type: Bytes},
+    {name: model, type: Bytes},
+    {name: build, type: Bytes},
+    {name: services, type: Bytes},
+    {name: controls, type: Bytes},
+    {name: dependencies, type: Bytes},
+    {name: sdk, type: Bytes},
+    {name: compiler, type: Bytes},
+    {name: runtime, type: Bytes},
+    {name: oracles, type: Bytes},
+    {name: tree, type: Bytes}
+  ]
+}
+
+structure{
+  name: PublicationContext,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: declaration, type: PublicationDeclaration},
+    {name: declarationIdentity, type: Bytes},
+    {name: subject, type: PublicationSubject},
+    {name: instance, type: Bytes},
+    {name: publisherRevision, type: Bytes},
+    {name: publisherRef, type: String},
+    {name: digest, type: Bytes}
+  ]
+}
+
+structure{
+  name: PublicationClock,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: domain, type: Bytes},
+    {name: authority, type: Bytes},
+    {name: receipt, type: Bytes},
+    {name: tick, type: Nat}
+  ]
+}
+
+structure{
+  name: PublicationFact,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: context, type: Bytes},
+    {name: obligation, type: Nat},
+    {name: assurance, type: PublicationAssurance},
+    {name: authority, type: Bytes},
+    {name: scope, type: Bytes},
+    {name: evidence, type: Bytes},
+    {name: deployment, type: (Option Bytes)},
+    {name: from, type: Nat},
+    {name: until, type: Nat},
+    {name: outcome, type: PublicationOutcome}
+  ]
+}
+
+structure{
+  name: PublicationFactChunk,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: items, type: (List PublicationFact)}]
+}
+
+structure{
+  name: PublicationFacts,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: chunks, type: (List PublicationFactChunk)}]
+}
+
+structure{
+  name: PublicationTrustFact,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: context, type: Bytes},
+    {name: authority, type: Bytes},
+    {name: receipt, type: Bytes},
+    {name: status, type: PublicationTrust},
+    {name: from, type: Nat},
+    {name: until, type: Nat}
+  ]
+}
+
+structure{
+  name: PublicationDecision,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: context, type: Bytes},
+    {name: authority, type: Bytes},
+    {name: refAuthority, type: Bytes},
+    {name: decision, type: Bytes},
+    {name: refEvidence, type: Bytes},
+    {name: ready, type: Bytes},
+    {name: publisherRevision, type: Bytes},
+    {name: publisherRef, type: String},
+    {name: refKind, type: PublicationRefKind},
+    {name: from, type: Nat},
+    {name: until, type: Nat},
+    {name: outcome, type: PublicationOutcome}
+  ]
+}
+
+structure{
+  name: PublicationDeployment,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: context, type: Bytes},
+    {name: decision, type: Bytes},
+    {name: authority, type: Bytes},
+    {name: receipt, type: Bytes},
+    {name: publisherRevision, type: Bytes},
+    {name: deploymentRevision, type: Bytes},
+    {name: deploymentId, type: String},
+    {name: observed, type: Nat},
+    {name: from, type: Nat},
+    {name: until, type: Nat}
+  ]
+}
+
+structure{
+  name: PublicationIntegrity,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: context, type: Bytes},
+    {name: authority, type: Bytes},
+    {name: receipt, type: Bytes},
+    {name: release, type: Bytes},
+    {name: model, type: Bytes},
+    {name: build, type: Bytes},
+    {name: tree, type: Bytes},
+    {name: url, type: String},
+    {name: deployment, type: Bytes},
+    {name: observed, type: Nat},
+    {name: from, type: Nat},
+    {name: until, type: Nat}
+  ]
+}
+
+structure{
+  name: PublicationState,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: context, type: PublicationContext},
+    {name: revision, type: Nat},
+    {name: phase, type: PublicationPhase},
+    {name: clock, type: PublicationClock},
+    {name: readyAt, type: Nat},
+    {name: authorizedAt, type: Nat},
+    {name: observedAt, type: Nat},
+    {name: trust, type: (Option PublicationTrustFact)},
+    {name: readiness, type: PublicationFacts},
+    {name: ready, type: (Option Bytes)},
+    {name: decision, type: (Option PublicationDecision)},
+    {name: deployment, type: (Option PublicationDeployment)},
+    {name: integrity, type: (Option PublicationIntegrity)},
+    {name: live, type: PublicationFacts}
+  ]
+}
+
+inductive{
+  name: PublicationOperation,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Prepare, fields: [PublicationTrustFact, PublicationFacts, Bytes]},
+    {name: Authorize, fields: [PublicationDecision]},
+    {name: Observe, fields: [PublicationDeployment, PublicationIntegrity]},
+    {name: Accept, fields: [PublicationFacts]}
+  ]
+}
+
+inductive{
+  name: PublicationError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: BadDeclaration, fields: []},
+    {name: BadSubject, fields: []},
+    {name: BadContext, fields: []},
+    {name: BadClock, fields: []},
+    {name: BadState, fields: []},
+    {name: ContextChanged, fields: []},
+    {name: StaleRevision, fields: []},
+    {name: ClockRollback, fields: []},
+    {name: WrongPhase, fields: []},
+    {name: BadTrust, fields: []},
+    {name: IncompleteReadiness, fields: []},
+    {name: BadAuthorization, fields: []},
+    {name: BadDeployment, fields: []},
+    {name: BadIntegrity, fields: []},
+    {name: IncompleteLiveAssessment, fields: []}
+  ]
+}
+
+definition{
+  name: publicationPublicationPhaseEqual,
+  parameters: [left : PublicationPhase, right : PublicationPhase],
+  result: Bool,
+  body: (match left
+    | PublicationPhase.Unready => (match right
+      | PublicationPhase.Unready => true
+      | PublicationPhase.ProducerReady => false
+      | PublicationPhase.DeploymentAuthorized => false
+      | PublicationPhase.Accepted => false)
+    | PublicationPhase.ProducerReady => (match right
+      | PublicationPhase.Unready => false
+      | PublicationPhase.ProducerReady => true
+      | PublicationPhase.DeploymentAuthorized => false
+      | PublicationPhase.Accepted => false)
+    | PublicationPhase.DeploymentAuthorized => (match right
+      | PublicationPhase.Unready => false
+      | PublicationPhase.ProducerReady => false
+      | PublicationPhase.DeploymentAuthorized => true
+      | PublicationPhase.Accepted => false)
+    | PublicationPhase.Accepted => (match right
+      | PublicationPhase.Unready => false
+      | PublicationPhase.ProducerReady => false
+      | PublicationPhase.DeploymentAuthorized => false
+      | PublicationPhase.Accepted => true)),
+  axioms: []
+}
+
+definition{
+  name: publicationPublicationMomentEqual,
+  parameters: [left : PublicationMoment, right : PublicationMoment],
+  result: Bool,
+  body: (match left
+    | PublicationMoment.PrePublication => (match right
+      | PublicationMoment.PrePublication => true
+      | PublicationMoment.DeploymentOnly => false)
+    | PublicationMoment.DeploymentOnly => (match right
+      | PublicationMoment.PrePublication => false
+      | PublicationMoment.DeploymentOnly => true)),
+  axioms: []
+}
+
+definition{
+  name: publicationPublicationAssuranceEqual,
+  parameters: [left : PublicationAssurance, right : PublicationAssurance],
+  result: Bool,
+  body: (match left
+    | PublicationAssurance.SourceProof => (match right
+      | PublicationAssurance.SourceProof => true
+      | PublicationAssurance.Oracle => false
+      | PublicationAssurance.ReproducibleBuild => false
+      | PublicationAssurance.BrowserJourney => false
+      | PublicationAssurance.FaultRecovery => false
+      | PublicationAssurance.HumanAssessment => false
+      | PublicationAssurance.LiveJourney => false
+      | PublicationAssurance.OperationalAssessment => false)
+    | PublicationAssurance.Oracle => (match right
+      | PublicationAssurance.SourceProof => false
+      | PublicationAssurance.Oracle => true
+      | PublicationAssurance.ReproducibleBuild => false
+      | PublicationAssurance.BrowserJourney => false
+      | PublicationAssurance.FaultRecovery => false
+      | PublicationAssurance.HumanAssessment => false
+      | PublicationAssurance.LiveJourney => false
+      | PublicationAssurance.OperationalAssessment => false)
+    | PublicationAssurance.ReproducibleBuild => (match right
+      | PublicationAssurance.SourceProof => false
+      | PublicationAssurance.Oracle => false
+      | PublicationAssurance.ReproducibleBuild => true
+      | PublicationAssurance.BrowserJourney => false
+      | PublicationAssurance.FaultRecovery => false
+      | PublicationAssurance.HumanAssessment => false
+      | PublicationAssurance.LiveJourney => false
+      | PublicationAssurance.OperationalAssessment => false)
+    | PublicationAssurance.BrowserJourney => (match right
+      | PublicationAssurance.SourceProof => false
+      | PublicationAssurance.Oracle => false
+      | PublicationAssurance.ReproducibleBuild => false
+      | PublicationAssurance.BrowserJourney => true
+      | PublicationAssurance.FaultRecovery => false
+      | PublicationAssurance.HumanAssessment => false
+      | PublicationAssurance.LiveJourney => false
+      | PublicationAssurance.OperationalAssessment => false)
+    | PublicationAssurance.FaultRecovery => (match right
+      | PublicationAssurance.SourceProof => false
+      | PublicationAssurance.Oracle => false
+      | PublicationAssurance.ReproducibleBuild => false
+      | PublicationAssurance.BrowserJourney => false
+      | PublicationAssurance.FaultRecovery => true
+      | PublicationAssurance.HumanAssessment => false
+      | PublicationAssurance.LiveJourney => false
+      | PublicationAssurance.OperationalAssessment => false)
+    | PublicationAssurance.HumanAssessment => (match right
+      | PublicationAssurance.SourceProof => false
+      | PublicationAssurance.Oracle => false
+      | PublicationAssurance.ReproducibleBuild => false
+      | PublicationAssurance.BrowserJourney => false
+      | PublicationAssurance.FaultRecovery => false
+      | PublicationAssurance.HumanAssessment => true
+      | PublicationAssurance.LiveJourney => false
+      | PublicationAssurance.OperationalAssessment => false)
+    | PublicationAssurance.LiveJourney => (match right
+      | PublicationAssurance.SourceProof => false
+      | PublicationAssurance.Oracle => false
+      | PublicationAssurance.ReproducibleBuild => false
+      | PublicationAssurance.BrowserJourney => false
+      | PublicationAssurance.FaultRecovery => false
+      | PublicationAssurance.HumanAssessment => false
+      | PublicationAssurance.LiveJourney => true
+      | PublicationAssurance.OperationalAssessment => false)
+    | PublicationAssurance.OperationalAssessment => (match right
+      | PublicationAssurance.SourceProof => false
+      | PublicationAssurance.Oracle => false
+      | PublicationAssurance.ReproducibleBuild => false
+      | PublicationAssurance.BrowserJourney => false
+      | PublicationAssurance.FaultRecovery => false
+      | PublicationAssurance.HumanAssessment => false
+      | PublicationAssurance.LiveJourney => false
+      | PublicationAssurance.OperationalAssessment => true)),
+  axioms: []
+}
+
+definition{
+  name: publicationPublicationOutcomeEqual,
+  parameters: [left : PublicationOutcome, right : PublicationOutcome],
+  result: Bool,
+  body: (match left
+    | PublicationOutcome.Satisfied => (match right
+      | PublicationOutcome.Satisfied => true
+      | PublicationOutcome.Rejected => false
+      | PublicationOutcome.Unknown => false)
+    | PublicationOutcome.Rejected => (match right
+      | PublicationOutcome.Satisfied => false
+      | PublicationOutcome.Rejected => true
+      | PublicationOutcome.Unknown => false)
+    | PublicationOutcome.Unknown => (match right
+      | PublicationOutcome.Satisfied => false
+      | PublicationOutcome.Rejected => false
+      | PublicationOutcome.Unknown => true)),
+  axioms: []
+}
+
+definition{
+  name: publicationPublicationTrustEqual,
+  parameters: [left : PublicationTrust, right : PublicationTrust],
+  result: Bool,
+  body: (match left
+    | PublicationTrust.Candidate => (match right
+      | PublicationTrust.Candidate => true
+      | PublicationTrust.Accepted => false
+      | PublicationTrust.Rejected => false
+      | PublicationTrust.Unknown => false)
+    | PublicationTrust.Accepted => (match right
+      | PublicationTrust.Candidate => false
+      | PublicationTrust.Accepted => true
+      | PublicationTrust.Rejected => false
+      | PublicationTrust.Unknown => false)
+    | PublicationTrust.Rejected => (match right
+      | PublicationTrust.Candidate => false
+      | PublicationTrust.Accepted => false
+      | PublicationTrust.Rejected => true
+      | PublicationTrust.Unknown => false)
+    | PublicationTrust.Unknown => (match right
+      | PublicationTrust.Candidate => false
+      | PublicationTrust.Accepted => false
+      | PublicationTrust.Rejected => false
+      | PublicationTrust.Unknown => true)),
+  axioms: []
+}
+
+definition{
+  name: publicationPublicationRefKindEqual,
+  parameters: [left : PublicationRefKind, right : PublicationRefKind],
+  result: Bool,
+  body: (match left
+    | PublicationRefKind.ProtectedBranch => (match right
+      | PublicationRefKind.ProtectedBranch => true
+      | PublicationRefKind.ProtectedTag => false)
+    | PublicationRefKind.ProtectedTag => (match right
+      | PublicationRefKind.ProtectedBranch => false
+      | PublicationRefKind.ProtectedTag => true)),
+  axioms: []
+}
+
+definition{
+  name: publicationPublicationErrorEqual,
+  parameters: [left : PublicationError, right : PublicationError],
+  result: Bool,
+  body: (match left
+    | PublicationError.BadDeclaration => (match right
+      | PublicationError.BadDeclaration => true
+      | PublicationError.BadSubject => false
+      | PublicationError.BadContext => false
+      | PublicationError.BadClock => false
+      | PublicationError.BadState => false
+      | PublicationError.ContextChanged => false
+      | PublicationError.StaleRevision => false
+      | PublicationError.ClockRollback => false
+      | PublicationError.WrongPhase => false
+      | PublicationError.BadTrust => false
+      | PublicationError.IncompleteReadiness => false
+      | PublicationError.BadAuthorization => false
+      | PublicationError.BadDeployment => false
+      | PublicationError.BadIntegrity => false
+      | PublicationError.IncompleteLiveAssessment => false)
+    | PublicationError.BadSubject => (match right
+      | PublicationError.BadDeclaration => false
+      | PublicationError.BadSubject => true
+      | PublicationError.BadContext => false
+      | PublicationError.BadClock => false
+      | PublicationError.BadState => false
+      | PublicationError.ContextChanged => false
+      | PublicationError.StaleRevision => false
+      | PublicationError.ClockRollback => false
+      | PublicationError.WrongPhase => false
+      | PublicationError.BadTrust => false
+      | PublicationError.IncompleteReadiness => false
+      | PublicationError.BadAuthorization => false
+      | PublicationError.BadDeployment => false
+      | PublicationError.BadIntegrity => false
+      | PublicationError.IncompleteLiveAssessment => false)
+    | PublicationError.BadContext => (match right
+      | PublicationError.BadDeclaration => false
+      | PublicationError.BadSubject => false
+      | PublicationError.BadContext => true
+      | PublicationError.BadClock => false
+      | PublicationError.BadState => false
+      | PublicationError.ContextChanged => false
+      | PublicationError.StaleRevision => false
+      | PublicationError.ClockRollback => false
+      | PublicationError.WrongPhase => false
+      | PublicationError.BadTrust => false
+      | PublicationError.IncompleteReadiness => false
+      | PublicationError.BadAuthorization => false
+      | PublicationError.BadDeployment => false
+      | PublicationError.BadIntegrity => false
+      | PublicationError.IncompleteLiveAssessment => false)
+    | PublicationError.BadClock => (match right
+      | PublicationError.BadDeclaration => false
+      | PublicationError.BadSubject => false
+      | PublicationError.BadContext => false
+      | PublicationError.BadClock => true
+      | PublicationError.BadState => false
+      | PublicationError.ContextChanged => false
+      | PublicationError.StaleRevision => false
+      | PublicationError.ClockRollback => false
+      | PublicationError.WrongPhase => false
+      | PublicationError.BadTrust => false
+      | PublicationError.IncompleteReadiness => false
+      | PublicationError.BadAuthorization => false
+      | PublicationError.BadDeployment => false
+      | PublicationError.BadIntegrity => false
+      | PublicationError.IncompleteLiveAssessment => false)
+    | PublicationError.BadState => (match right
+      | PublicationError.BadDeclaration => false
+      | PublicationError.BadSubject => false
+      | PublicationError.BadContext => false
+      | PublicationError.BadClock => false
+      | PublicationError.BadState => true
+      | PublicationError.ContextChanged => false
+      | PublicationError.StaleRevision => false
+      | PublicationError.ClockRollback => false
+      | PublicationError.WrongPhase => false
+      | PublicationError.BadTrust => false
+      | PublicationError.IncompleteReadiness => false
+      | PublicationError.BadAuthorization => false
+      | PublicationError.BadDeployment => false
+      | PublicationError.BadIntegrity => false
+      | PublicationError.IncompleteLiveAssessment => false)
+    | PublicationError.ContextChanged => (match right
+      | PublicationError.BadDeclaration => false
+      | PublicationError.BadSubject => false
+      | PublicationError.BadContext => false
+      | PublicationError.BadClock => false
+      | PublicationError.BadState => false
+      | PublicationError.ContextChanged => true
+      | PublicationError.StaleRevision => false
+      | PublicationError.ClockRollback => false
+      | PublicationError.WrongPhase => false
+      | PublicationError.BadTrust => false
+      | PublicationError.IncompleteReadiness => false
+      | PublicationError.BadAuthorization => false
+      | PublicationError.BadDeployment => false
+      | PublicationError.BadIntegrity => false
+      | PublicationError.IncompleteLiveAssessment => false)
+    | PublicationError.StaleRevision => (match right
+      | PublicationError.BadDeclaration => false
+      | PublicationError.BadSubject => false
+      | PublicationError.BadContext => false
+      | PublicationError.BadClock => false
+      | PublicationError.BadState => false
+      | PublicationError.ContextChanged => false
+      | PublicationError.StaleRevision => true
+      | PublicationError.ClockRollback => false
+      | PublicationError.WrongPhase => false
+      | PublicationError.BadTrust => false
+      | PublicationError.IncompleteReadiness => false
+      | PublicationError.BadAuthorization => false
+      | PublicationError.BadDeployment => false
+      | PublicationError.BadIntegrity => false
+      | PublicationError.IncompleteLiveAssessment => false)
+    | PublicationError.ClockRollback => (match right
+      | PublicationError.BadDeclaration => false
+      | PublicationError.BadSubject => false
+      | PublicationError.BadContext => false
+      | PublicationError.BadClock => false
+      | PublicationError.BadState => false
+      | PublicationError.ContextChanged => false
+      | PublicationError.StaleRevision => false
+      | PublicationError.ClockRollback => true
+      | PublicationError.WrongPhase => false
+      | PublicationError.BadTrust => false
+      | PublicationError.IncompleteReadiness => false
+      | PublicationError.BadAuthorization => false
+      | PublicationError.BadDeployment => false
+      | PublicationError.BadIntegrity => false
+      | PublicationError.IncompleteLiveAssessment => false)
+    | PublicationError.WrongPhase => (match right
+      | PublicationError.BadDeclaration => false
+      | PublicationError.BadSubject => false
+      | PublicationError.BadContext => false
+      | PublicationError.BadClock => false
+      | PublicationError.BadState => false
+      | PublicationError.ContextChanged => false
+      | PublicationError.StaleRevision => false
+      | PublicationError.ClockRollback => false
+      | PublicationError.WrongPhase => true
+      | PublicationError.BadTrust => false
+      | PublicationError.IncompleteReadiness => false
+      | PublicationError.BadAuthorization => false
+      | PublicationError.BadDeployment => false
+      | PublicationError.BadIntegrity => false
+      | PublicationError.IncompleteLiveAssessment => false)
+    | PublicationError.BadTrust => (match right
+      | PublicationError.BadDeclaration => false
+      | PublicationError.BadSubject => false
+      | PublicationError.BadContext => false
+      | PublicationError.BadClock => false
+      | PublicationError.BadState => false
+      | PublicationError.ContextChanged => false
+      | PublicationError.StaleRevision => false
+      | PublicationError.ClockRollback => false
+      | PublicationError.WrongPhase => false
+      | PublicationError.BadTrust => true
+      | PublicationError.IncompleteReadiness => false
+      | PublicationError.BadAuthorization => false
+      | PublicationError.BadDeployment => false
+      | PublicationError.BadIntegrity => false
+      | PublicationError.IncompleteLiveAssessment => false)
+    | PublicationError.IncompleteReadiness => (match right
+      | PublicationError.BadDeclaration => false
+      | PublicationError.BadSubject => false
+      | PublicationError.BadContext => false
+      | PublicationError.BadClock => false
+      | PublicationError.BadState => false
+      | PublicationError.ContextChanged => false
+      | PublicationError.StaleRevision => false
+      | PublicationError.ClockRollback => false
+      | PublicationError.WrongPhase => false
+      | PublicationError.BadTrust => false
+      | PublicationError.IncompleteReadiness => true
+      | PublicationError.BadAuthorization => false
+      | PublicationError.BadDeployment => false
+      | PublicationError.BadIntegrity => false
+      | PublicationError.IncompleteLiveAssessment => false)
+    | PublicationError.BadAuthorization => (match right
+      | PublicationError.BadDeclaration => false
+      | PublicationError.BadSubject => false
+      | PublicationError.BadContext => false
+      | PublicationError.BadClock => false
+      | PublicationError.BadState => false
+      | PublicationError.ContextChanged => false
+      | PublicationError.StaleRevision => false
+      | PublicationError.ClockRollback => false
+      | PublicationError.WrongPhase => false
+      | PublicationError.BadTrust => false
+      | PublicationError.IncompleteReadiness => false
+      | PublicationError.BadAuthorization => true
+      | PublicationError.BadDeployment => false
+      | PublicationError.BadIntegrity => false
+      | PublicationError.IncompleteLiveAssessment => false)
+    | PublicationError.BadDeployment => (match right
+      | PublicationError.BadDeclaration => false
+      | PublicationError.BadSubject => false
+      | PublicationError.BadContext => false
+      | PublicationError.BadClock => false
+      | PublicationError.BadState => false
+      | PublicationError.ContextChanged => false
+      | PublicationError.StaleRevision => false
+      | PublicationError.ClockRollback => false
+      | PublicationError.WrongPhase => false
+      | PublicationError.BadTrust => false
+      | PublicationError.IncompleteReadiness => false
+      | PublicationError.BadAuthorization => false
+      | PublicationError.BadDeployment => true
+      | PublicationError.BadIntegrity => false
+      | PublicationError.IncompleteLiveAssessment => false)
+    | PublicationError.BadIntegrity => (match right
+      | PublicationError.BadDeclaration => false
+      | PublicationError.BadSubject => false
+      | PublicationError.BadContext => false
+      | PublicationError.BadClock => false
+      | PublicationError.BadState => false
+      | PublicationError.ContextChanged => false
+      | PublicationError.StaleRevision => false
+      | PublicationError.ClockRollback => false
+      | PublicationError.WrongPhase => false
+      | PublicationError.BadTrust => false
+      | PublicationError.IncompleteReadiness => false
+      | PublicationError.BadAuthorization => false
+      | PublicationError.BadDeployment => false
+      | PublicationError.BadIntegrity => true
+      | PublicationError.IncompleteLiveAssessment => false)
+    | PublicationError.IncompleteLiveAssessment => (match right
+      | PublicationError.BadDeclaration => false
+      | PublicationError.BadSubject => false
+      | PublicationError.BadContext => false
+      | PublicationError.BadClock => false
+      | PublicationError.BadState => false
+      | PublicationError.ContextChanged => false
+      | PublicationError.StaleRevision => false
+      | PublicationError.ClockRollback => false
+      | PublicationError.WrongPhase => false
+      | PublicationError.BadTrust => false
+      | PublicationError.IncompleteReadiness => false
+      | PublicationError.BadAuthorization => false
+      | PublicationError.BadDeployment => false
+      | PublicationError.BadIntegrity => false
+      | PublicationError.IncompleteLiveAssessment => true)),
+  axioms: []
+}
+
+definition{
+  name: publicationPublicationTargetEqual,
+  parameters: [left : PublicationTarget, right : PublicationTarget],
+  result: Bool,
+  body: ((prim equal (project left url) (project right url) : Bool) && ((prim equal (project left publisher) (project right publisher) : Bool) && ((prim equal (project left environment) (project right environment) : Bool) && ((prim equal (project left adapter) (project right adapter) : Bool) && true)))),
+  axioms: []
+}
+
+definition{
+  name: publicationPublicationObligationEqual,
+  parameters: [left : PublicationObligation, right : PublicationObligation],
+  result: Bool,
+  body: (((project left id) =? (project right id)) && ((publicationPublicationMomentEqual (project left moment) (project right moment)) && ((publicationPublicationAssuranceEqual (project left assurance) (project right assurance)) && ((prim equal (project left authority) (project right authority) : Bool) && ((prim equal (project left scope) (project right scope) : Bool) && true))))),
+  axioms: []
+}
+
+definition{
+  name: publicationPublicationSubjectEqual,
+  parameters: [left : PublicationSubject, right : PublicationSubject],
+  result: Bool,
+  body: ((prim equal (project left producer) (project right producer) : Bool) && ((prim equal (project left source) (project right source) : Bool) && ((prim equal (project left release) (project right release) : Bool) && ((prim equal (project left model) (project right model) : Bool) && ((prim equal (project left build) (project right build) : Bool) && ((prim equal (project left services) (project right services) : Bool) && ((prim equal (project left controls) (project right controls) : Bool) && ((prim equal (project left dependencies) (project right dependencies) : Bool) && ((prim equal (project left sdk) (project right sdk) : Bool) && ((prim equal (project left compiler) (project right compiler) : Bool) && ((prim equal (project left runtime) (project right runtime) : Bool) && ((prim equal (project left oracles) (project right oracles) : Bool) && ((prim equal (project left tree) (project right tree) : Bool) && true))))))))))))),
+  axioms: []
+}
+
+definition{
+  name: publicationPublicationObligationsRowAt,
+  parameters: [items : (List PublicationObligation), index : Nat],
+  result: (Option PublicationObligation),
+  body: (match items
+    | List.nil => (ctor Option.none [PublicationObligation])
+    | List.cons head tail => (match (index =? 0)
+      | Bool.false => (publicationPublicationObligationsRowAt tail (prim subtract index 1 : Nat))
+      | Bool.true => (ctor Option.some [PublicationObligation] head))),
+  axioms: [],
+  recursive_argument: items
+}
+
+definition{
+  name: publicationPublicationObligationsChunkAt,
+  parameters: [chunks : (List PublicationObligationChunk), index : Nat],
+  result: (Option PublicationObligation),
+  body: (match chunks
+    | List.nil => (ctor Option.none [PublicationObligation])
+    | List.cons head tail => (match (index <? 64)
+      | Bool.false => (publicationPublicationObligationsChunkAt tail (prim subtract index 64 : Nat))
+      | Bool.true => (publicationPublicationObligationsRowAt (project head items) index))),
+  axioms: [],
+  recursive_argument: chunks
+}
+
+definition{
+  name: publicationPublicationObligationsAt,
+  parameters: [items : PublicationObligations, index : Nat],
+  result: (Option PublicationObligation),
+  body: (publicationPublicationObligationsChunkAt (project items chunks) index),
+  axioms: []
+}
+
+definition{
+  name: publicationPublicationObligationsHas,
+  parameters: [items : PublicationObligations, index : Nat],
+  result: Bool,
+  body: (match (publicationPublicationObligationsAt items index)
+    | Option.none => false
+    | Option.some unused => true),
+  axioms: []
+}
+
+definition{
+  name: publicationObligationAtEqual,
+  parameters: [left : PublicationObligations, right : PublicationObligations, index : Nat],
+  result: Bool,
+  body: (match (publicationPublicationObligationsAt left index)
+    | Option.none => (not (publicationPublicationObligationsHas right index))
+    | Option.some head => (match (publicationPublicationObligationsAt right index)
+      | Option.none => false
+      | Option.some other => (publicationPublicationObligationEqual head other))),
+  axioms: []
+}
+
+definition{
+  name: publicationObligationsEqual,
+  parameters: [left : PublicationObligations, right : PublicationObligations, fuel : Nat],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => ((not (publicationPublicationObligationsHas left 4096)) && ((not (publicationPublicationObligationsHas right 4096)) && true))
+    | Nat.succ rest => ((publicationObligationAtEqual left right (prim subtract 4095 rest : Nat)) && ((match (publicationPublicationObligationsHas left (prim subtract 4095 rest : Nat))
+      | Bool.false => true
+      | Bool.true => (publicationObligationsEqual left right rest)) && true))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: publicationPublicationDeclarationEqual,
+  parameters: [left : PublicationDeclaration, right : PublicationDeclaration],
+  result: Bool,
+  body: ((prim equal (project left stage) (project right stage) : Bool) && ((prim equal (project left policy) (project right policy) : Bool) && ((publicationPublicationTargetEqual (project left target) (project right target)) && ((prim equal (project left clock) (project right clock) : Bool) && ((prim equal (project left clockAuthority) (project right clockAuthority) : Bool) && ((prim equal (project left trustAuthority) (project right trustAuthority) : Bool) && ((prim equal (project left decisionAuthority) (project right decisionAuthority) : Bool) && ((prim equal (project left refAuthority) (project right refAuthority) : Bool) && ((prim equal (project left deploymentAuthority) (project right deploymentAuthority) : Bool) && ((prim equal (project left integrityAuthority) (project right integrityAuthority) : Bool) && ((publicationPublicationTrustEqual (project left minimumTrust) (project right minimumTrust)) && ((publicationPublicationRefKindEqual (project left refKind) (project right refKind)) && ((publicationObligationsEqual (project left obligations) (project right obligations) 4096) && true))))))))))))),
+  axioms: []
+}
+
+definition{
+  name: publicationPublicationContextEqual,
+  parameters: [left : PublicationContext, right : PublicationContext],
+  result: Bool,
+  body: ((publicationPublicationDeclarationEqual (project left declaration) (project right declaration)) && ((prim equal (project left declarationIdentity) (project right declarationIdentity) : Bool) && ((publicationPublicationSubjectEqual (project left subject) (project right subject)) && ((prim equal (project left instance) (project right instance) : Bool) && ((prim equal (project left publisherRevision) (project right publisherRevision) : Bool) && ((prim equal (project left publisherRef) (project right publisherRef) : Bool) && ((prim equal (project left digest) (project right digest) : Bool) && true))))))),
+  axioms: []
+}
+
+definition{
+  name: publicationPublicationClockEqual,
+  parameters: [left : PublicationClock, right : PublicationClock],
+  result: Bool,
+  body: ((prim equal (project left domain) (project right domain) : Bool) && ((prim equal (project left authority) (project right authority) : Bool) && ((prim equal (project left receipt) (project right receipt) : Bool) && (((project left tick) =? (project right tick)) && true)))),
+  axioms: []
+}
+
+definition{
+  name: publicationPublicationTrustFactEqual,
+  parameters: [left : PublicationTrustFact, right : PublicationTrustFact],
+  result: Bool,
+  body: ((prim equal (project left context) (project right context) : Bool) && ((prim equal (project left authority) (project right authority) : Bool) && ((prim equal (project left receipt) (project right receipt) : Bool) && ((publicationPublicationTrustEqual (project left status) (project right status)) && (((project left from) =? (project right from)) && (((project left until) =? (project right until)) && true)))))),
+  axioms: []
+}
+
+definition{
+  name: publicationPublicationDecisionEqual,
+  parameters: [left : PublicationDecision, right : PublicationDecision],
+  result: Bool,
+  body: ((prim equal (project left context) (project right context) : Bool) && ((prim equal (project left authority) (project right authority) : Bool) && ((prim equal (project left refAuthority) (project right refAuthority) : Bool) && ((prim equal (project left decision) (project right decision) : Bool) && ((prim equal (project left refEvidence) (project right refEvidence) : Bool) && ((prim equal (project left ready) (project right ready) : Bool) && ((prim equal (project left publisherRevision) (project right publisherRevision) : Bool) && ((prim equal (project left publisherRef) (project right publisherRef) : Bool) && ((publicationPublicationRefKindEqual (project left refKind) (project right refKind)) && (((project left from) =? (project right from)) && (((project left until) =? (project right until)) && ((publicationPublicationOutcomeEqual (project left outcome) (project right outcome)) && true)))))))))))),
+  axioms: []
+}
+
+definition{
+  name: publicationPublicationDeploymentEqual,
+  parameters: [left : PublicationDeployment, right : PublicationDeployment],
+  result: Bool,
+  body: ((prim equal (project left context) (project right context) : Bool) && ((prim equal (project left decision) (project right decision) : Bool) && ((prim equal (project left authority) (project right authority) : Bool) && ((prim equal (project left receipt) (project right receipt) : Bool) && ((prim equal (project left publisherRevision) (project right publisherRevision) : Bool) && ((prim equal (project left deploymentRevision) (project right deploymentRevision) : Bool) && ((prim equal (project left deploymentId) (project right deploymentId) : Bool) && (((project left observed) =? (project right observed)) && (((project left from) =? (project right from)) && (((project left until) =? (project right until)) && true)))))))))),
+  axioms: []
+}
+
+definition{
+  name: publicationPublicationIntegrityEqual,
+  parameters: [left : PublicationIntegrity, right : PublicationIntegrity],
+  result: Bool,
+  body: ((prim equal (project left context) (project right context) : Bool) && ((prim equal (project left authority) (project right authority) : Bool) && ((prim equal (project left receipt) (project right receipt) : Bool) && ((prim equal (project left release) (project right release) : Bool) && ((prim equal (project left model) (project right model) : Bool) && ((prim equal (project left build) (project right build) : Bool) && ((prim equal (project left tree) (project right tree) : Bool) && ((prim equal (project left url) (project right url) : Bool) && ((prim equal (project left deployment) (project right deployment) : Bool) && (((project left observed) =? (project right observed)) && (((project left from) =? (project right from)) && (((project left until) =? (project right until)) && true)))))))))))),
+  axioms: []
+}
+
+definition{
+  name: publicationEmptyPublicationObligation,
+  parameters: [items : (List PublicationObligation)],
+  result: Bool,
+  body: (match items | List.nil => true | List.cons unusedHead unusedTail => false),
+  axioms: []
+}
+
+definition{
+  name: publicationEmptyPublicationObligationChunk,
+  parameters: [items : (List PublicationObligationChunk)],
+  result: Bool,
+  body: (match items | List.nil => true | List.cons unusedHead unusedTail => false),
+  axioms: []
+}
+
+definition{
+  name: publicationEmptyPublicationFact,
+  parameters: [items : (List PublicationFact)],
+  result: Bool,
+  body: (match items | List.nil => true | List.cons unusedHead unusedTail => false),
+  axioms: []
+}
+
+definition{
+  name: publicationEmptyPublicationFactChunk,
+  parameters: [items : (List PublicationFactChunk)],
+  result: Bool,
+  body: (match items | List.nil => true | List.cons unusedHead unusedTail => false),
+  axioms: []
+}
+
+definition{
+  name: publicationFactsEmpty,
+  parameters: [items : PublicationFacts],
+  result: Bool,
+  body: (publicationEmptyPublicationFactChunk (project items chunks)),
+  axioms: []
+}
+
+definition{
+  name: publicationPublicationObligationsRowsValid,
+  parameters: [items : (List PublicationObligation), fuel : Nat, full : Bool],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => (publicationEmptyPublicationObligation items)
+    | Nat.succ rest => (match items
+      | List.nil => (not full)
+      | List.cons unusedHead tail => (publicationPublicationObligationsRowsValid tail rest full))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: publicationPublicationObligationsChunksValid,
+  parameters: [chunks : (List PublicationObligationChunk), fuel : Nat],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => (publicationEmptyPublicationObligationChunk chunks)
+    | Nat.succ rest => (match chunks
+      | List.nil => true
+      | List.cons head tail => ((not (publicationEmptyPublicationObligation (project head items))) && ((publicationPublicationObligationsRowsValid (project head items) 64 (not (publicationEmptyPublicationObligationChunk tail))) && ((publicationPublicationObligationsChunksValid tail rest) && true))))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: publicationPublicationObligationsCanonical,
+  parameters: [items : PublicationObligations],
+  result: Bool,
+  body: (publicationPublicationObligationsChunksValid (project items chunks) 64),
+  axioms: []
+}
+
+definition{
+  name: publicationPublicationFactsRowsValid,
+  parameters: [items : (List PublicationFact), fuel : Nat, full : Bool],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => (publicationEmptyPublicationFact items)
+    | Nat.succ rest => (match items
+      | List.nil => (not full)
+      | List.cons unusedHead tail => (publicationPublicationFactsRowsValid tail rest full))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: publicationPublicationFactsChunksValid,
+  parameters: [chunks : (List PublicationFactChunk), fuel : Nat],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => (publicationEmptyPublicationFactChunk chunks)
+    | Nat.succ rest => (match chunks
+      | List.nil => true
+      | List.cons head tail => ((not (publicationEmptyPublicationFact (project head items))) && ((publicationPublicationFactsRowsValid (project head items) 64 (not (publicationEmptyPublicationFactChunk tail))) && ((publicationPublicationFactsChunksValid tail rest) && true))))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: publicationPublicationFactsCanonical,
+  parameters: [items : PublicationFacts],
+  result: Bool,
+  body: (publicationPublicationFactsChunksValid (project items chunks) 64),
+  axioms: []
+}
+
+definition{
+  name: publicationPublicationFactsRowAt,
+  parameters: [items : (List PublicationFact), index : Nat],
+  result: (Option PublicationFact),
+  body: (match items
+    | List.nil => (ctor Option.none [PublicationFact])
+    | List.cons head tail => (match (index =? 0)
+      | Bool.false => (publicationPublicationFactsRowAt tail (prim subtract index 1 : Nat))
+      | Bool.true => (ctor Option.some [PublicationFact] head))),
+  axioms: [],
+  recursive_argument: items
+}
+
+definition{
+  name: publicationPublicationFactsChunkAt,
+  parameters: [chunks : (List PublicationFactChunk), index : Nat],
+  result: (Option PublicationFact),
+  body: (match chunks
+    | List.nil => (ctor Option.none [PublicationFact])
+    | List.cons head tail => (match (index <? 64)
+      | Bool.false => (publicationPublicationFactsChunkAt tail (prim subtract index 64 : Nat))
+      | Bool.true => (publicationPublicationFactsRowAt (project head items) index))),
+  axioms: [],
+  recursive_argument: chunks
+}
+
+definition{
+  name: publicationPublicationFactsAt,
+  parameters: [items : PublicationFacts, index : Nat],
+  result: (Option PublicationFact),
+  body: (publicationPublicationFactsChunkAt (project items chunks) index),
+  axioms: []
+}
+
+definition{
+  name: publicationPublicationFactsHas,
+  parameters: [items : PublicationFacts, index : Nat],
+  result: Bool,
+  body: (match (publicationPublicationFactsAt items index)
+    | Option.none => false
+    | Option.some unused => true),
+  axioms: []
+}
+
+definition{
+  name: publicationTargetValid,
+  parameters: [target : PublicationTarget],
+  result: Bool,
+  body: (((0 <? (prim length (prim utf8_encode (project target url) : Bytes) : Nat)) && (((prim length (prim utf8_encode (project target url) : Bytes) : Nat) <=? 2048) && true)) && (((0 <? (prim length (prim utf8_encode (project target publisher) : Bytes) : Nat)) && (((prim length (prim utf8_encode (project target publisher) : Bytes) : Nat) <=? 2048) && true)) && (((0 <? (prim length (prim utf8_encode (project target environment) : Bytes) : Nat)) && (((prim length (prim utf8_encode (project target environment) : Bytes) : Nat) <=? 2048) && true)) && (((prim length (project target adapter) : Nat) =? 32) && true)))),
+  axioms: []
+}
+
+definition{
+  name: publicationObligationValid,
+  parameters: [item : PublicationObligation],
+  result: Bool,
+  body: ((0 <? (project item id)) && (((project item id) <=? 4294967295) && (((prim length (project item authority) : Nat) =? 32) && (((prim length (project item scope) : Nat) =? 32) && ((match (project item moment)
+    | PublicationMoment.PrePublication => ((publicationPublicationAssuranceEqual (project item assurance) (ctor PublicationAssurance.SourceProof)) || ((publicationPublicationAssuranceEqual (project item assurance) (ctor PublicationAssurance.Oracle)) || ((publicationPublicationAssuranceEqual (project item assurance) (ctor PublicationAssurance.ReproducibleBuild)) || ((publicationPublicationAssuranceEqual (project item assurance) (ctor PublicationAssurance.BrowserJourney)) || ((publicationPublicationAssuranceEqual (project item assurance) (ctor PublicationAssurance.FaultRecovery)) || ((publicationPublicationAssuranceEqual (project item assurance) (ctor PublicationAssurance.HumanAssessment)) || false))))))
+    | PublicationMoment.DeploymentOnly => ((publicationPublicationAssuranceEqual (project item assurance) (ctor PublicationAssurance.HumanAssessment)) || ((publicationPublicationAssuranceEqual (project item assurance) (ctor PublicationAssurance.LiveJourney)) || ((publicationPublicationAssuranceEqual (project item assurance) (ctor PublicationAssurance.OperationalAssessment)) || false)))) && true))))),
+  axioms: []
+}
+
+definition{
+  name: publicationObligationAtValid,
+  parameters: [items : PublicationObligations, index : Nat],
+  result: Bool,
+  body: (match (publicationPublicationObligationsAt items index)
+    | Option.none => false
+    | Option.some head => ((publicationObligationValid head) && ((match (index =? 0)
+      | Bool.false => (match (publicationPublicationObligationsAt items (prim subtract index 1 : Nat))
+        | Option.none => false
+        | Option.some previous => ((project previous id) <? (project head id)))
+      | Bool.true => true) && true))),
+  axioms: []
+}
+
+definition{
+  name: publicationObligationsScan,
+  parameters: [items : PublicationObligations, fuel : Nat],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => (not (publicationPublicationObligationsHas items 4096))
+    | Nat.succ rest => (match (publicationPublicationObligationsHas items (prim subtract 4095 rest : Nat))
+      | Bool.false => true
+      | Bool.true => ((publicationObligationAtValid items (prim subtract 4095 rest : Nat)) && ((publicationObligationsScan items rest) && true)))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: publicationObligationsValid,
+  parameters: [items : PublicationObligations, previous : Nat, fuel : Nat],
+  result: Bool,
+  body: ((previous =? 0) && ((fuel =? 4096) && ((publicationPublicationObligationsCanonical items) && ((publicationObligationsScan items fuel) && true)))),
+  axioms: []
+}
+
+definition{
+  name: publicationMomentAt,
+  parameters: [items : PublicationObligations, index : Nat, moment : PublicationMoment],
+  result: Bool,
+  body: (match (publicationPublicationObligationsAt items index)
+    | Option.none => false
+    | Option.some head => (publicationPublicationMomentEqual (project head moment) moment)),
+  axioms: []
+}
+
+definition{
+  name: publicationMomentScan,
+  parameters: [items : PublicationObligations, moment : PublicationMoment, fuel : Nat],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => false
+    | Nat.succ rest => ((publicationPublicationObligationsHas items (prim subtract 4095 rest : Nat)) && (((publicationMomentAt items (prim subtract 4095 rest : Nat) moment) || ((publicationMomentScan items moment rest) || false)) && true))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: publicationMomentPresent,
+  parameters: [items : PublicationObligations, moment : PublicationMoment],
+  result: Bool,
+  body: (publicationMomentScan items moment 4096),
+  axioms: []
+}
+
+definition{
+  name: publicationDeclarationValid,
+  parameters: [declaration : PublicationDeclaration],
+  result: Bool,
+  body: (((0 <? (prim length (prim utf8_encode (project declaration stage) : Bytes) : Nat)) && (((prim length (prim utf8_encode (project declaration stage) : Bytes) : Nat) <=? 2048) && true)) && ((publicationTargetValid (project declaration target)) && (((prim length (project declaration policy) : Nat) =? 32) && (((prim length (project declaration clock) : Nat) =? 32) && (((prim length (project declaration clockAuthority) : Nat) =? 32) && (((prim length (project declaration trustAuthority) : Nat) =? 32) && (((prim length (project declaration decisionAuthority) : Nat) =? 32) && (((prim length (project declaration refAuthority) : Nat) =? 32) && (((prim length (project declaration deploymentAuthority) : Nat) =? 32) && (((prim length (project declaration integrityAuthority) : Nat) =? 32) && (((publicationPublicationTrustEqual (project declaration minimumTrust) (ctor PublicationTrust.Candidate)) || ((publicationPublicationTrustEqual (project declaration minimumTrust) (ctor PublicationTrust.Accepted)) || false)) && ((publicationObligationsValid (project declaration obligations) 0 4096) && ((publicationMomentPresent (project declaration obligations) (ctor PublicationMoment.PrePublication)) && ((publicationMomentPresent (project declaration obligations) (ctor PublicationMoment.DeploymentOnly)) && true)))))))))))))),
+  axioms: []
+}
+
+definition{
+  name: publicationSubjectValid,
+  parameters: [subject : PublicationSubject],
+  result: Bool,
+  body: (((0 <? (prim length (prim utf8_encode (project subject producer) : Bytes) : Nat)) && (((prim length (prim utf8_encode (project subject producer) : Bytes) : Nat) <=? 2048) && true)) && (((prim length (project subject source) : Nat) =? 20) && (((prim length (project subject release) : Nat) =? 32) && (((prim length (project subject model) : Nat) =? 32) && (((prim length (project subject build) : Nat) =? 32) && (((prim length (project subject services) : Nat) =? 32) && (((prim length (project subject controls) : Nat) =? 32) && (((prim length (project subject dependencies) : Nat) =? 32) && (((prim length (project subject sdk) : Nat) =? 32) && (((prim length (project subject compiler) : Nat) =? 32) && (((prim length (project subject runtime) : Nat) =? 32) && (((prim length (project subject oracles) : Nat) =? 32) && (((prim length (project subject tree) : Nat) =? 32) && true))))))))))))),
+  axioms: []
+}
+
+definition{
+  name: publicationContextValid,
+  parameters: [context : PublicationContext],
+  result: Bool,
+  body: ((publicationDeclarationValid (project context declaration)) && ((publicationSubjectValid (project context subject)) && (((prim length (project context declarationIdentity) : Nat) =? 32) && (((prim length (project context instance) : Nat) =? 32) && (((prim length (project context digest) : Nat) =? 32) && (((prim length (project context publisherRevision) : Nat) =? 20) && (((0 <? (prim length (prim utf8_encode (project context publisherRef) : Bytes) : Nat)) && (((prim length (prim utf8_encode (project context publisherRef) : Bytes) : Nat) <=? 2048) && true)) && true))))))),
+  axioms: []
+}
+
+definition{
+  name: publicationClockValid,
+  parameters: [context : PublicationContext, clock : PublicationClock],
+  result: Bool,
+  body: ((prim equal (project clock domain) (project (project context declaration) clock) : Bool) && ((prim equal (project clock authority) (project (project context declaration) clockAuthority) : Bool) && (((prim length (project clock receipt) : Nat) =? 32) && (((project clock tick) <=? 4294967295) && true)))),
+  axioms: []
+}
+
+definition{
+  name: publicationTrustValid,
+  parameters: [context : PublicationContext, fact : PublicationTrustFact, now : Nat],
+  result: Bool,
+  body: ((prim equal (project fact context) (project context digest) : Bool) && ((prim equal (project fact authority) (project (project context declaration) trustAuthority) : Bool) && (((prim length (project fact receipt) : Nat) =? 32) && ((((project fact from) <=? now) && ((now <=? (project fact until)) && (((project fact until) <=? 4294967295) && true))) && (((publicationPublicationTrustEqual (project fact status) (ctor PublicationTrust.Accepted)) || (((publicationPublicationTrustEqual (project fact status) (ctor PublicationTrust.Candidate)) && ((publicationPublicationTrustEqual (project (project context declaration) minimumTrust) (ctor PublicationTrust.Candidate)) && true)) || false)) && true))))),
+  axioms: []
+}
+
+definition{
+  name: publicationOptionalDigestEqual,
+  parameters: [left : (Option Bytes), right : (Option Bytes)],
+  result: Bool,
+  body: (match left
+    | Option.none => (match right | Option.none => true | Option.some unused => false)
+    | Option.some leftValue => (match right
+      | Option.none => false
+      | Option.some rightValue => (((prim length leftValue : Nat) =? 32) && ((prim equal leftValue rightValue : Bool) && true)))),
+  axioms: []
+}
+
+definition{
+  name: publicationFactValid,
+  parameters: [
+    context : PublicationContext,
+    obligation : PublicationObligation,
+    fact : PublicationFact,
+    deployment : (Option Bytes),
+    now : Nat
+  ],
+  result: Bool,
+  body: ((prim equal (project fact context) (project context digest) : Bool) && (((project fact obligation) =? (project obligation id)) && ((publicationPublicationAssuranceEqual (project fact assurance) (project obligation assurance)) && ((publicationOptionalDigestEqual (project fact deployment) deployment) && ((prim equal (project fact authority) (project obligation authority) : Bool) && ((prim equal (project fact scope) (project obligation scope) : Bool) && (((prim length (project fact evidence) : Nat) =? 32) && ((((project fact from) <=? now) && ((now <=? (project fact until)) && (((project fact until) <=? 4294967295) && true))) && ((publicationPublicationOutcomeEqual (project fact outcome) (ctor PublicationOutcome.Satisfied)) && true))))))))),
+  axioms: []
+}
+
+definition{
+  name: publicationFactAtValid,
+  parameters: [
+    context : PublicationContext,
+    obligations : PublicationObligations,
+    facts : PublicationFacts,
+    deployment : (Option Bytes),
+    now : Nat,
+    obligationIndex : Nat,
+    factIndex : Nat
+  ],
+  result: Bool,
+  body: (match (publicationPublicationObligationsAt obligations obligationIndex)
+    | Option.none => false
+    | Option.some head => (match (publicationPublicationFactsAt facts factIndex)
+      | Option.none => false
+      | Option.some fact => (publicationFactValid context head fact deployment now))),
+  axioms: []
+}
+
+definition{
+  name: publicationFactsScan,
+  parameters: [
+    context : PublicationContext,
+    obligations : PublicationObligations,
+    facts : PublicationFacts,
+    moment : PublicationMoment,
+    deployment : (Option Bytes),
+    now : Nat,
+    fuel : Nat,
+    factFuel : Nat
+  ],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => (not (publicationPublicationFactsHas facts (prim subtract 4096 factFuel : Nat)))
+    | Nat.succ rest => (match (publicationPublicationObligationsHas obligations (prim subtract 4095 rest : Nat))
+      | Bool.false => (not (publicationPublicationFactsHas facts (prim subtract 4096 factFuel : Nat)))
+      | Bool.true => (match (publicationMomentAt obligations (prim subtract 4095 rest : Nat) moment)
+        | Bool.false => (publicationFactsScan context obligations facts moment deployment now rest factFuel)
+        | Bool.true => ((0 <? factFuel) && ((publicationFactAtValid context obligations facts deployment now (prim subtract 4095 rest : Nat) (prim subtract 4096 factFuel : Nat)) && ((publicationFactsScan context obligations facts moment deployment now rest (prim subtract factFuel 1 : Nat)) && true)))))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: publicationFactsComplete,
+  parameters: [
+    context : PublicationContext,
+    obligations : PublicationObligations,
+    facts : PublicationFacts,
+    moment : PublicationMoment,
+    deployment : (Option Bytes),
+    now : Nat
+  ],
+  result: Bool,
+  body: ((publicationPublicationFactsCanonical facts) && ((publicationFactsScan context obligations facts moment deployment now 4096 4096) && true)),
+  axioms: []
+}
+
+definition{
+  name: publicationDecisionValid,
+  parameters: [
+    context : PublicationContext,
+    ready : Bytes,
+    decision : PublicationDecision,
+    now : Nat
+  ],
+  result: Bool,
+  body: ((prim equal (project decision context) (project context digest) : Bool) && ((prim equal (project decision authority) (project (project context declaration) decisionAuthority) : Bool) && ((prim equal (project decision refAuthority) (project (project context declaration) refAuthority) : Bool) && (((prim length (project decision decision) : Nat) =? 32) && (((prim length (project decision refEvidence) : Nat) =? 32) && ((prim equal (project decision ready) ready : Bool) && ((prim equal (project decision publisherRevision) (project context publisherRevision) : Bool) && ((prim equal (project decision publisherRef) (project context publisherRef) : Bool) && ((publicationPublicationRefKindEqual (project decision refKind) (project (project context declaration) refKind)) && ((((project decision from) <=? now) && ((now <=? (project decision until)) && (((project decision until) <=? 4294967295) && true))) && ((publicationPublicationOutcomeEqual (project decision outcome) (ctor PublicationOutcome.Satisfied)) && true))))))))))),
+  axioms: []
+}
+
+definition{
+  name: publicationDeploymentValid,
+  parameters: [
+    context : PublicationContext,
+    decision : PublicationDecision,
+    deployment : PublicationDeployment,
+    now : Nat
+  ],
+  result: Bool,
+  body: ((prim equal (project deployment context) (project context digest) : Bool) && ((prim equal (project deployment decision) (project decision decision) : Bool) && ((prim equal (project deployment authority) (project (project context declaration) deploymentAuthority) : Bool) && (((prim length (project deployment receipt) : Nat) =? 32) && ((prim equal (project deployment publisherRevision) (project context publisherRevision) : Bool) && (((prim length (project deployment deploymentRevision) : Nat) =? 20) && (((0 <? (prim length (prim utf8_encode (project deployment deploymentId) : Bytes) : Nat)) && (((prim length (prim utf8_encode (project deployment deploymentId) : Bytes) : Nat) <=? 2048) && true)) && (((project deployment observed) <=? now) && ((((project deployment from) <=? (project deployment observed)) && (((project deployment observed) <=? (project deployment until)) && (((project deployment until) <=? 4294967295) && true))) && ((((project deployment from) <=? now) && ((now <=? (project deployment until)) && (((project deployment until) <=? 4294967295) && true))) && true)))))))))),
+  axioms: []
+}
+
+definition{
+  name: publicationIntegrityValid,
+  parameters: [
+    context : PublicationContext,
+    deployment : PublicationDeployment,
+    integrity : PublicationIntegrity,
+    now : Nat
+  ],
+  result: Bool,
+  body: ((prim equal (project integrity context) (project context digest) : Bool) && ((prim equal (project integrity authority) (project (project context declaration) integrityAuthority) : Bool) && (((prim length (project integrity receipt) : Nat) =? 32) && ((prim equal (project integrity deployment) (project deployment receipt) : Bool) && (((project deployment observed) <=? (project integrity observed)) && (((project integrity observed) <=? now) && ((((project integrity from) <=? (project integrity observed)) && (((project integrity observed) <=? (project integrity until)) && (((project integrity until) <=? 4294967295) && true))) && ((prim equal (project integrity release) (project (project context subject) release) : Bool) && ((prim equal (project integrity model) (project (project context subject) model) : Bool) && ((prim equal (project integrity build) (project (project context subject) build) : Bool) && ((prim equal (project integrity tree) (project (project context subject) tree) : Bool) && ((prim equal (project integrity url) (project (project (project context declaration) target) url) : Bool) && ((((project integrity from) <=? now) && ((now <=? (project integrity until)) && (((project integrity until) <=? 4294967295) && true))) && true))))))))))))),
+  axioms: []
+}
+
+definition{
+  name: publicationReadyStateValid,
+  parameters: [state : PublicationState, now : Nat],
+  result: Bool,
+  body: (((project state readyAt) <=? now) && ((match (project state trust)
+    | Option.none => false
+    | Option.some trust => ((publicationTrustValid (project state context) trust now) && ((publicationTrustValid (project state context) trust (project state readyAt)) && true))) && ((publicationFactsComplete (project state context) (project (project (project state context) declaration) obligations) (project state readiness) (ctor PublicationMoment.PrePublication) (ctor Option.none [Bytes]) now) && ((publicationFactsComplete (project state context) (project (project (project state context) declaration) obligations) (project state readiness) (ctor PublicationMoment.PrePublication) (ctor Option.none [Bytes]) (project state readyAt)) && ((match (project state ready)
+    | Option.none => false
+    | Option.some ready => ((prim length ready : Nat) =? 32)) && true))))),
+  axioms: []
+}
+
+definition{
+  name: publicationAuthorizedStateValid,
+  parameters: [state : PublicationState, now : Nat],
+  result: Bool,
+  body: ((publicationReadyStateValid state now) && (((project state readyAt) <=? (project state authorizedAt)) && (((project state authorizedAt) <=? now) && ((match (project state ready)
+    | Option.none => false
+    | Option.some ready => (match (project state decision)
+      | Option.none => false
+      | Option.some decision => ((publicationDecisionValid (project state context) ready decision now) && ((publicationDecisionValid (project state context) ready decision (project state authorizedAt)) && true)))) && true)))),
+  axioms: []
+}
+
+definition{
+  name: publicationObservedStateValid,
+  parameters: [state : PublicationState, now : Nat],
+  result: Bool,
+  body: ((publicationAuthorizedStateValid state now) && (((project state authorizedAt) <=? (project state observedAt)) && (((project state observedAt) <=? now) && ((match (project state decision)
+    | Option.none => false
+    | Option.some decision => (match (project state deployment)
+      | Option.none => false
+      | Option.some deployment => (((project state authorizedAt) <=? (project deployment observed)) && ((((project decision from) <=? (project deployment observed)) && (((project deployment observed) <=? (project decision until)) && (((project decision until) <=? 4294967295) && true))) && ((publicationDeploymentValid (project state context) decision deployment now) && ((match (project state integrity)
+        | Option.none => false
+        | Option.some integrity => (((project integrity observed) <=? (project state observedAt)) && ((publicationIntegrityValid (project state context) deployment integrity now) && true))) && true)))))) && true)))),
+  axioms: []
+}
+
+definition{
+  name: publicationStatePhaseValid,
+  parameters: [state : PublicationState, now : Nat],
+  result: Bool,
+  body: (match (project state phase)
+    | PublicationPhase.Unready => (((project state revision) =? 0) && (((project state readyAt) =? 0) && (((project state authorizedAt) =? 0) && (((project state observedAt) =? 0) && ((match (project state trust)
+      | Option.none => true
+      | Option.some unused => false) && ((match (project state ready)
+      | Option.none => true
+      | Option.some unused => false) && ((match (project state decision)
+      | Option.none => true
+      | Option.some unused => false) && ((match (project state deployment)
+      | Option.none => true
+      | Option.some unused => false) && ((match (project state integrity)
+      | Option.none => true
+      | Option.some unused => false) && ((publicationFactsEmpty (project state readiness)) && ((publicationFactsEmpty (project state live)) && true)))))))))))
+    | PublicationPhase.ProducerReady => (((project state revision) =? 1) && (((project state readyAt) =? (project (project state clock) tick)) && (((project state authorizedAt) =? 0) && (((project state observedAt) =? 0) && ((publicationReadyStateValid state now) && ((match (project state decision)
+      | Option.none => true
+      | Option.some unused => false) && ((match (project state deployment)
+      | Option.none => true
+      | Option.some unused => false) && ((match (project state integrity)
+      | Option.none => true
+      | Option.some unused => false) && ((publicationFactsEmpty (project state live)) && true)))))))))
+    | PublicationPhase.DeploymentAuthorized => ((publicationFactsEmpty (project state live)) && (((((project state revision) =? 2) && (((project state authorizedAt) =? (project (project state clock) tick)) && (((project state observedAt) =? 0) && ((publicationAuthorizedStateValid state now) && ((match (project state deployment)
+      | Option.none => true
+      | Option.some unused => false) && ((match (project state integrity)
+      | Option.none => true
+      | Option.some unused => false) && true)))))) || ((((project state revision) =? 3) && (((project state observedAt) =? (project (project state clock) tick)) && ((publicationObservedStateValid state now) && true))) || false)) && true))
+    | PublicationPhase.Accepted => (((project state revision) =? 4) && ((publicationObservedStateValid state now) && ((publicationFactsComplete (project state context) (project (project (project state context) declaration) obligations) (project state live) (ctor PublicationMoment.DeploymentOnly) (match (project state deployment)
+      | Option.none => (ctor Option.none [Bytes])
+      | Option.some deployment => (ctor Option.some [Bytes] (project deployment receipt))) now) && true)))),
+  axioms: []
+}
+
+definition{
+  name: publicationStateValid,
+  parameters: [state : PublicationState, now : Nat],
+  result: Bool,
+  body: ((publicationContextValid (project state context)) && ((publicationClockValid (project state context) (project state clock)) && (((project (project state clock) tick) <=? now) && ((now <=? 4294967295) && ((publicationStatePhaseValid state (project (project state clock) tick)) && ((publicationStatePhaseValid state now) && true)))))),
+  axioms: []
+}
+
+definition{
+  name: publicationInitialize,
+  parameters: [context : PublicationContext, clock : PublicationClock],
+  result: (Result PublicationState PublicationError),
+  body: (match (publicationDeclarationValid (project context declaration))
+    | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.BadDeclaration))
+    | Bool.true => (match (publicationSubjectValid (project context subject))
+      | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.BadSubject))
+      | Bool.true => (match (publicationContextValid context)
+        | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.BadContext))
+        | Bool.true => (match (publicationClockValid context clock)
+          | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.BadClock))
+          | Bool.true => (ctor Result.ok [PublicationState, PublicationError] (record PublicationState {context := context, revision := 0, phase := (ctor PublicationPhase.Unready), clock := clock, readyAt := 0, authorizedAt := 0, observedAt := 0, trust := (ctor Option.none [PublicationTrustFact]), readiness := (record PublicationFacts {chunks := (nil PublicationFactChunk)}), ready := (ctor Option.none [Bytes]), decision := (ctor Option.none [PublicationDecision]), deployment := (ctor Option.none [PublicationDeployment]), integrity := (ctor Option.none [PublicationIntegrity]), live := (record PublicationFacts {chunks := (nil PublicationFactChunk)})})))))),
+  axioms: []
+}
+
+definition{
+  name: publicationInspect,
+  parameters: [context : PublicationContext, state : PublicationState, clock : PublicationClock],
+  result: (Result PublicationState PublicationError),
+  body: (match (publicationContextValid context)
+    | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.BadContext))
+    | Bool.true => (match (publicationPublicationContextEqual context (project state context))
+      | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.ContextChanged))
+      | Bool.true => (match (publicationClockValid context clock)
+        | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.BadClock))
+        | Bool.true => (match ((project (project state clock) tick) <=? (project clock tick))
+          | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.ClockRollback))
+          | Bool.true => (match (publicationStateValid state (project clock tick))
+            | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.BadState))
+            | Bool.true => (ctor Result.ok [PublicationState, PublicationError] state)))))),
+  axioms: []
+}
+
+definition{
+  name: publicationTransition,
+  parameters: [
+    context : PublicationContext,
+    state : PublicationState,
+    revision : Nat,
+    clock : PublicationClock,
+    operation : PublicationOperation
+  ],
+  result: (Result PublicationState PublicationError),
+  body: (match (publicationContextValid context)
+    | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.BadContext))
+    | Bool.true => (match (publicationPublicationContextEqual context (project state context))
+      | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.ContextChanged))
+      | Bool.true => (match (publicationClockValid context clock)
+        | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.BadClock))
+        | Bool.true => (match ((project (project state clock) tick) <=? (project clock tick))
+          | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.ClockRollback))
+          | Bool.true => (match (publicationStateValid state (project clock tick))
+            | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.BadState))
+            | Bool.true => (match (revision =? (project state revision))
+              | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.StaleRevision))
+              | Bool.true => (match operation
+                | PublicationOperation.Prepare trust readiness ready => (match ((publicationPublicationPhaseEqual (project state phase) (ctor PublicationPhase.Unready)) && (((project state revision) =? 0) && true))
+                  | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.WrongPhase))
+                  | Bool.true => (match (publicationTrustValid (project state context) trust (project clock tick))
+                    | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.BadTrust))
+                    | Bool.true => (match (((prim length ready : Nat) =? 32) && ((publicationFactsComplete (project state context) (project (project (project state context) declaration) obligations) readiness (ctor PublicationMoment.PrePublication) (ctor Option.none [Bytes]) (project clock tick)) && true))
+                      | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.IncompleteReadiness))
+                      | Bool.true => (ctor Result.ok [PublicationState, PublicationError] (record PublicationState {context := (project state context), revision := 1, phase := (ctor PublicationPhase.ProducerReady), clock := clock, readyAt := (project clock tick), authorizedAt := (project state authorizedAt), observedAt := (project state observedAt), trust := (ctor Option.some [PublicationTrustFact] trust), readiness := readiness, ready := (ctor Option.some [Bytes] ready), decision := (project state decision), deployment := (project state deployment), integrity := (project state integrity), live := (project state live)})))))
+                | PublicationOperation.Authorize decision => (match ((publicationPublicationPhaseEqual (project state phase) (ctor PublicationPhase.ProducerReady)) && (((project state revision) =? 1) && true))
+                  | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.WrongPhase))
+                  | Bool.true => (match (project state ready)
+                    | Option.none => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.BadState))
+                    | Option.some ready => (match (publicationDecisionValid (project state context) ready decision (project clock tick))
+                      | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.BadAuthorization))
+                      | Bool.true => (ctor Result.ok [PublicationState, PublicationError] (record PublicationState {context := (project state context), revision := 2, phase := (ctor PublicationPhase.DeploymentAuthorized), clock := clock, readyAt := (project state readyAt), authorizedAt := (project clock tick), observedAt := (project state observedAt), trust := (project state trust), readiness := (project state readiness), ready := (project state ready), decision := (ctor Option.some [PublicationDecision] decision), deployment := (project state deployment), integrity := (project state integrity), live := (project state live)})))))
+                | PublicationOperation.Observe deployment integrity => (match ((publicationPublicationPhaseEqual (project state phase) (ctor PublicationPhase.DeploymentAuthorized)) && (((project state revision) =? 2) && true))
+                  | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.WrongPhase))
+                  | Bool.true => (match (project state decision)
+                    | Option.none => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.BadState))
+                    | Option.some decision => (match (((project state authorizedAt) <=? (project deployment observed)) && ((((project decision from) <=? (project deployment observed)) && (((project deployment observed) <=? (project decision until)) && (((project decision until) <=? 4294967295) && true))) && ((publicationDeploymentValid (project state context) decision deployment (project clock tick)) && true)))
+                      | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.BadDeployment))
+                      | Bool.true => (match (publicationIntegrityValid (project state context) deployment integrity (project clock tick))
+                        | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.BadIntegrity))
+                        | Bool.true => (ctor Result.ok [PublicationState, PublicationError] (record PublicationState {context := (project state context), revision := 3, phase := (ctor PublicationPhase.DeploymentAuthorized), clock := clock, readyAt := (project state readyAt), authorizedAt := (project state authorizedAt), observedAt := (project clock tick), trust := (project state trust), readiness := (project state readiness), ready := (project state ready), decision := (project state decision), deployment := (ctor Option.some [PublicationDeployment] deployment), integrity := (ctor Option.some [PublicationIntegrity] integrity), live := (project state live)}))))))
+                | PublicationOperation.Accept live => (match ((publicationPublicationPhaseEqual (project state phase) (ctor PublicationPhase.DeploymentAuthorized)) && (((project state revision) =? 3) && true))
+                  | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.WrongPhase))
+                  | Bool.true => (match (publicationFactsComplete (project state context) (project (project (project state context) declaration) obligations) live (ctor PublicationMoment.DeploymentOnly) (match (project state deployment)
+                      | Option.none => (ctor Option.none [Bytes])
+                      | Option.some deployment => (ctor Option.some [Bytes] (project deployment receipt))) (project clock tick))
+                    | Bool.false => (ctor Result.error [PublicationState, PublicationError] (ctor PublicationError.IncompleteLiveAssessment))
+                    | Bool.true => (ctor Result.ok [PublicationState, PublicationError] (record PublicationState {context := (project state context), revision := 4, phase := (ctor PublicationPhase.Accepted), clock := clock, readyAt := (project state readyAt), authorizedAt := (project state authorizedAt), observedAt := (project state observedAt), trust := (project state trust), readiness := (project state readiness), ready := (project state ready), decision := (project state decision), deployment := (project state deployment), integrity := (project state integrity), live := live}))))))))))),
+  axioms: []
+}
+\end{semanticmodule}
+\end{lexlean}

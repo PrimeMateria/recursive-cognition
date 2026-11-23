@@ -1,0 +1,271 @@
+{
+  "spec": "prismpm/evidence-register/1",
+  "record_id": "ADR-0017",
+  "local_adr": "ADR-0017",
+  "title": "Governed LexLean and PrismPM verification with adopted Prism stdlib model content",
+  "status": "accepted",
+  "decision_basis": "The governed root reproduces identical LexLean attestations before and after clean rebuild, and real prismpm check and prismpm verify both exit zero under the pinned stack and execution environment.",
+  "supersedes": {
+    "adr": "ADR-0016",
+    "scope": "D7 only: full prismpm verify was blocked by absent Prism declarations. All ADR-0016 toolchain decisions remain in force.",
+    "also_amends": "ADR-0015 D4 blocked-verify clause",
+    "previous_failure": {
+      "code": "PP5003",
+      "message": "LexLean snapshot contains no Prism declarations",
+      "stderr": "evidence/prismpm-050-verify-043-rust1971.stderr",
+      "exit": "evidence/prismpm-050-verify-043-rust1971.exit"
+    }
+  },
+  "canonical_stack": {
+    "lean_pin": "leanprover/lean4:v4.32.2",
+    "lexlean": "0.4.3",
+    "lexlean_path": "/run/media/multiplic/AGI/prismagi/mount/PRIME/toolchain/lexlean-0.4.3/bin/lexlean",
+    "lexlean_sha256": "214b06761073c65eeaaa6294a973c24066a20ce170ddb369748d9c487116ce92",
+    "prismpm": "0.5.0",
+    "prismpm_path": "/home/multiplic/.local/bin/prismpm",
+    "prismpm_sha256": "8cf7e3493b07e0e0b8bd4d9e0719702384259539a3861b21609f15b9c4a5f49b",
+    "lexlean_project_schema": "lexlean/project/1",
+    "lexlean_lock_schema": "lexlean/lock/2"
+  },
+  "verification_environment": {
+    "rustup_toolchain": "1.97.1",
+    "rustfmt": "1.9.0-stable (8bab26f4f6 2026-07-14)",
+    "lc_all": "C",
+    "ll": "/run/media/multiplic/AGI/prismagi/mount/PRIME/toolchain/lexlean-0.4.3/bin/lexlean",
+    "path_prefix": "/run/media/multiplic/AGI/prismagi/mount/PRIME/toolchain/lexlean-0.4.3/bin",
+    "rejected_default_rustfmt": "1.11.0-stable (0ef1bc3860 2026-11-09)",
+    "rejected_failure": "PP5008 from SDK pinning"
+  },
+  "model_content": {
+    "module_prefix": "PrismPM",
+    "source_roots": [
+      "src",
+      "stdlib/src"
+    ],
+    "entrypoint_count": 40,
+    "stdlib_lex_files": 115,
+    "lexlean_check_all_modules": 119,
+    "stdlib_raw_relative_tree_sha256": "5b812ae7f538674b42c8db7f716bee03619c1cc3cbb361bca25fa44a7542710d",
+    "stdlib_raw_absolute_path_tree_sha256": "b68e0964c0041f36532500e9ecaf649711b0df2e66488814d91f9c969a49d2cf",
+    "governed_stdlib_relative_tree_sha256": "9a5d49f3711a377dc0d2ea016643dc8958c899f4957d93c05be0ef4f80574fdc",
+    "exporter_archive": {
+      "path": "vendor/lean4-prod/lean.tar",
+      "sha256": "b1e282a8b41d8ce6172db40d73ded55e7d9db39b9145c3f5bbc160ce6c74100d",
+      "size_bytes": 399360,
+      "type": "regular file"
+    },
+    "provenance_record": "production/evidence/ADR-0017-upstream-provenance.json"
+  },
+  "attestations": {
+    "lexlean": {
+      "scheme": "lexlean/attestation/2",
+      "digest": "7d2e6b4a9ceb7432a226d852f405a88ac07735a31897bee65f51d67ac721c8c5",
+      "attestation_id": "7d2e6b4a9ceb7432a226d852f405a88ac07735a31897bee65f51d67ac721c8c5",
+      "status": "verified",
+      "source_id": "5749419747de6b8392e55942f28140ba5dee45a853d80bccdac6b5f89aeb4cd7",
+      "semantic_id": "b4b1dbc5ebd11430e6c4619bc06781a3907fe3569962263daedb3cd816cc1563",
+      "build_id": "348f4b9be0da87b1e0792eb0fb921abd5f2400c9854ac138ae5b2eab3a247d25",
+      "verified_modules": 64,
+      "path": ".lexlean/verified/7d2e6b4a9ceb7432a226d852f405a88ac07735a31897bee65f51d67ac721c8c5/attestation.json"
+    },
+    "prismpm": {
+      "scheme": "prismpm/verify-result/1",
+      "attestation_id": "7963a1eb1ee4462fd5c87a7c1b2bc430dbbb2f8d0774b5dc606e43a0b2a66c71",
+      "build_id": "f64f58390af6136a9ff6b1b835422459e580ebd6728e84f0654b752b7e8dd43a",
+      "verified_root": "production/verified/7963a1eb1ee4462fd5c87a7c1b2bc430dbbb2f8d0774b5dc606e43a0b2a66c71",
+      "embedded_lexlean_attestation_id": "80d9539dce5e25317cdfd347b518468b16a42bc579a2678128765ec66279e21f",
+      "semantic_id": "b4b1dbc5ebd11430e6c4619bc06781a3907fe3569962263daedb3cd816cc1563",
+      "source_id": "5749419747de6b8392e55942f28140ba5dee45a853d80bccdac6b5f89aeb4cd7",
+      "lexlean_build_id": "348f4b9be0da87b1e0792eb0fb921abd5f2400c9854ac138ae5b2eab3a247d25",
+      "model_id": "104633d27584471c042000c12fb8b7015fb185a88462ac86473eda349c6c7540",
+      "stdout": "evidence/adr-0017-prismpm-verify-json.stdout"
+    }
+  },
+  "module_and_axiom_audit": {
+    "lexlean_check_all": {
+      "modules": 119,
+      "source_id": "c91a5dab5639340b0b728be5b96f31569401cb9d58be41cf59aca0bfbe7802f2",
+      "semantic_id": "2e025c1c3716b96f558032ef46fbde9803a1247a3d3fbb03f65060bf6cc2bfaf"
+    },
+    "lexlean_verify": {
+      "modules": 64,
+      "source_id": "5749419747de6b8392e55942f28140ba5dee45a853d80bccdac6b5f89aeb4cd7",
+      "semantic_id": "b4b1dbc5ebd11430e6c4619bc06781a3907fe3569962263daedb3cd816cc1563"
+    },
+    "prismpm_check": {
+      "schema": "prismpm/check-result/1",
+      "semantic_id": "b4b1dbc5ebd11430e6c4619bc06781a3907fe3569962263daedb3cd816cc1563",
+      "snapshot_id": "ca579e277c9f4cdb3ca3e88085ca201dec76e256a9bcabf695cfbfdbd80ac5d1",
+      "entity_count": 22,
+      "model_id": "104633d27584471c042000c12fb8b7015fb185a88462ac86473eda349c6c7540"
+    },
+    "lexlean_declarations": {
+      "total": 7733,
+      "all_result_ok": true,
+      "observed_axiom_declarations": 1075,
+      "observed_policy_mismatches": 0,
+      "spike_declarations": [
+        "PrismPM.Spike.RatOrder.rat_order_helper",
+        "PrismPM.Spike.DtCbf.dt_cbf_forward_invariant",
+        "PrismPM.Spike.SpectralBins.prime_bin_partition"
+      ],
+      "spike_declarations_axiom_free": true
+    },
+    "axiom_audit": "7733/7733 declarations result ok; 1075 declarations have observed axioms and all exactly match their declared policies; 0 observed-policy mismatches; the three PrismPM.Spike.* theorems have empty observed axioms"
+  },
+  "generated_artifacts": {
+    "prism_verified_root": "production/verified/7963a1eb1ee4462fd5c87a7c1b2bc430dbbb2f8d0774b5dc606e43a0b2a66c71",
+    "verified_files": [
+      "coverage.json",
+      "execution-corpus.toml",
+      "execution.json",
+      "generated.rs",
+      "kernel.ir",
+      "lexlean-attestation.json",
+      "manifest.json",
+      "roots.json",
+      "stdlib-exports.toml",
+      "validator"
+    ],
+    "prism_build_id": "f64f58390af6136a9ff6b1b835422459e580ebd6728e84f0654b752b7e8dd43a",
+    "prism_build_manifest": "production/build/f64f58390af6136a9ff6b1b835422459e580ebd6728e84f0654b752b7e8dd43a/manifest.json",
+    "prism_model": "production/build/f64f58390af6136a9ff6b1b835422459e580ebd6728e84f0654b752b7e8dd43a/model.prism.json",
+    "scope": "Tool-generated verification artifacts, not an OCI or TRR-2 release."
+  },
+  "reproducibility": {
+    "identical": true,
+    "runs": [
+      {
+        "kind": "first",
+        "command": "lexlean-0.4.3 --project lexlean.toml verify",
+        "stdout": "evidence/adr-0017-lexlean-verify-1.stdout",
+        "stderr": "evidence/adr-0017-lexlean-verify-1.stderr",
+        "exit": "evidence/adr-0017-lexlean-verify-1.exit",
+        "attestation": "7d2e6b4a9ceb7432a226d852f405a88ac07735a31897bee65f51d67ac721c8c5"
+      },
+      {
+        "kind": "clean-rebuild",
+        "command": "lexlean-0.4.3 clean && lexlean-0.4.3 --project lexlean.toml verify",
+        "stdout": "evidence/adr-0017-lexlean-verify-2-clean.stdout",
+        "stderr": "evidence/adr-0017-lexlean-verify-2-clean.stderr",
+        "exit": "evidence/adr-0017-lexlean-verify-2-clean.exit",
+        "attestation": "7d2e6b4a9ceb7432a226d852f405a88ac07735a31897bee65f51d67ac721c8c5"
+      }
+    ]
+  },
+  "supporting_checks": {
+    "version": {
+      "stdout": "evidence/adr-0017-lexlean-version.stdout",
+      "exit": "evidence/adr-0017-lexlean-version.exit",
+      "result": "lexlean 0.4.3; lean-toolchain leanprover/lean4:v4.32.2"
+    },
+    "lock": {
+      "stdout": "evidence/adr-0017-lexlean-lock.stdout",
+      "exit": "evidence/adr-0017-lexlean-lock.exit",
+      "result": "lexlean.lock regenerated without change"
+    },
+    "lock_check": {
+      "stdout": "evidence/adr-0017-lexlean-lock-check.stdout",
+      "exit": "evidence/adr-0017-lexlean-lock-check.exit",
+      "result": "lexlean.lock is current"
+    },
+    "check_all": {
+      "stdout": "evidence/adr-0017-lexlean-check.stdout",
+      "exit": "evidence/adr-0017-lexlean-check.exit",
+      "result": "checked 119 modules (source c91a5dab5639340b0b728be5b96f31569401cb9d58be41cf59aca0bfbe7802f2, semantic 2e025c1c3716b96f558032ef46fbde9803a1247a3d3fbb03f65060bf6cc2bfaf)"
+    },
+    "format": {
+      "stdout": "evidence/adr-0017-lexlean-fmt-check.stdout",
+      "exit": "evidence/adr-0017-lexlean-fmt-check.exit",
+      "result": "119 modules are canonical"
+    },
+    "prismpm_check": {
+      "tool": "prismpm 0.5.0",
+      "command": "prismpm check --json",
+      "stdout": "evidence/adr-0017-prismpm-check-json.stdout",
+      "stderr": "evidence/adr-0017-prismpm-check-json.stderr",
+      "exit": "evidence/adr-0017-prismpm-check-json.exit",
+      "result": "check passed (semantic ID: b4b1dbc5ebd11430e6c4619bc06781a3907fe3569962263daedb3cd816cc1563)"
+    },
+    "prismpm_verify": {
+      "tool": "prismpm 0.5.0",
+      "command": "prismpm verify --json",
+      "stdout": "evidence/adr-0017-prismpm-verify-json.stdout",
+      "stderr": "evidence/adr-0017-prismpm-verify-json.stderr",
+      "exit": "evidence/adr-0017-prismpm-verify-json.exit",
+      "result": "verified attestation: 7963a1eb1ee4462fd5c87a7c1b2bc430dbbb2f8d0774b5dc606e43a0b2a66c71"
+    }
+  },
+  "rejected_alternatives": [
+    {
+      "candidate": "locally built prismpm 0.11.1",
+      "reason": "verify requires an unpinned executable lake",
+      "code": "PP5008",
+      "message": "required executable lake has an unpinned digest",
+      "stdout": "evidence/adoption-study/prismpm-0111-namespace-verify.stdout",
+      "stderr": "evidence/adoption-study/prismpm-0111-namespace-verify.stderr",
+      "scope": "Decision input only; not a production attestation for this root."
+    },
+    {
+      "candidate": "PrismPM 0.5.0 source-tree archive",
+      "reason": "archive digest differs from the exact bytes embedded in the canonical binary",
+      "code": "PP5008",
+      "message": "repository exporter archive is missing, aliased, changed, or differs from the compiled pin",
+      "stderr": "evidence/adoption-study/prism-stdlib-scratch-prismpm-verify-1.stderr",
+      "scope": "Decision input only; superseded by exact embedded archive adoption."
+    },
+    {
+      "candidate": "default rustfmt 1.11.0-stable",
+      "reason": "breaks PrismPM SDK executable pinning on this host",
+      "code": "PP5008",
+      "scope": "Superseded by RUSTUP_TOOLCHAIN=1.97.1."
+    }
+  ],
+  "historical_records": [
+    {
+      "record": "production/evidence/ADR-0016-toolchain-migration.json",
+      "attestation": "e2ea04e5e9c899c49fb341ecf555e205208d2e32489e0bf86e2fb57851069bb7",
+      "status": "historical; retained under no-delete-evidence"
+    },
+    {
+      "record": "production/evidence/ADR-001-lexlean-spike.json",
+      "attestation": "7998182e99ca10aa0a3cff41b2ebb90c846bf0f7fb8fe6a0b2f93efeea4aa8ca",
+      "status": "historical; retained under no-delete-evidence"
+    }
+  ],
+  "source_digests": {
+    "lexlean.toml": "d696fb0bb0539852e910989ac6852bb182cfc39c0a976c2e644b4d18ccb276b4",
+    "lexlean.lock": "f57f1b64a698bd8d567d3ce556471135cf21c3e4fff23ffce0f9bb69e9debb62",
+    "prismpm.toml": "0d0e58f221f61dc8bea0c68fd42609d0a458e26f6424fa067e24c3e3184b695d",
+    "tools.lock": "868be2f044a8053f1a50ef6b82851985acbe8d6912403048b16732c4d57c87fc",
+    "vendor/lean4-prod/lean.tar": "b1e282a8b41d8ce6172db40d73ded55e7d9db39b9145c3f5bbc160ce6c74100d"
+  },
+  "links": {
+    "supersedes": [
+      "ADR-0016 D7"
+    ],
+    "amends": [
+      "ADR-0015 D4"
+    ],
+    "superseded_by": [],
+    "related_adrs": [
+      "ADR-001",
+      "ADR-0015",
+      "ADR-0016",
+      "ADR-0017",
+      "ADR-014"
+    ],
+    "risks_closed": [
+      "RISK-PRISM-MODEL-GAP (governed verify path only)"
+    ],
+    "risks_retained": [
+      "RISK-TOOLCHAIN-DRIFT",
+      "RISK-LEXLEAN-IMMATURITY",
+      "RISK-SDK-PINNING",
+      "RISK-UNCLAIMED-PHASES"
+    ],
+    "phase_gate": "CDR",
+    "baseline_file": "Multiplicity-Recursive Cognition Engine.txt"
+  },
+  "scope_limit": "This record closes only the PrismPM model-content verification gate. It does not close any v3.3 open obligation, any Deferred ADR, any Kani harness, the nine-suite runner, dual reports, pre-commit/CI gates, OCI release, or TRR-2. No 'verified prototype' or release claim is made."
+}

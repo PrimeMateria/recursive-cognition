@@ -1,0 +1,142 @@
+spec = "recursive-cognition/tools-lock/1"
+note = "Local evidence pin for the LexLean conformance spike, the ADR-0016 toolchain migration, and the ADR-0017 governed PrismPM verification path. Paths are read-only tool identities observed on 2026-11-23; no artifact outside the canonical root is modified by this file."
+
+[lean]
+pin = "leanprover/lean4:v4.32.2"
+pin_sha256 = "2bdc48adfa58d0017e538a0ad117c5d73d35deec879978f909406a80c8037273"
+pin_sha256_method = "sha256 of the exact bytes of lean-toolchain, including its trailing newline"
+source = "lean-toolchain"
+supersedes = "ADR-002 pin leanprover/lean4:v4.32.1, superseded by ADR-0016"
+status = "canonical"
+
+[[tool]]
+name = "lexlean"
+version = "0.4.0"
+role = "historical spike verifier; produced the ADR-001 attestation retained in evidence/"
+compiler_semantics = "07859acb5a756221018b7f65e7f725d99b00a694670eecc7cd264832ba1333fb"
+language = "1.0"
+path = "/run/media/multiplic/AGI/prismagi/mount/PRIME/toolchain/lexlean/target/release/lexlean"
+sha256 = "5edf1246765e181f6f15a9b30cef281f2e66ae589776349427d24b81d8ce7430"
+status = "historical"
+
+[[tool]]
+name = "lexlean"
+version = "0.4.3"
+role = "canonical verifier under ADR-0016; latest published GitHub release (v0.4.4/v0.4.5 are tags/crates without release entries), accepts the security-patched Lean pin, and remains readable by PrismPM 0.5.0"
+compiler_semantics = "4bd46ef62ba56a77cb3c6453346671a809ccd665fc1f5334e4b1b9dce01f3245"
+language_1_2_compiler_semantics = "4b3ed2378d6c43bb32a41d466cf140337e8b1cedc5e1f345aaf3395f488f63a9"
+path = "/run/media/multiplic/AGI/prismagi/mount/PRIME/toolchain/lexlean-0.4.3/bin/lexlean"
+sha256 = "214b06761073c65eeaaa6294a973c24066a20ce170ddb369748d9c487116ce92"
+status = "canonical"
+
+[[tool]]
+name = "lexlean"
+version = "0.4.5"
+role = "evaluated and rejected: verifies with BLAKE3 identities but requires lexlean/project/2, which PrismPM 0.5.0 refuses with LLC0103"
+compiler_semantics = "blake3:033237f7056dad2227e8d0344867d657f07f17f90e98d0dfa9b7bf684b3132e9"
+path = "/run/media/multiplic/AGI/prismagi/mount/PRIME/toolchain/lexlean-0.4.5/bin/lexlean"
+sha256 = "3530c0bdae2809cb97f82ddf000ce7759be8b361f1e1ccccd5e5dfa657b0eafa"
+status = "rejected"
+
+[[tool]]
+name = "prismpm"
+version = "0.4.0"
+role = "historical governance check; accepted the v4.32.1 baseline pin"
+path = "/run/media/multiplic/AGI/prismagi/mount/PRIME/toolchain/prismpm/target/release/prismpm"
+sha256 = "56a3ddda5da299b02563591786a9f8991ebf832b06914cb2c9c9fc0d1a1cf9d3"
+status = "historical"
+
+[[tool]]
+name = "prismpm"
+version = "0.5.0"
+role = "canonical governance check and full verify under ADR-0017; reads LexLean 0.4.3 project/lock formats and accepts the v4.32.2 pin"
+path = "/home/multiplic/.local/bin/prismpm"
+sha256 = "8cf7e3493b07e0e0b8bd4d9e0719702384259539a3861b21609f15b9c4a5f49b"
+status = "canonical"
+
+[[tool]]
+name = "kani"
+version = "0.68.0"
+role = "reserved for Phase 3 Rust harnesses; not used by this spike"
+path = "/home/multiplic/.cargo/bin/cargo-kani"
+sha256 = "c8f85df2da93c903551cdf2255c2c41115648966eb0bd4e0112fd4effab0518a"
+status = "reserved"
+
+[[incompatibility]]
+tool = "prismpm"
+version = "0.5.0"
+against = "leanprover/lean4:v4.32.1"
+code = "LLC0101"
+message = "lean_toolchain must be exactly `leanprover/lean4:v4.32.2`"
+evidence = "evidence/prismpm-050-check.stderr"
+status = "resolved_by_ADR-0016"
+
+[[incompatibility]]
+tool = "prismpm"
+version = "0.5.0"
+against = "lexlean 0.4.5 (lexlean/project/2)"
+code = "LLC0103"
+message = "unsupported project schema `lexlean/project/2`"
+evidence = "evidence/adoption-study/prismpm-050-check-045-scratch.stderr"
+status = "rejected_alternative_ADR-0016"
+
+[verification_environment]
+rustup_toolchain = "1.97.1"
+rustfmt = "1.9.0-stable (8bab26f4f6 2026-07-14)"
+lc_all = "C"
+ll = "/run/media/multiplic/AGI/prismagi/mount/PRIME/toolchain/lexlean-0.4.3/bin/lexlean"
+path_prefix = "/run/media/multiplic/AGI/prismagi/mount/PRIME/toolchain/lexlean-0.4.3/bin"
+rejected_default_rustfmt = "1.11.0-stable (0ef1bc3860 2026-11-09)"
+evidence = "evidence/adoption-study/prismpm-050-default-rustfmt-verify.stderr"
+
+[exporter_archive]
+path = "vendor/lean4-prod/lean.tar"
+sha256 = "b1e282a8b41d8ce6172db40d73ded55e7d9db39b9145c3f5bbc160ce6c74100d"
+size_bytes = 399360
+type = "regular file"
+compiled_into = "prismpm 0.5.0"
+provenance = "production/evidence/ADR-0017-upstream-provenance.json"
+
+[upstream_provenance]
+repository = "https://github.com/UOR-Foundation/prismpm.git"
+tag = "prism-code-v0.11.1"
+commit = "3b5ac767672959f48b3d5943f3e652b769439179"
+raw_stdlib_relative_tree_sha256 = "5b812ae7f538674b42c8db7f716bee03619c1cc3cbb361bca25fa44a7542710d"
+raw_acquisition_absolute_path_tree_sha256 = "b68e0964c0041f36532500e9ecaf649711b0df2e66488814d91f9c969a49d2cf"
+governed_stdlib_relative_tree_sha256 = "9a5d49f3711a377dc0d2ea016643dc8958c899f4957d93c05be0ef4f80574fdc"
+record = "production/evidence/ADR-0017-upstream-provenance.json"
+
+[[tool]]
+name = "prism-code"
+version = "0.11.1"
+role = "user-global launcher for the replayed init flow; not substituted for the canonical governance verifier"
+path = "/home/multiplic/.local/bin/prism-code"
+sha256 = "9887833a7ff30c9f26892b024e7ee4ddfb4b935856accba0c28fe9f08f21e0b4"
+status = "supporting-launcher"
+
+[[incompatibility]]
+tool = "prismpm"
+version = "0.5.0"
+against = "source-tree exporter archive digest 7a1a716a57040ea2307f7a34e895a75ebdca7438cf9d5d0364007acb594366bf"
+code = "PP5008"
+message = "repository exporter archive is missing, aliased, changed, or differs from the compiled pin"
+evidence = "evidence/adoption-study/prism-stdlib-scratch-prismpm-verify-1.stderr"
+status = "resolved_by_ADR-0017"
+
+[[incompatibility]]
+tool = "prismpm"
+version = "0.11.1"
+against = "host SDK executable lake"
+code = "PP5008"
+message = "required executable lake has an unpinned digest"
+evidence = "evidence/adoption-study/prismpm-0111-namespace-verify.stderr"
+status = "rejected_alternative_ADR-0017"
+
+[[incompatibility]]
+tool = "rustfmt"
+version = "1.11.0-stable (0ef1bc3860 2026-11-09)"
+against = "prismpm 0.5.0 SDK executable pinning"
+code = "PP5008"
+message = "rustfmt-version did not report the pinned version"
+evidence = "evidence/adoption-study/prismpm-050-default-rustfmt-verify.stderr"
+status = "resolved_by_ADR-0017"

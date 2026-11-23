@@ -1,0 +1,1868 @@
+\begin{lexlean}{Production.PublicationAdmission.LinkageV1Wire}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Codec}
+\importmodule{Foundation.Codec.Cbor.V1.Primitive}
+\importmodule{Production.PublicationAdmission.V1}
+\importmodule{Production.PublicationAdmission.LinkageV1}
+\importmodule{Production.PublicationAdmission.V1Wire}
+\title{Publication linkage wire format}
+\begin{semanticmodule}
+definition{
+  name: publicationLinkageWireAppendReady,
+  parameters: [allowed : Bool, left : Bytes, right : Bytes],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (if allowed then (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (prim append left right : Bytes)) else (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))),
+  axioms: []
+}
+
+definition{
+  name: publicationLinkageWireAppend,
+  parameters: [left : Bytes, right : Bytes],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (publicationLinkageWireAppendReady (((prim length left : Nat) + (prim length right : Nat)) <=? 67108864) left right),
+  axioms: []
+}
+
+definition{
+  name: publicationLinkageWireJoin,
+  parameters: [
+    left : (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+    right : (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError)
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireOutput left)
+    | Production.PublicationAdmission.V1Wire::PublicationWireOutput.mk prefix leftCause => (match leftCause
+      | Option.some cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+      | Option.none => (match (Production.PublicationAdmission.V1Wire::publicationWireOutput right)
+        | Production.PublicationAdmission.V1Wire::PublicationWireOutput.mk suffix rightCause => (match rightCause
+          | Option.some cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+          | Option.none => (publicationLinkageWireAppend prefix suffix))))),
+  axioms: []
+}
+
+definition{
+  name: publicationLinkageWireLimits,
+  parameters: [],
+  result: Foundation.Codec.Cbor.V1.Primitive::CborLimits,
+  body: (record Foundation.Codec.Cbor.V1.Primitive::CborLimits {maximumInput := 67108864, maximumOutput := 67108864, maximumBytes := 67108864, maximumText := 2048, maximumArrayItems := 65536}),
+  axioms: []
+}
+
+structure{
+  name: PublicationLinkageReadPublicationMember,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Production.PublicationAdmission.LinkageV1::PublicationMember},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readPublicationLinkagePublicationMember,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput, cursor : Nat],
+  result: (Result PublicationLinkageReadPublicationMember Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input cursor 65536)
+    | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationMember, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match ((project array count) =? 2)
+      | Bool.false => (ctor Result.error [PublicationLinkageReadPublicationMember, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Production.PublicationAdmission.V1Wire::readPublicationWireText input (project array cursor))
+        | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationMember, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+        | Result.ok field0 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireText input (project field0 cursor))
+          | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationMember, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+          | Result.ok field1 => (ctor Result.ok [PublicationLinkageReadPublicationMember, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationMember {value := (record Production.PublicationAdmission.LinkageV1::PublicationMember {module := (project field0 value), name := (project field1 value)}), cursor := (project field1 cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: publicationLinkagePayloadHead,
+  parameters: [size : Nat, major : Nat, maximum : Nat],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (size <=? maximum)
+    | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+    | Bool.true => (match ((size + (Foundation.Codec.Cbor.V1.Primitive::cborHeadWidth size)) <=? (project (publicationLinkageWireLimits) maximumOutput))
+      | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+      | Bool.true => (match (Foundation.Codec.Cbor.V1.Primitive::cborWriteHead size major (publicationLinkageWireLimits))
+        | Result.error cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+        | Result.ok headBytes => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] headBytes)))),
+  axioms: []
+}
+
+definition{
+  name: publicationLinkagePayloadInto,
+  parameters: [
+    acc : (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+    payload : Bytes,
+    major : Nat,
+    maximum : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (publicationLinkageWireJoin (publicationLinkageWireJoin acc (publicationLinkagePayloadHead (prim length payload : Nat) major maximum)) (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] payload)),
+  axioms: []
+}
+
+definition{
+  name: publicationLinkageWriteText,
+  parameters: [text : String],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Codec.Cbor.V1.Primitive::cborWritePayload (prim utf8_encode text : Bytes) 3 2048 (publicationLinkageWireLimits)),
+  axioms: []
+}
+
+definition{
+  name: writePublicationLinkagePublicationMember,
+  parameters: [value : Production.PublicationAdmission.LinkageV1::PublicationMember],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (publicationLinkageWireLimits))) (publicationLinkageWriteText (project value module))) (publicationLinkageWriteText (project value name))),
+  axioms: []
+}
+
+structure{
+  name: PublicationLinkageReadPublicationService,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Production.PublicationAdmission.LinkageV1::PublicationService},
+    {name: cursor, type: Nat}
+  ]
+}
+
+structure{
+  name: PublicationLinkageReadPublicationIds,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Production.PublicationAdmission.LinkageV1::PublicationIds},
+    {name: cursor, type: Nat}
+  ]
+}
+
+structure{
+  name: PublicationLinkageGroupsPublicationIds,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: chunks, type: (List Production.PublicationAdmission.LinkageV1::PublicationIdsChunk)},
+    {name: cursor, type: Nat},
+    {name: cause, type: (Option Foundation.Codec.Cbor.V1.Primitive::CborError)}
+  ]
+}
+
+structure{
+  name: PublicationLinkageBatchPublicationIds,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: items, type: (List String)},
+    {name: cursor, type: Nat},
+    {name: cause, type: (Option Foundation.Codec.Cbor.V1.Primitive::CborError)}
+  ]
+}
+
+definition{
+  name: readPublicationLinkagePublicationIdsBatchAcc,
+  parameters: [
+    input : Production.PublicationAdmission.V1Wire::PublicationWireInput,
+    cursor : Nat,
+    items : (List String),
+    fuel : Nat
+  ],
+  result: PublicationLinkageBatchPublicationIds,
+  body: (match fuel
+    | Nat.zero => (record PublicationLinkageBatchPublicationIds {items := items, cursor := cursor, cause := (ctor Option.none [Foundation.Codec.Cbor.V1.Primitive::CborError])})
+    | Nat.succ rest => match{
+      branches: [
+        {
+          body: (record PublicationLinkageBatchPublicationIds {items := items, cursor := cursor, cause := (ctor Option.some [Foundation.Codec.Cbor.V1.Primitive::CborError] failure)}),
+          binders: [failure],
+          constructor: Result.error
+        },
+        {
+          body: (readPublicationLinkagePublicationIdsBatchAcc input (project var{
+            name: first
+          } cursor) (prim append items (cons (project var{
+            name: first
+          } value) (nil String)) : (List String)) rest),
+          binders: [first],
+          constructor: Result.ok
+        }
+      ],
+      scrutinee: (Production.PublicationAdmission.V1Wire::readPublicationWireText input cursor)
+    }),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: readPublicationLinkagePublicationIdsBatch,
+  parameters: [
+    input : Production.PublicationAdmission.V1Wire::PublicationWireInput,
+    cursor : Nat,
+    fuel : Nat
+  ],
+  result: PublicationLinkageBatchPublicationIds,
+  body: (readPublicationLinkagePublicationIdsBatchAcc input cursor (nil String) fuel),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readPublicationLinkagePublicationIdsGroups,
+  parameters: [
+    input : Production.PublicationAdmission.V1Wire::PublicationWireInput,
+    cursor : Nat,
+    remaining : Nat,
+    fuel : Nat
+  ],
+  result: PublicationLinkageGroupsPublicationIds,
+  body: (match fuel
+    | Nat.zero => (record PublicationLinkageGroupsPublicationIds {chunks := (nil Production.PublicationAdmission.LinkageV1::PublicationIdsChunk), cursor := cursor, cause := (match (remaining =? 0)
+      | Bool.false => (ctor Option.some [Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+      | Bool.true => (ctor Option.none [Foundation.Codec.Cbor.V1.Primitive::CborError]))})
+    | Nat.succ rest => (match (remaining =? 0)
+      | Bool.false => (match (readPublicationLinkagePublicationIdsBatch input cursor (match (remaining <=? 256)
+          | Bool.false => 256
+          | Bool.true => remaining))
+        | PublicationLinkageBatchPublicationIds.mk items next cause => (match cause
+          | Option.some failure => (record PublicationLinkageGroupsPublicationIds {chunks := (nil Production.PublicationAdmission.LinkageV1::PublicationIdsChunk), cursor := next, cause := (ctor Option.some [Foundation.Codec.Cbor.V1.Primitive::CborError] failure)})
+          | Option.none => (match (readPublicationLinkagePublicationIdsGroups input next (prim subtract remaining (match (remaining <=? 256)
+              | Bool.false => 256
+              | Bool.true => remaining) : Nat) rest)
+            | PublicationLinkageGroupsPublicationIds.mk tail end failure => (record PublicationLinkageGroupsPublicationIds {chunks := (cons (record Production.PublicationAdmission.LinkageV1::PublicationIdsChunk {entries := items}) tail), cursor := end, cause := failure}))))
+      | Bool.true => (record PublicationLinkageGroupsPublicationIds {chunks := (nil Production.PublicationAdmission.LinkageV1::PublicationIdsChunk), cursor := cursor, cause := (ctor Option.none [Foundation.Codec.Cbor.V1.Primitive::CborError])}))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: readPublicationLinkagePublicationIds,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput, cursor : Nat],
+  result: (Result PublicationLinkageReadPublicationIds Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input cursor 65536)
+    | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationIds, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match (readPublicationLinkagePublicationIdsGroups input (project array cursor) (project array count) 256)
+      | PublicationLinkageGroupsPublicationIds.mk chunks end cause => (match cause
+        | Option.some failure => (ctor Result.error [PublicationLinkageReadPublicationIds, Foundation.Codec.Cbor.V1.Primitive::CborError] failure)
+        | Option.none => (ctor Result.ok [PublicationLinkageReadPublicationIds, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationIds {value := (record Production.PublicationAdmission.LinkageV1::PublicationIds {chunks := chunks}), cursor := end}))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readPublicationLinkagePublicationService,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput, cursor : Nat],
+  result: (Result PublicationLinkageReadPublicationService Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input cursor 65536)
+    | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationService, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match ((project array count) =? 2)
+      | Bool.false => (ctor Result.error [PublicationLinkageReadPublicationService, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Production.PublicationAdmission.V1Wire::readPublicationWireText input (project array cursor))
+        | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationService, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+        | Result.ok field0 => (match (readPublicationLinkagePublicationIds input (project field0 cursor))
+          | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationService, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+          | Result.ok field1 => (ctor Result.ok [PublicationLinkageReadPublicationService, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationService {value := (record Production.PublicationAdmission.LinkageV1::PublicationService {id := (project field0 value), components := (project field1 value)}), cursor := (project field1 cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkagePublicationIdsRowsAcc,
+  parameters: [
+    items : (List String),
+    acc : (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+    fuel : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match fuel
+    | Nat.zero => (match items
+      | List.nil => acc
+      | List.cons h t => (publicationLinkageWireJoin acc (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))))
+    | Nat.succ rest => (match items
+      | List.nil => acc
+      | List.cons head tail => (writePublicationLinkagePublicationIdsRowsAcc tail (publicationLinkageWireJoin acc (publicationLinkageWriteText head)) rest))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: writePublicationLinkagePublicationIdsRows,
+  parameters: [items : (List String), fuel : Nat],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (writePublicationLinkagePublicationIdsRowsAcc items (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) fuel),
+  axioms: []
+}
+
+definition{
+  name: writePublicationLinkagePublicationIdsGroupsAcc,
+  parameters: [
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationIdsChunk),
+    acc : (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+    fuel : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match fuel
+    | Nat.zero => (match items
+      | List.nil => acc
+      | List.cons h t => (publicationLinkageWireJoin acc (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))))
+    | Nat.succ rest => (match items
+      | List.nil => acc
+      | List.cons head tail => (writePublicationLinkagePublicationIdsGroupsAcc tail (writePublicationLinkagePublicationIdsRowsAcc (project head entries) acc 256) rest))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: writePublicationLinkagePublicationIdsGroups,
+  parameters: [
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationIdsChunk),
+    fuel : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (writePublicationLinkagePublicationIdsGroupsAcc items (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) fuel),
+  axioms: []
+}
+
+definition{
+  name: writePublicationLinkagePublicationIds,
+  parameters: [value : Production.PublicationAdmission.LinkageV1::PublicationIds],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.LinkageV1::publicationLinkagePublicationIdsCanonical value)
+    | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+    | Bool.true => (writePublicationLinkagePublicationIdsGroupsAcc (project value chunks) (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead (Production.PublicationAdmission.LinkageV1::publicationLinkagePublicationIdsCount value) (publicationLinkageWireLimits))) 256)),
+  axioms: []
+}
+
+definition{
+  name: writePublicationLinkagePublicationIdsInto,
+  parameters: [
+    value : Production.PublicationAdmission.LinkageV1::PublicationIds,
+    acc : (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError)
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.LinkageV1::publicationLinkagePublicationIdsCanonical value)
+    | Bool.false => (publicationLinkageWireJoin acc (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit)))
+    | Bool.true => (writePublicationLinkagePublicationIdsGroupsAcc (project value chunks) (publicationLinkageWireJoin acc (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead (Production.PublicationAdmission.LinkageV1::publicationLinkagePublicationIdsCount value) (publicationLinkageWireLimits))) 256)),
+  axioms: []
+}
+
+definition{
+  name: writePublicationLinkagePublicationService,
+  parameters: [value : Production.PublicationAdmission.LinkageV1::PublicationService],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (writePublicationLinkagePublicationIdsInto (project value components) (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (publicationLinkageWireLimits))) (publicationLinkageWriteText (project value id)))),
+  axioms: []
+}
+
+structure{
+  name: PublicationLinkageReadProofRequirement,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Production.PublicationAdmission.LinkageV1::ProofRequirement},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readPublicationLinkageProofRequirement,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput, cursor : Nat],
+  result: (Result PublicationLinkageReadProofRequirement Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input cursor 65536)
+    | Result.error cause => (ctor Result.error [PublicationLinkageReadProofRequirement, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match ((project array count) =? 1)
+      | Bool.false => (ctor Result.error [PublicationLinkageReadProofRequirement, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readPublicationLinkagePublicationMember input (project array cursor))
+        | Result.error cause => (ctor Result.error [PublicationLinkageReadProofRequirement, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+        | Result.ok field0 => (ctor Result.ok [PublicationLinkageReadProofRequirement, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadProofRequirement {value := (record Production.PublicationAdmission.LinkageV1::ProofRequirement {theorem := (project field0 value)}), cursor := (project field0 cursor)}))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkageProofRequirement,
+  parameters: [value : Production.PublicationAdmission.LinkageV1::ProofRequirement],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (publicationLinkageWireLimits))) (writePublicationLinkagePublicationMember (project value theorem))),
+  axioms: []
+}
+
+structure{
+  name: PublicationLinkageReadPublicationInputSelector,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Production.PublicationAdmission.LinkageV1::PublicationInputSelector},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readPublicationLinkagePublicationInputSelector,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput, cursor : Nat],
+  result: (Result PublicationLinkageReadPublicationInputSelector Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input cursor 65536)
+    | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationInputSelector, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match (Production.PublicationAdmission.V1Wire::readPublicationWireNat input (project array cursor))
+      | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationInputSelector, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+      | Result.ok tag => (match (((project tag value) =? 0) && ((project array count) =? 2))
+        | Bool.false => (match (((project tag value) =? 1) && ((project array count) =? 2))
+          | Bool.false => (match (((project tag value) =? 2) && ((project array count) =? 1))
+            | Bool.false => (ctor Result.error [PublicationLinkageReadPublicationInputSelector, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+            | Bool.true => (ctor Result.ok [PublicationLinkageReadPublicationInputSelector, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationInputSelector {value := (ctor Production.PublicationAdmission.LinkageV1::PublicationInputSelector.Target), cursor := (project tag cursor)})))
+          | Bool.true => (match (readPublicationLinkagePublicationMember input (project tag cursor))
+            | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationInputSelector, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+            | Result.ok field0 => (ctor Result.ok [PublicationLinkageReadPublicationInputSelector, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationInputSelector {value := (ctor Production.PublicationAdmission.LinkageV1::PublicationInputSelector.SourceMember (project field0 value)), cursor := (project field0 cursor)}))))
+        | Bool.true => (match (Production.PublicationAdmission.V1Wire::readPublicationWireText input (project tag cursor))
+          | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationInputSelector, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+          | Result.ok field0 => (ctor Result.ok [PublicationLinkageReadPublicationInputSelector, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationInputSelector {value := (ctor Production.PublicationAdmission.LinkageV1::PublicationInputSelector.BuildFile (project field0 value)), cursor := (project field0 cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkagePublicationInputSelector,
+  parameters: [value : Production.PublicationAdmission.LinkageV1::PublicationInputSelector],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Production.PublicationAdmission.LinkageV1::PublicationInputSelector.BuildFile p0 => (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (publicationLinkageWireLimits))) (Production.PublicationAdmission.V1Wire::writePublicationWireNat 0)) (publicationLinkageWriteText p0))
+    | Production.PublicationAdmission.LinkageV1::PublicationInputSelector.SourceMember p0 => (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (publicationLinkageWireLimits))) (Production.PublicationAdmission.V1Wire::writePublicationWireNat 1)) (writePublicationLinkagePublicationMember p0))
+    | Production.PublicationAdmission.LinkageV1::PublicationInputSelector.Target => (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (publicationLinkageWireLimits))) (Production.PublicationAdmission.V1Wire::writePublicationWireNat 2))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: PublicationLinkageReadExecutionRequirement,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Production.PublicationAdmission.LinkageV1::ExecutionRequirement},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readPublicationLinkageExecutionRequirement,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput, cursor : Nat],
+  result: (Result PublicationLinkageReadExecutionRequirement Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input cursor 65536)
+    | Result.error cause => (ctor Result.error [PublicationLinkageReadExecutionRequirement, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match ((project array count) =? 3)
+      | Bool.false => (ctor Result.error [PublicationLinkageReadExecutionRequirement, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Production.PublicationAdmission.V1Wire::readPublicationWireText input (project array cursor))
+        | Result.error cause => (ctor Result.error [PublicationLinkageReadExecutionRequirement, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+        | Result.ok field0 => (match (readPublicationLinkagePublicationInputSelector input (project field0 cursor))
+          | Result.error cause => (ctor Result.error [PublicationLinkageReadExecutionRequirement, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+          | Result.ok field1 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireBytes input (project field1 cursor) 32)
+            | Result.error cause => (ctor Result.error [PublicationLinkageReadExecutionRequirement, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+            | Result.ok field2 => (ctor Result.ok [PublicationLinkageReadExecutionRequirement, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadExecutionRequirement {value := (record Production.PublicationAdmission.LinkageV1::ExecutionRequirement {oracle := (project field0 value), input := (project field1 value), suite := (project field2 value)}), cursor := (project field2 cursor)}))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkageExecutionRequirement,
+  parameters: [value : Production.PublicationAdmission.LinkageV1::ExecutionRequirement],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 3 (publicationLinkageWireLimits))) (publicationLinkageWriteText (project value oracle))) (writePublicationLinkagePublicationInputSelector (project value input))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project value suite))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: PublicationLinkageReadAssessmentRequirement,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Production.PublicationAdmission.LinkageV1::AssessmentRequirement},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readPublicationLinkageAssessmentRequirement,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput, cursor : Nat],
+  result: (Result PublicationLinkageReadAssessmentRequirement Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input cursor 65536)
+    | Result.error cause => (ctor Result.error [PublicationLinkageReadAssessmentRequirement, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match ((project array count) =? 2)
+      | Bool.false => (ctor Result.error [PublicationLinkageReadAssessmentRequirement, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Production.PublicationAdmission.V1Wire::readPublicationWireText input (project array cursor))
+        | Result.error cause => (ctor Result.error [PublicationLinkageReadAssessmentRequirement, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+        | Result.ok field0 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireText input (project field0 cursor))
+          | Result.error cause => (ctor Result.error [PublicationLinkageReadAssessmentRequirement, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+          | Result.ok field1 => (ctor Result.ok [PublicationLinkageReadAssessmentRequirement, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadAssessmentRequirement {value := (record Production.PublicationAdmission.LinkageV1::AssessmentRequirement {criterion := (project field0 value), subject := (project field1 value)}), cursor := (project field1 cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkageAssessmentRequirement,
+  parameters: [value : Production.PublicationAdmission.LinkageV1::AssessmentRequirement],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (publicationLinkageWireLimits))) (publicationLinkageWriteText (project value criterion))) (publicationLinkageWriteText (project value subject))),
+  axioms: []
+}
+
+structure{
+  name: PublicationLinkageReadPublicationRequirementValue,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Production.PublicationAdmission.LinkageV1::PublicationRequirementValue},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readPublicationLinkagePublicationRequirementValue,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput, cursor : Nat],
+  result: (Result PublicationLinkageReadPublicationRequirementValue Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input cursor 65536)
+    | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationRequirementValue, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match (Production.PublicationAdmission.V1Wire::readPublicationWireNat input (project array cursor))
+      | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationRequirementValue, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+      | Result.ok tag => (match (((project tag value) =? 0) && ((project array count) =? 2))
+        | Bool.false => (match (((project tag value) =? 1) && ((project array count) =? 4))
+          | Bool.false => (match (((project tag value) =? 2) && ((project array count) =? 3))
+            | Bool.false => (ctor Result.error [PublicationLinkageReadPublicationRequirementValue, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+            | Bool.true => (match (Production.PublicationAdmission.V1Wire::readPublicationWireText input (project tag cursor))
+              | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationRequirementValue, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+              | Result.ok field0 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireText input (project field0 cursor))
+                | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationRequirementValue, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                | Result.ok field1 => (ctor Result.ok [PublicationLinkageReadPublicationRequirementValue, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationRequirementValue {value := (ctor Production.PublicationAdmission.LinkageV1::PublicationRequirementValue.Assessment (record Production.PublicationAdmission.LinkageV1::AssessmentRequirement {criterion := (project field0 value), subject := (project field1 value)})), cursor := (project field1 cursor)})))))
+          | Bool.true => (match (Production.PublicationAdmission.V1Wire::readPublicationWireText input (project tag cursor))
+            | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationRequirementValue, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+            | Result.ok field0 => (match (readPublicationLinkagePublicationInputSelector input (project field0 cursor))
+              | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationRequirementValue, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+              | Result.ok field1 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireBytes input (project field1 cursor) 32)
+                | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationRequirementValue, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                | Result.ok field2 => (ctor Result.ok [PublicationLinkageReadPublicationRequirementValue, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationRequirementValue {value := (ctor Production.PublicationAdmission.LinkageV1::PublicationRequirementValue.Execution (record Production.PublicationAdmission.LinkageV1::ExecutionRequirement {oracle := (project field0 value), input := (project field1 value), suite := (project field2 value)})), cursor := (project field2 cursor)}))))))
+        | Bool.true => (match (readPublicationLinkagePublicationMember input (project tag cursor))
+          | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationRequirementValue, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+          | Result.ok field0 => (ctor Result.ok [PublicationLinkageReadPublicationRequirementValue, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationRequirementValue {value := (ctor Production.PublicationAdmission.LinkageV1::PublicationRequirementValue.Proof (record Production.PublicationAdmission.LinkageV1::ProofRequirement {theorem := (project field0 value)})), cursor := (project field0 cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkagePublicationRequirementValue,
+  parameters: [value : Production.PublicationAdmission.LinkageV1::PublicationRequirementValue],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Production.PublicationAdmission.LinkageV1::PublicationRequirementValue.Proof p0 => (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (publicationLinkageWireLimits))) (Production.PublicationAdmission.V1Wire::writePublicationWireNat 0)) (writePublicationLinkagePublicationMember (project p0 theorem)))
+    | Production.PublicationAdmission.LinkageV1::PublicationRequirementValue.Execution p0 => (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 4 (publicationLinkageWireLimits))) (Production.PublicationAdmission.V1Wire::writePublicationWireNat 1)) (publicationLinkageWriteText (project p0 oracle))) (writePublicationLinkagePublicationInputSelector (project p0 input))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project p0 suite)))
+    | Production.PublicationAdmission.LinkageV1::PublicationRequirementValue.Assessment p0 => (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 3 (publicationLinkageWireLimits))) (Production.PublicationAdmission.V1Wire::writePublicationWireNat 2)) (publicationLinkageWriteText (project p0 criterion))) (publicationLinkageWriteText (project p0 subject)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: PublicationLinkageReadPublicationRequirement,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Production.PublicationAdmission.LinkageV1::PublicationRequirement},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readPublicationLinkagePublicationRequirement,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput, cursor : Nat],
+  result: (Result PublicationLinkageReadPublicationRequirement Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input cursor 65536)
+    | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationRequirement, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match ((project array count) =? 3)
+      | Bool.false => (ctor Result.error [PublicationLinkageReadPublicationRequirement, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Production.PublicationAdmission.V1Wire::readPublicationWireNat input (project array cursor))
+        | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationRequirement, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+        | Result.ok field0 => (match (readPublicationLinkagePublicationMember input (project field0 cursor))
+          | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationRequirement, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+          | Result.ok field1 => (match (readPublicationLinkagePublicationRequirementValue input (project field1 cursor))
+            | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationRequirement, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+            | Result.ok field2 => (ctor Result.ok [PublicationLinkageReadPublicationRequirement, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationRequirement {value := (record Production.PublicationAdmission.LinkageV1::PublicationRequirement {obligation := (project field0 value), member := (project field1 value), requirement := (project field2 value)}), cursor := (project field2 cursor)}))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkagePublicationRequirement,
+  parameters: [value : Production.PublicationAdmission.LinkageV1::PublicationRequirement],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 3 (publicationLinkageWireLimits))) (Production.PublicationAdmission.V1Wire::writePublicationWireNat (project value obligation))) (writePublicationLinkagePublicationMember (project value member))) (writePublicationLinkagePublicationRequirementValue (project value requirement))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: PublicationLinkageReadPublicationClosure,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Production.PublicationAdmission.LinkageV1::PublicationClosure},
+    {name: cursor, type: Nat}
+  ]
+}
+
+structure{
+  name: PublicationLinkageReadPublicationServices,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Production.PublicationAdmission.LinkageV1::PublicationServices},
+    {name: cursor, type: Nat}
+  ]
+}
+
+structure{
+  name: PublicationLinkageGroupsPublicationServices,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {
+      name: chunks,
+      type: (List Production.PublicationAdmission.LinkageV1::PublicationServicesChunk)
+    },
+    {name: cursor, type: Nat},
+    {name: cause, type: (Option Foundation.Codec.Cbor.V1.Primitive::CborError)}
+  ]
+}
+
+structure{
+  name: PublicationLinkageBatchPublicationServices,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: items, type: (List Production.PublicationAdmission.LinkageV1::PublicationService)},
+    {name: cursor, type: Nat},
+    {name: cause, type: (Option Foundation.Codec.Cbor.V1.Primitive::CborError)}
+  ]
+}
+
+definition{
+  name: readPublicationLinkagePublicationServicesBatchAcc,
+  parameters: [
+    input : Production.PublicationAdmission.V1Wire::PublicationWireInput,
+    cursor : Nat,
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationService),
+    fuel : Nat
+  ],
+  result: PublicationLinkageBatchPublicationServices,
+  body: (match fuel
+    | Nat.zero => (record PublicationLinkageBatchPublicationServices {items := items, cursor := cursor, cause := (ctor Option.none [Foundation.Codec.Cbor.V1.Primitive::CborError])})
+    | Nat.succ rest => match{
+      branches: [
+        {
+          body: (record PublicationLinkageBatchPublicationServices {items := items, cursor := cursor, cause := (ctor Option.some [Foundation.Codec.Cbor.V1.Primitive::CborError] failure)}),
+          binders: [failure],
+          constructor: Result.error
+        },
+        {
+          body: (readPublicationLinkagePublicationServicesBatchAcc input (project var{
+            name: first
+          } cursor) (prim append items (cons (project var{
+            name: first
+          } value) (nil Production.PublicationAdmission.LinkageV1::PublicationService)) : (List Production.PublicationAdmission.LinkageV1::PublicationService)) rest),
+          binders: [first],
+          constructor: Result.ok
+        }
+      ],
+      scrutinee: (readPublicationLinkagePublicationService input cursor)
+    }),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: readPublicationLinkagePublicationServicesBatch,
+  parameters: [
+    input : Production.PublicationAdmission.V1Wire::PublicationWireInput,
+    cursor : Nat,
+    fuel : Nat
+  ],
+  result: PublicationLinkageBatchPublicationServices,
+  body: (readPublicationLinkagePublicationServicesBatchAcc input cursor (nil Production.PublicationAdmission.LinkageV1::PublicationService) fuel),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readPublicationLinkagePublicationServicesGroups,
+  parameters: [
+    input : Production.PublicationAdmission.V1Wire::PublicationWireInput,
+    cursor : Nat,
+    remaining : Nat,
+    fuel : Nat
+  ],
+  result: PublicationLinkageGroupsPublicationServices,
+  body: (match fuel
+    | Nat.zero => (record PublicationLinkageGroupsPublicationServices {chunks := (nil Production.PublicationAdmission.LinkageV1::PublicationServicesChunk), cursor := cursor, cause := (match (remaining =? 0)
+      | Bool.false => (ctor Option.some [Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+      | Bool.true => (ctor Option.none [Foundation.Codec.Cbor.V1.Primitive::CborError]))})
+    | Nat.succ rest => (match (remaining =? 0)
+      | Bool.false => (match (readPublicationLinkagePublicationServicesBatch input cursor (match (remaining <=? 256)
+          | Bool.false => 256
+          | Bool.true => remaining))
+        | PublicationLinkageBatchPublicationServices.mk items next cause => (match cause
+          | Option.some failure => (record PublicationLinkageGroupsPublicationServices {chunks := (nil Production.PublicationAdmission.LinkageV1::PublicationServicesChunk), cursor := next, cause := (ctor Option.some [Foundation.Codec.Cbor.V1.Primitive::CborError] failure)})
+          | Option.none => (match (readPublicationLinkagePublicationServicesGroups input next (prim subtract remaining (match (remaining <=? 256)
+              | Bool.false => 256
+              | Bool.true => remaining) : Nat) rest)
+            | PublicationLinkageGroupsPublicationServices.mk tail end failure => (record PublicationLinkageGroupsPublicationServices {chunks := (cons (record Production.PublicationAdmission.LinkageV1::PublicationServicesChunk {entries := items}) tail), cursor := end, cause := failure}))))
+      | Bool.true => (record PublicationLinkageGroupsPublicationServices {chunks := (nil Production.PublicationAdmission.LinkageV1::PublicationServicesChunk), cursor := cursor, cause := (ctor Option.none [Foundation.Codec.Cbor.V1.Primitive::CborError])}))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: readPublicationLinkagePublicationServices,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput, cursor : Nat],
+  result: (Result PublicationLinkageReadPublicationServices Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input cursor 65536)
+    | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationServices, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match (readPublicationLinkagePublicationServicesGroups input (project array cursor) (project array count) 256)
+      | PublicationLinkageGroupsPublicationServices.mk chunks end cause => (match cause
+        | Option.some failure => (ctor Result.error [PublicationLinkageReadPublicationServices, Foundation.Codec.Cbor.V1.Primitive::CborError] failure)
+        | Option.none => (ctor Result.ok [PublicationLinkageReadPublicationServices, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationServices {value := (record Production.PublicationAdmission.LinkageV1::PublicationServices {chunks := chunks}), cursor := end}))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: PublicationLinkageReadPublicationRequirements,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Production.PublicationAdmission.LinkageV1::PublicationRequirements},
+    {name: cursor, type: Nat}
+  ]
+}
+
+structure{
+  name: PublicationLinkageGroupsPublicationRequirements,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {
+      name: chunks,
+      type: (List Production.PublicationAdmission.LinkageV1::PublicationRequirementsChunk)
+    },
+    {name: cursor, type: Nat},
+    {name: cause, type: (Option Foundation.Codec.Cbor.V1.Primitive::CborError)}
+  ]
+}
+
+structure{
+  name: PublicationLinkageBatchPublicationRequirements,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: items, type: (List Production.PublicationAdmission.LinkageV1::PublicationRequirement)},
+    {name: cursor, type: Nat},
+    {name: cause, type: (Option Foundation.Codec.Cbor.V1.Primitive::CborError)}
+  ]
+}
+
+definition{
+  name: readPublicationLinkagePublicationRequirementsBatchAcc,
+  parameters: [
+    input : Production.PublicationAdmission.V1Wire::PublicationWireInput,
+    cursor : Nat,
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationRequirement),
+    fuel : Nat
+  ],
+  result: PublicationLinkageBatchPublicationRequirements,
+  body: (match fuel
+    | Nat.zero => (record PublicationLinkageBatchPublicationRequirements {items := items, cursor := cursor, cause := (ctor Option.none [Foundation.Codec.Cbor.V1.Primitive::CborError])})
+    | Nat.succ rest => match{
+      branches: [
+        {
+          body: (record PublicationLinkageBatchPublicationRequirements {items := items, cursor := cursor, cause := (ctor Option.some [Foundation.Codec.Cbor.V1.Primitive::CborError] failure)}),
+          binders: [failure],
+          constructor: Result.error
+        },
+        {
+          body: (readPublicationLinkagePublicationRequirementsBatchAcc input (project var{
+            name: first
+          } cursor) (prim append items (cons (project var{
+            name: first
+          } value) (nil Production.PublicationAdmission.LinkageV1::PublicationRequirement)) : (List Production.PublicationAdmission.LinkageV1::PublicationRequirement)) rest),
+          binders: [first],
+          constructor: Result.ok
+        }
+      ],
+      scrutinee: (readPublicationLinkagePublicationRequirement input cursor)
+    }),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: readPublicationLinkagePublicationRequirementsBatch,
+  parameters: [
+    input : Production.PublicationAdmission.V1Wire::PublicationWireInput,
+    cursor : Nat,
+    fuel : Nat
+  ],
+  result: PublicationLinkageBatchPublicationRequirements,
+  body: (readPublicationLinkagePublicationRequirementsBatchAcc input cursor (nil Production.PublicationAdmission.LinkageV1::PublicationRequirement) fuel),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readPublicationLinkagePublicationRequirementsGroups,
+  parameters: [
+    input : Production.PublicationAdmission.V1Wire::PublicationWireInput,
+    cursor : Nat,
+    remaining : Nat,
+    fuel : Nat
+  ],
+  result: PublicationLinkageGroupsPublicationRequirements,
+  body: (match fuel
+    | Nat.zero => (record PublicationLinkageGroupsPublicationRequirements {chunks := (nil Production.PublicationAdmission.LinkageV1::PublicationRequirementsChunk), cursor := cursor, cause := (match (remaining =? 0)
+      | Bool.false => (ctor Option.some [Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+      | Bool.true => (ctor Option.none [Foundation.Codec.Cbor.V1.Primitive::CborError]))})
+    | Nat.succ rest => (match (remaining =? 0)
+      | Bool.false => (match (readPublicationLinkagePublicationRequirementsBatch input cursor (match (remaining <=? 64)
+          | Bool.false => 64
+          | Bool.true => remaining))
+        | PublicationLinkageBatchPublicationRequirements.mk items next cause => (match cause
+          | Option.some failure => (record PublicationLinkageGroupsPublicationRequirements {chunks := (nil Production.PublicationAdmission.LinkageV1::PublicationRequirementsChunk), cursor := next, cause := (ctor Option.some [Foundation.Codec.Cbor.V1.Primitive::CborError] failure)})
+          | Option.none => (match (readPublicationLinkagePublicationRequirementsGroups input next (prim subtract remaining (match (remaining <=? 64)
+              | Bool.false => 64
+              | Bool.true => remaining) : Nat) rest)
+            | PublicationLinkageGroupsPublicationRequirements.mk tail end failure => (record PublicationLinkageGroupsPublicationRequirements {chunks := (cons (record Production.PublicationAdmission.LinkageV1::PublicationRequirementsChunk {entries := items}) tail), cursor := end, cause := failure}))))
+      | Bool.true => (record PublicationLinkageGroupsPublicationRequirements {chunks := (nil Production.PublicationAdmission.LinkageV1::PublicationRequirementsChunk), cursor := cursor, cause := (ctor Option.none [Foundation.Codec.Cbor.V1.Primitive::CborError])}))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: readPublicationLinkagePublicationRequirements,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput, cursor : Nat],
+  result: (Result PublicationLinkageReadPublicationRequirements Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input cursor 4096)
+    | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationRequirements, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match (readPublicationLinkagePublicationRequirementsGroups input (project array cursor) (project array count) 64)
+      | PublicationLinkageGroupsPublicationRequirements.mk chunks end cause => (match cause
+        | Option.some failure => (ctor Result.error [PublicationLinkageReadPublicationRequirements, Foundation.Codec.Cbor.V1.Primitive::CborError] failure)
+        | Option.none => (ctor Result.ok [PublicationLinkageReadPublicationRequirements, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationRequirements {value := (record Production.PublicationAdmission.LinkageV1::PublicationRequirements {chunks := chunks}), cursor := end}))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readPublicationLinkagePublicationClosure,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput, cursor : Nat],
+  result: (Result PublicationLinkageReadPublicationClosure Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input cursor 65536)
+    | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationClosure, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match ((project array count) =? 6)
+      | Bool.false => (ctor Result.error [PublicationLinkageReadPublicationClosure, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readPublicationLinkagePublicationMember input (project array cursor))
+        | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationClosure, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+        | Result.ok field0 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireText input (project field0 cursor))
+          | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationClosure, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+          | Result.ok field1 => (match (Production.PublicationAdmission.V1Wire::readPublicationWirePublicationDeclaration input (project field1 cursor))
+            | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationClosure, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+            | Result.ok field2 => (match (readPublicationLinkagePublicationServices input (project field2 cursor))
+              | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationClosure, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+              | Result.ok field3 => (match (readPublicationLinkagePublicationIds input (project field3 cursor))
+                | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationClosure, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                | Result.ok field4 => (match (readPublicationLinkagePublicationRequirements input (project field4 cursor))
+                  | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationClosure, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                  | Result.ok field5 => (ctor Result.ok [PublicationLinkageReadPublicationClosure, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationClosure {value := (record Production.PublicationAdmission.LinkageV1::PublicationClosure {system := (project field0 value), target := (project field1 value), declaration := (project field2 value), services := (project field3 value), controls := (project field4 value), requirements := (project field5 value)}), cursor := (project field5 cursor)})))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkagePublicationServicesRowsAcc,
+  parameters: [
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationService),
+    acc : (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+    fuel : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match fuel
+    | Nat.zero => (match items
+      | List.nil => acc
+      | List.cons h t => (publicationLinkageWireJoin acc (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))))
+    | Nat.succ rest => (match items
+      | List.nil => acc
+      | List.cons head tail => (writePublicationLinkagePublicationServicesRowsAcc tail (writePublicationLinkagePublicationIdsInto (project head components) (publicationLinkageWireJoin (publicationLinkageWireJoin acc (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (publicationLinkageWireLimits))) (publicationLinkageWriteText (project head id)))) rest))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: writePublicationLinkagePublicationServicesRows,
+  parameters: [
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationService),
+    fuel : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (writePublicationLinkagePublicationServicesRowsAcc items (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) fuel),
+  axioms: []
+}
+
+definition{
+  name: writePublicationLinkagePublicationServicesGroupsAcc,
+  parameters: [
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationServicesChunk),
+    acc : (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+    fuel : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match fuel
+    | Nat.zero => (match items
+      | List.nil => acc
+      | List.cons h t => (publicationLinkageWireJoin acc (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))))
+    | Nat.succ rest => (match items
+      | List.nil => acc
+      | List.cons head tail => (writePublicationLinkagePublicationServicesGroupsAcc tail (writePublicationLinkagePublicationServicesRowsAcc (project head entries) acc 256) rest))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: writePublicationLinkagePublicationServicesGroups,
+  parameters: [
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationServicesChunk),
+    fuel : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (writePublicationLinkagePublicationServicesGroupsAcc items (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) fuel),
+  axioms: []
+}
+
+definition{
+  name: writePublicationLinkagePublicationServices,
+  parameters: [value : Production.PublicationAdmission.LinkageV1::PublicationServices],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.LinkageV1::publicationLinkagePublicationServicesCanonical value)
+    | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+    | Bool.true => (writePublicationLinkagePublicationServicesGroupsAcc (project value chunks) (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead (Production.PublicationAdmission.LinkageV1::publicationLinkagePublicationServicesCount value) (publicationLinkageWireLimits))) 256)),
+  axioms: []
+}
+
+definition{
+  name: writePublicationLinkagePublicationRequirementsRowsAcc,
+  parameters: [
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationRequirement),
+    acc : (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+    fuel : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match fuel
+    | Nat.zero => (match items
+      | List.nil => acc
+      | List.cons h t => (publicationLinkageWireJoin acc (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))))
+    | Nat.succ rest => (match items
+      | List.nil => acc
+      | List.cons head tail => (writePublicationLinkagePublicationRequirementsRowsAcc tail (publicationLinkageWireJoin acc (writePublicationLinkagePublicationRequirement head)) rest))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: writePublicationLinkagePublicationRequirementsRows,
+  parameters: [
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationRequirement),
+    fuel : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (writePublicationLinkagePublicationRequirementsRowsAcc items (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) fuel),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkagePublicationRequirementsGroupsAcc,
+  parameters: [
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationRequirementsChunk),
+    acc : (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+    fuel : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match fuel
+    | Nat.zero => (match items
+      | List.nil => acc
+      | List.cons h t => (publicationLinkageWireJoin acc (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))))
+    | Nat.succ rest => (match items
+      | List.nil => acc
+      | List.cons head tail => (writePublicationLinkagePublicationRequirementsGroupsAcc tail (writePublicationLinkagePublicationRequirementsRowsAcc (project head entries) acc 64) rest))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: writePublicationLinkagePublicationRequirementsGroups,
+  parameters: [
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationRequirementsChunk),
+    fuel : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (writePublicationLinkagePublicationRequirementsGroupsAcc items (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) fuel),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkagePublicationRequirements,
+  parameters: [value : Production.PublicationAdmission.LinkageV1::PublicationRequirements],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.LinkageV1::publicationLinkagePublicationRequirementsCanonical value)
+    | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+    | Bool.true => (writePublicationLinkagePublicationRequirementsGroupsAcc (project value chunks) (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead (Production.PublicationAdmission.LinkageV1::publicationLinkagePublicationRequirementsCount value) (publicationLinkageWireLimits))) 64)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkagePublicationServicesInto,
+  parameters: [
+    value : Production.PublicationAdmission.LinkageV1::PublicationServices,
+    acc : (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError)
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.LinkageV1::publicationLinkagePublicationServicesCanonical value)
+    | Bool.false => (publicationLinkageWireJoin acc (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit)))
+    | Bool.true => (writePublicationLinkagePublicationServicesGroupsAcc (project value chunks) (publicationLinkageWireJoin acc (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead (Production.PublicationAdmission.LinkageV1::publicationLinkagePublicationServicesCount value) (publicationLinkageWireLimits))) 256)),
+  axioms: []
+}
+
+definition{
+  name: writePublicationLinkagePublicationClosure,
+  parameters: [value : Production.PublicationAdmission.LinkageV1::PublicationClosure],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (publicationLinkageWireJoin (writePublicationLinkagePublicationIdsInto (project value controls) (writePublicationLinkagePublicationServicesInto (project value services) (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 6 (publicationLinkageWireLimits))) (writePublicationLinkagePublicationMember (project value system))) (publicationLinkageWriteText (project value target))) (Production.PublicationAdmission.V1Wire::writePublicationWirePublicationDeclaration (project value declaration))))) (writePublicationLinkagePublicationRequirements (project value requirements))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: PublicationLinkageReadPublicationRecord,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Production.PublicationAdmission.LinkageV1::PublicationRecord},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readPublicationLinkagePublicationRecord,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput, cursor : Nat],
+  result: (Result PublicationLinkageReadPublicationRecord Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input cursor 65536)
+    | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationRecord, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match ((project array count) =? 2)
+      | Bool.false => (ctor Result.error [PublicationLinkageReadPublicationRecord, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Production.PublicationAdmission.V1Wire::readPublicationWireText input (project array cursor))
+        | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationRecord, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+        | Result.ok field0 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireBytes input (project field0 cursor) 32)
+          | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationRecord, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+          | Result.ok field1 => (ctor Result.ok [PublicationLinkageReadPublicationRecord, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationRecord {value := (record Production.PublicationAdmission.LinkageV1::PublicationRecord {id := (project field0 value), digest := (project field1 value)}), cursor := (project field1 cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkagePublicationRecord,
+  parameters: [value : Production.PublicationAdmission.LinkageV1::PublicationRecord],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (publicationLinkageWireLimits))) (publicationLinkageWriteText (project value id))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project value digest))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: PublicationLinkageReadPublicationFile,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Production.PublicationAdmission.LinkageV1::PublicationFile},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readPublicationLinkagePublicationFile,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput, cursor : Nat],
+  result: (Result PublicationLinkageReadPublicationFile Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input cursor 65536)
+    | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationFile, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match ((project array count) =? 2)
+      | Bool.false => (ctor Result.error [PublicationLinkageReadPublicationFile, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Production.PublicationAdmission.V1Wire::readPublicationWireText input (project array cursor))
+        | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationFile, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+        | Result.ok field0 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireBytes input (project field0 cursor) 32)
+          | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationFile, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+          | Result.ok field1 => (ctor Result.ok [PublicationLinkageReadPublicationFile, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationFile {value := (record Production.PublicationAdmission.LinkageV1::PublicationFile {path := (project field0 value), digest := (project field1 value)}), cursor := (project field1 cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkagePublicationFile,
+  parameters: [value : Production.PublicationAdmission.LinkageV1::PublicationFile],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (publicationLinkageWireJoin (publicationLinkagePayloadInto (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (publicationLinkageWireLimits))) (prim utf8_encode (project value path) : Bytes) 3 2048) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project value digest))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: PublicationLinkageReadPublicationSourceLink,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Production.PublicationAdmission.LinkageV1::PublicationSourceLink},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readPublicationLinkagePublicationSourceLink,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput, cursor : Nat],
+  result: (Result PublicationLinkageReadPublicationSourceLink Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input cursor 65536)
+    | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationSourceLink, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match ((project array count) =? 9)
+      | Bool.false => (ctor Result.error [PublicationLinkageReadPublicationSourceLink, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Production.PublicationAdmission.V1Wire::readPublicationWireBytes input (project array cursor) 32)
+        | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationSourceLink, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+        | Result.ok field0 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireBytes input (project field0 cursor) 32)
+          | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationSourceLink, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+          | Result.ok field1 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireBytes input (project field1 cursor) 32)
+            | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationSourceLink, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+            | Result.ok field2 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireBytes input (project field2 cursor) 32)
+              | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationSourceLink, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+              | Result.ok field3 => (match (readPublicationLinkagePublicationMember input (project field3 cursor))
+                | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationSourceLink, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                | Result.ok field4 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireBytes input (project field4 cursor) 32)
+                  | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationSourceLink, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                  | Result.ok field5 => (match (readPublicationLinkagePublicationMember input (project field5 cursor))
+                    | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationSourceLink, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                    | Result.ok field6 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireBytes input (project field6 cursor) 32)
+                      | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationSourceLink, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                      | Result.ok field7 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireText input (project field7 cursor))
+                        | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationSourceLink, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                        | Result.ok field8 => (ctor Result.ok [PublicationLinkageReadPublicationSourceLink, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationSourceLink {value := (record Production.PublicationAdmission.LinkageV1::PublicationSourceLink {snapshot := (project field0 value), source := (project field1 value), semantic := (project field2 value), compiler := (project field3 value), closureMember := (project field4 value), moduleSource := (project field5 value), systemMember := (project field6 value), system := (project field7 value), target := (project field8 value)}), cursor := (project field8 cursor)}))))))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkagePublicationSourceLink,
+  parameters: [value : Production.PublicationAdmission.LinkageV1::PublicationSourceLink],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 9 (publicationLinkageWireLimits))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project value snapshot))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project value source))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project value semantic))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project value compiler))) (writePublicationLinkagePublicationMember (project value closureMember))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project value moduleSource))) (writePublicationLinkagePublicationMember (project value systemMember))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project value system))) (publicationLinkageWriteText (project value target))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: PublicationLinkageReadPublicationCapture,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Production.PublicationAdmission.LinkageV1::PublicationCapture},
+    {name: cursor, type: Nat}
+  ]
+}
+
+structure{
+  name: PublicationLinkageReadPublicationRecords,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Production.PublicationAdmission.LinkageV1::PublicationRecords},
+    {name: cursor, type: Nat}
+  ]
+}
+
+structure{
+  name: PublicationLinkageGroupsPublicationRecords,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: chunks, type: (List Production.PublicationAdmission.LinkageV1::PublicationRecordsChunk)},
+    {name: cursor, type: Nat},
+    {name: cause, type: (Option Foundation.Codec.Cbor.V1.Primitive::CborError)}
+  ]
+}
+
+structure{
+  name: PublicationLinkageBatchPublicationRecords,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: items, type: (List Production.PublicationAdmission.LinkageV1::PublicationRecord)},
+    {name: cursor, type: Nat},
+    {name: cause, type: (Option Foundation.Codec.Cbor.V1.Primitive::CborError)}
+  ]
+}
+
+definition{
+  name: readPublicationLinkagePublicationRecordsBatchAcc,
+  parameters: [
+    input : Production.PublicationAdmission.V1Wire::PublicationWireInput,
+    cursor : Nat,
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationRecord),
+    fuel : Nat
+  ],
+  result: PublicationLinkageBatchPublicationRecords,
+  body: (match fuel
+    | Nat.zero => (record PublicationLinkageBatchPublicationRecords {items := items, cursor := cursor, cause := (ctor Option.none [Foundation.Codec.Cbor.V1.Primitive::CborError])})
+    | Nat.succ rest => match{
+      branches: [
+        {
+          body: (record PublicationLinkageBatchPublicationRecords {items := items, cursor := cursor, cause := (ctor Option.some [Foundation.Codec.Cbor.V1.Primitive::CborError] failure)}),
+          binders: [failure],
+          constructor: Result.error
+        },
+        {
+          body: (readPublicationLinkagePublicationRecordsBatchAcc input (project var{
+            name: first
+          } cursor) (prim append items (cons (project var{
+            name: first
+          } value) (nil Production.PublicationAdmission.LinkageV1::PublicationRecord)) : (List Production.PublicationAdmission.LinkageV1::PublicationRecord)) rest),
+          binders: [first],
+          constructor: Result.ok
+        }
+      ],
+      scrutinee: (readPublicationLinkagePublicationRecord input cursor)
+    }),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: readPublicationLinkagePublicationRecordsBatch,
+  parameters: [
+    input : Production.PublicationAdmission.V1Wire::PublicationWireInput,
+    cursor : Nat,
+    fuel : Nat
+  ],
+  result: PublicationLinkageBatchPublicationRecords,
+  body: (readPublicationLinkagePublicationRecordsBatchAcc input cursor (nil Production.PublicationAdmission.LinkageV1::PublicationRecord) fuel),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readPublicationLinkagePublicationRecordsGroups,
+  parameters: [
+    input : Production.PublicationAdmission.V1Wire::PublicationWireInput,
+    cursor : Nat,
+    remaining : Nat,
+    fuel : Nat
+  ],
+  result: PublicationLinkageGroupsPublicationRecords,
+  body: (match fuel
+    | Nat.zero => (record PublicationLinkageGroupsPublicationRecords {chunks := (nil Production.PublicationAdmission.LinkageV1::PublicationRecordsChunk), cursor := cursor, cause := (match (remaining =? 0)
+      | Bool.false => (ctor Option.some [Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+      | Bool.true => (ctor Option.none [Foundation.Codec.Cbor.V1.Primitive::CborError]))})
+    | Nat.succ rest => (match (remaining =? 0)
+      | Bool.false => (match (readPublicationLinkagePublicationRecordsBatch input cursor (match (remaining <=? 256)
+          | Bool.false => 256
+          | Bool.true => remaining))
+        | PublicationLinkageBatchPublicationRecords.mk items next cause => (match cause
+          | Option.some failure => (record PublicationLinkageGroupsPublicationRecords {chunks := (nil Production.PublicationAdmission.LinkageV1::PublicationRecordsChunk), cursor := next, cause := (ctor Option.some [Foundation.Codec.Cbor.V1.Primitive::CborError] failure)})
+          | Option.none => (match (readPublicationLinkagePublicationRecordsGroups input next (prim subtract remaining (match (remaining <=? 256)
+              | Bool.false => 256
+              | Bool.true => remaining) : Nat) rest)
+            | PublicationLinkageGroupsPublicationRecords.mk tail end failure => (record PublicationLinkageGroupsPublicationRecords {chunks := (cons (record Production.PublicationAdmission.LinkageV1::PublicationRecordsChunk {entries := items}) tail), cursor := end, cause := failure}))))
+      | Bool.true => (record PublicationLinkageGroupsPublicationRecords {chunks := (nil Production.PublicationAdmission.LinkageV1::PublicationRecordsChunk), cursor := cursor, cause := (ctor Option.none [Foundation.Codec.Cbor.V1.Primitive::CborError])}))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: readPublicationLinkagePublicationRecords,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput, cursor : Nat],
+  result: (Result PublicationLinkageReadPublicationRecords Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input cursor 65536)
+    | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationRecords, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match (readPublicationLinkagePublicationRecordsGroups input (project array cursor) (project array count) 256)
+      | PublicationLinkageGroupsPublicationRecords.mk chunks end cause => (match cause
+        | Option.some failure => (ctor Result.error [PublicationLinkageReadPublicationRecords, Foundation.Codec.Cbor.V1.Primitive::CborError] failure)
+        | Option.none => (ctor Result.ok [PublicationLinkageReadPublicationRecords, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationRecords {value := (record Production.PublicationAdmission.LinkageV1::PublicationRecords {chunks := chunks}), cursor := end}))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: PublicationLinkageReadPublicationFiles,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Production.PublicationAdmission.LinkageV1::PublicationFiles},
+    {name: cursor, type: Nat}
+  ]
+}
+
+structure{
+  name: PublicationLinkageGroupsPublicationFiles,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: chunks, type: (List Production.PublicationAdmission.LinkageV1::PublicationFilesChunk)},
+    {name: cursor, type: Nat},
+    {name: cause, type: (Option Foundation.Codec.Cbor.V1.Primitive::CborError)}
+  ]
+}
+
+structure{
+  name: PublicationLinkageBatchPublicationFiles,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: items, type: (List Production.PublicationAdmission.LinkageV1::PublicationFile)},
+    {name: cursor, type: Nat},
+    {name: cause, type: (Option Foundation.Codec.Cbor.V1.Primitive::CborError)}
+  ]
+}
+
+definition{
+  name: readPublicationLinkagePublicationFilesBatchAcc,
+  parameters: [
+    input : Production.PublicationAdmission.V1Wire::PublicationWireInput,
+    cursor : Nat,
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationFile),
+    fuel : Nat
+  ],
+  result: PublicationLinkageBatchPublicationFiles,
+  body: (match fuel
+    | Nat.zero => (record PublicationLinkageBatchPublicationFiles {items := items, cursor := cursor, cause := (ctor Option.none [Foundation.Codec.Cbor.V1.Primitive::CborError])})
+    | Nat.succ rest => match{
+      branches: [
+        {
+          body: (record PublicationLinkageBatchPublicationFiles {items := items, cursor := cursor, cause := (ctor Option.some [Foundation.Codec.Cbor.V1.Primitive::CborError] failure)}),
+          binders: [failure],
+          constructor: Result.error
+        },
+        {
+          body: (readPublicationLinkagePublicationFilesBatchAcc input (project var{
+            name: first
+          } cursor) (prim append items (cons (project var{
+            name: first
+          } value) (nil Production.PublicationAdmission.LinkageV1::PublicationFile)) : (List Production.PublicationAdmission.LinkageV1::PublicationFile)) rest),
+          binders: [first],
+          constructor: Result.ok
+        }
+      ],
+      scrutinee: (readPublicationLinkagePublicationFile input cursor)
+    }),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: readPublicationLinkagePublicationFilesBatch,
+  parameters: [
+    input : Production.PublicationAdmission.V1Wire::PublicationWireInput,
+    cursor : Nat,
+    fuel : Nat
+  ],
+  result: PublicationLinkageBatchPublicationFiles,
+  body: (readPublicationLinkagePublicationFilesBatchAcc input cursor (nil Production.PublicationAdmission.LinkageV1::PublicationFile) fuel),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readPublicationLinkagePublicationFilesGroups,
+  parameters: [
+    input : Production.PublicationAdmission.V1Wire::PublicationWireInput,
+    cursor : Nat,
+    remaining : Nat,
+    fuel : Nat
+  ],
+  result: PublicationLinkageGroupsPublicationFiles,
+  body: (match fuel
+    | Nat.zero => (record PublicationLinkageGroupsPublicationFiles {chunks := (nil Production.PublicationAdmission.LinkageV1::PublicationFilesChunk), cursor := cursor, cause := (match (remaining =? 0)
+      | Bool.false => (ctor Option.some [Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+      | Bool.true => (ctor Option.none [Foundation.Codec.Cbor.V1.Primitive::CborError]))})
+    | Nat.succ rest => (match (remaining =? 0)
+      | Bool.false => (match (readPublicationLinkagePublicationFilesBatch input cursor (match (remaining <=? 256)
+          | Bool.false => 256
+          | Bool.true => remaining))
+        | PublicationLinkageBatchPublicationFiles.mk items next cause => (match cause
+          | Option.some failure => (record PublicationLinkageGroupsPublicationFiles {chunks := (nil Production.PublicationAdmission.LinkageV1::PublicationFilesChunk), cursor := next, cause := (ctor Option.some [Foundation.Codec.Cbor.V1.Primitive::CborError] failure)})
+          | Option.none => (match (readPublicationLinkagePublicationFilesGroups input next (prim subtract remaining (match (remaining <=? 256)
+              | Bool.false => 256
+              | Bool.true => remaining) : Nat) rest)
+            | PublicationLinkageGroupsPublicationFiles.mk tail end failure => (record PublicationLinkageGroupsPublicationFiles {chunks := (cons (record Production.PublicationAdmission.LinkageV1::PublicationFilesChunk {entries := items}) tail), cursor := end, cause := failure}))))
+      | Bool.true => (record PublicationLinkageGroupsPublicationFiles {chunks := (nil Production.PublicationAdmission.LinkageV1::PublicationFilesChunk), cursor := cursor, cause := (ctor Option.none [Foundation.Codec.Cbor.V1.Primitive::CborError])}))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: readPublicationLinkagePublicationFiles,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput, cursor : Nat],
+  result: (Result PublicationLinkageReadPublicationFiles Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input cursor 65536)
+    | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationFiles, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match (readPublicationLinkagePublicationFilesGroups input (project array cursor) (project array count) 256)
+      | PublicationLinkageGroupsPublicationFiles.mk chunks end cause => (match cause
+        | Option.some failure => (ctor Result.error [PublicationLinkageReadPublicationFiles, Foundation.Codec.Cbor.V1.Primitive::CborError] failure)
+        | Option.none => (ctor Result.ok [PublicationLinkageReadPublicationFiles, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationFiles {value := (record Production.PublicationAdmission.LinkageV1::PublicationFiles {chunks := chunks}), cursor := end}))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readPublicationLinkagePublicationCapture,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput, cursor : Nat],
+  result: (Result PublicationLinkageReadPublicationCapture Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input cursor 65536)
+    | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationCapture, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match ((project array count) =? 15)
+      | Bool.false => (ctor Result.error [PublicationLinkageReadPublicationCapture, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readPublicationLinkagePublicationSourceLink input (project array cursor))
+        | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationCapture, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+        | Result.ok field0 => (match (readPublicationLinkagePublicationRecords input (project field0 cursor))
+          | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationCapture, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+          | Result.ok field1 => (match (readPublicationLinkagePublicationRecords input (project field1 cursor))
+            | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationCapture, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+            | Result.ok field2 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireBytes input (project field2 cursor) 32)
+              | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationCapture, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+              | Result.ok field3 => (match (readPublicationLinkagePublicationRecords input (project field3 cursor))
+                | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationCapture, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                | Result.ok field4 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireBytes input (project field4 cursor) 32)
+                  | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationCapture, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                  | Result.ok field5 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireBytes input (project field5 cursor) 32)
+                    | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationCapture, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                    | Result.ok field6 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireBytes input (project field6 cursor) 32)
+                      | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationCapture, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                      | Result.ok field7 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireBytes input (project field7 cursor) 32)
+                        | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationCapture, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                        | Result.ok field8 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireBytes input (project field8 cursor) 32)
+                          | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationCapture, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                          | Result.ok field9 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireBytes input (project field9 cursor) 32)
+                            | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationCapture, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                            | Result.ok field10 => (match (readPublicationLinkagePublicationFiles input (project field10 cursor))
+                              | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationCapture, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                              | Result.ok field11 => (match (readPublicationLinkagePublicationFiles input (project field11 cursor))
+                                | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationCapture, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                                | Result.ok field12 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireBytes input (project field12 cursor) 32)
+                                  | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationCapture, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                                  | Result.ok field13 => (match (readPublicationLinkagePublicationFiles input (project field13 cursor))
+                                    | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationCapture, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                                    | Result.ok field14 => (ctor Result.ok [PublicationLinkageReadPublicationCapture, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationCapture {value := (record Production.PublicationAdmission.LinkageV1::PublicationCapture {sourceLink := (project field0 value), components := (project field1 value), controls := (project field2 value), provenance := (project field3 value), dependencies := (project field4 value), sdkLock := (project field5 value), standardsLock := (project field6 value), lexleanBuildManifest := (project field7 value), lexleanAttestation := (project field8 value), buildManifest := (project field9 value), verificationManifest := (project field10 value), verificationFiles := (project field11 value), browserFiles := (project field12 value), releaseValidation := (project field13 value), oracleAttestations := (project field14 value)}), cursor := (project field14 cursor)}))))))))))))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkagePublicationRecordsRowsAcc,
+  parameters: [
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationRecord),
+    acc : (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+    fuel : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match fuel
+    | Nat.zero => (match items
+      | List.nil => acc
+      | List.cons h t => (publicationLinkageWireJoin acc (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))))
+    | Nat.succ rest => (match items
+      | List.nil => acc
+      | List.cons head tail => (writePublicationLinkagePublicationRecordsRowsAcc tail (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin acc (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (publicationLinkageWireLimits))) (publicationLinkageWriteText (project head id))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project head digest))) rest))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: writePublicationLinkagePublicationRecordsRows,
+  parameters: [
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationRecord),
+    fuel : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (writePublicationLinkagePublicationRecordsRowsAcc items (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) fuel),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkagePublicationRecordsGroupsAcc,
+  parameters: [
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationRecordsChunk),
+    acc : (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+    fuel : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match fuel
+    | Nat.zero => (match items
+      | List.nil => acc
+      | List.cons h t => (publicationLinkageWireJoin acc (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))))
+    | Nat.succ rest => (match items
+      | List.nil => acc
+      | List.cons head tail => (writePublicationLinkagePublicationRecordsGroupsAcc tail (writePublicationLinkagePublicationRecordsRowsAcc (project head entries) acc 256) rest))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: writePublicationLinkagePublicationRecordsGroups,
+  parameters: [
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationRecordsChunk),
+    fuel : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (writePublicationLinkagePublicationRecordsGroupsAcc items (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) fuel),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkagePublicationRecords,
+  parameters: [value : Production.PublicationAdmission.LinkageV1::PublicationRecords],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.LinkageV1::publicationLinkagePublicationRecordsCanonical value)
+    | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+    | Bool.true => (writePublicationLinkagePublicationRecordsGroupsAcc (project value chunks) (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead (Production.PublicationAdmission.LinkageV1::publicationLinkagePublicationRecordsCount value) (publicationLinkageWireLimits))) 256)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkagePublicationFilesRowsAcc,
+  parameters: [
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationFile),
+    acc : (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+    fuel : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match fuel
+    | Nat.zero => (match items
+      | List.nil => acc
+      | List.cons h t => (publicationLinkageWireJoin acc (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))))
+    | Nat.succ rest => (match items
+      | List.nil => acc
+      | List.cons head tail => (writePublicationLinkagePublicationFilesRowsAcc tail (publicationLinkageWireJoin (publicationLinkagePayloadInto (publicationLinkageWireJoin acc (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (publicationLinkageWireLimits))) (prim utf8_encode (project head path) : Bytes) 3 2048) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project head digest))) rest))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: writePublicationLinkagePublicationFilesRows,
+  parameters: [
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationFile),
+    fuel : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (writePublicationLinkagePublicationFilesRowsAcc items (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) fuel),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkagePublicationFilesGroupsAcc,
+  parameters: [
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationFilesChunk),
+    acc : (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+    fuel : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match fuel
+    | Nat.zero => (match items
+      | List.nil => acc
+      | List.cons h t => (publicationLinkageWireJoin acc (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))))
+    | Nat.succ rest => (match items
+      | List.nil => acc
+      | List.cons head tail => (writePublicationLinkagePublicationFilesGroupsAcc tail (writePublicationLinkagePublicationFilesRowsAcc (project head entries) acc 256) rest))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: writePublicationLinkagePublicationFilesGroups,
+  parameters: [
+    items : (List Production.PublicationAdmission.LinkageV1::PublicationFilesChunk),
+    fuel : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (writePublicationLinkagePublicationFilesGroupsAcc items (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) fuel),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkagePublicationFilesInto,
+  parameters: [
+    value : Production.PublicationAdmission.LinkageV1::PublicationFiles,
+    acc : (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError)
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.LinkageV1::publicationLinkagePublicationFilesCanonical value)
+    | Bool.false => (publicationLinkageWireJoin acc (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit)))
+    | Bool.true => (writePublicationLinkagePublicationFilesGroupsAcc (project value chunks) (publicationLinkageWireJoin acc (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead (Production.PublicationAdmission.LinkageV1::publicationLinkagePublicationFilesCount value) (publicationLinkageWireLimits))) 256)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkagePublicationFiles,
+  parameters: [value : Production.PublicationAdmission.LinkageV1::PublicationFiles],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.LinkageV1::publicationLinkagePublicationFilesCanonical value)
+    | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+    | Bool.true => (writePublicationLinkagePublicationFilesGroupsAcc (project value chunks) (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead (Production.PublicationAdmission.LinkageV1::publicationLinkagePublicationFilesCount value) (publicationLinkageWireLimits))) 256)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkagePublicationRecordsInto,
+  parameters: [
+    value : Production.PublicationAdmission.LinkageV1::PublicationRecords,
+    acc : (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError)
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.LinkageV1::publicationLinkagePublicationRecordsCanonical value)
+    | Bool.false => (publicationLinkageWireJoin acc (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit)))
+    | Bool.true => (writePublicationLinkagePublicationRecordsGroupsAcc (project value chunks) (publicationLinkageWireJoin acc (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead (Production.PublicationAdmission.LinkageV1::publicationLinkagePublicationRecordsCount value) (publicationLinkageWireLimits))) 256)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkagePublicationCapture,
+  parameters: [value : Production.PublicationAdmission.LinkageV1::PublicationCapture],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (writePublicationLinkagePublicationRecordsInto (project value dependencies) (publicationLinkageWireJoin (writePublicationLinkagePublicationRecordsInto (project value controls) (writePublicationLinkagePublicationRecordsInto (project value components) (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 15 (publicationLinkageWireLimits))) (writePublicationLinkagePublicationSourceLink (project value sourceLink))))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project value provenance)))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project value sdkLock))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project value standardsLock))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project value lexleanBuildManifest))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project value lexleanAttestation))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project value buildManifest))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project value verificationManifest))) (writePublicationLinkagePublicationFiles (project value verificationFiles))) (writePublicationLinkagePublicationFiles (project value browserFiles))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project value releaseValidation))) (writePublicationLinkagePublicationFiles (project value oracleAttestations))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: PublicationLinkageReadPublicationLinkageError,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Production.PublicationAdmission.LinkageV1::PublicationLinkageError},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readPublicationLinkagePublicationLinkageError,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput, cursor : Nat],
+  result: (Result PublicationLinkageReadPublicationLinkageError Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input cursor 65536)
+    | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationLinkageError, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match (Production.PublicationAdmission.V1Wire::readPublicationWireNat input (project array cursor))
+      | Result.error cause => (ctor Result.error [PublicationLinkageReadPublicationLinkageError, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+      | Result.ok tag => (match (((project tag value) =? 0) && ((project array count) =? 1))
+        | Bool.false => (match (((project tag value) =? 1) && ((project array count) =? 1))
+          | Bool.false => (match (((project tag value) =? 2) && ((project array count) =? 1))
+            | Bool.false => (match (((project tag value) =? 3) && ((project array count) =? 1))
+              | Bool.false => (ctor Result.error [PublicationLinkageReadPublicationLinkageError, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+              | Bool.true => (ctor Result.ok [PublicationLinkageReadPublicationLinkageError, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationLinkageError {value := (ctor Production.PublicationAdmission.LinkageV1::PublicationLinkageError.RequirementMismatch), cursor := (project tag cursor)})))
+            | Bool.true => (ctor Result.ok [PublicationLinkageReadPublicationLinkageError, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationLinkageError {value := (ctor Production.PublicationAdmission.LinkageV1::PublicationLinkageError.InventoryMismatch), cursor := (project tag cursor)})))
+          | Bool.true => (ctor Result.ok [PublicationLinkageReadPublicationLinkageError, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationLinkageError {value := (ctor Production.PublicationAdmission.LinkageV1::PublicationLinkageError.SourceMismatch), cursor := (project tag cursor)})))
+        | Bool.true => (ctor Result.ok [PublicationLinkageReadPublicationLinkageError, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadPublicationLinkageError {value := (ctor Production.PublicationAdmission.LinkageV1::PublicationLinkageError.InvalidMetadata), cursor := (project tag cursor)}))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writePublicationLinkagePublicationLinkageError,
+  parameters: [value : Production.PublicationAdmission.LinkageV1::PublicationLinkageError],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Production.PublicationAdmission.LinkageV1::PublicationLinkageError.InvalidMetadata => (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (publicationLinkageWireLimits))) (Production.PublicationAdmission.V1Wire::writePublicationWireNat 0))
+    | Production.PublicationAdmission.LinkageV1::PublicationLinkageError.SourceMismatch => (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (publicationLinkageWireLimits))) (Production.PublicationAdmission.V1Wire::writePublicationWireNat 1))
+    | Production.PublicationAdmission.LinkageV1::PublicationLinkageError.InventoryMismatch => (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (publicationLinkageWireLimits))) (Production.PublicationAdmission.V1Wire::writePublicationWireNat 2))
+    | Production.PublicationAdmission.LinkageV1::PublicationLinkageError.RequirementMismatch => (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (publicationLinkageWireLimits))) (Production.PublicationAdmission.V1Wire::writePublicationWireNat 3))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: publicationLinkageservicesPreimage,
+  parameters: [
+    closure : Production.PublicationAdmission.LinkageV1::PublicationClosure,
+    capture : Production.PublicationAdmission.LinkageV1::PublicationCapture
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (writePublicationLinkagePublicationRecordsInto (project capture components) (writePublicationLinkagePublicationServicesInto (project closure services) (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x707269736d706d2f7075626c69636174696f6e2d73657276696365732d636c6f737572652f3100)) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 3 (publicationLinkageWireLimits))) (writePublicationLinkagePublicationSourceLink (project capture sourceLink))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: publicationLinkagecontrolsPreimage,
+  parameters: [
+    closure : Production.PublicationAdmission.LinkageV1::PublicationClosure,
+    capture : Production.PublicationAdmission.LinkageV1::PublicationCapture
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (publicationLinkageWireJoin (publicationLinkageWireJoin (writePublicationLinkagePublicationRecordsInto (project capture controls) (writePublicationLinkagePublicationIdsInto (project closure controls) (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x707269736d706d2f7075626c69636174696f6e2d636f6e74726f6c732d636c6f737572652f3100)) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 5 (publicationLinkageWireLimits))) (writePublicationLinkagePublicationSourceLink (project capture sourceLink))))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project capture standardsLock))) (writePublicationLinkagePublicationRequirements (project closure requirements))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: publicationLinkagedependenciesPreimage,
+  parameters: [capture : Production.PublicationAdmission.LinkageV1::PublicationCapture],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (writePublicationLinkagePublicationRecordsInto (project capture dependencies) (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x707269736d706d2f7075626c69636174696f6e2d646570656e64656e636965732d636c6f737572652f3100)) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (publicationLinkageWireLimits))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project capture provenance)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: publicationLinkagecompilerPreimage,
+  parameters: [capture : Production.PublicationAdmission.LinkageV1::PublicationCapture],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x707269736d706d2f7075626c69636174696f6e2d636f6d70696c65722d636c6f737572652f3100)) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 5 (publicationLinkageWireLimits))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project capture sdkLock))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project capture lexleanBuildManifest))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project capture lexleanAttestation))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project capture buildManifest))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project capture verificationManifest))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: publicationLinkageruntimePreimage,
+  parameters: [capture : Production.PublicationAdmission.LinkageV1::PublicationCapture],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (writePublicationLinkagePublicationFilesInto (project capture browserFiles) (writePublicationLinkagePublicationFilesInto (project capture verificationFiles) (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x707269736d706d2f7075626c69636174696f6e2d72756e74696d652d636c6f737572652f3100)) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 3 (publicationLinkageWireLimits))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project capture verificationManifest))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: publicationLinkageoraclesPreimage,
+  parameters: [
+    closure : Production.PublicationAdmission.LinkageV1::PublicationClosure,
+    capture : Production.PublicationAdmission.LinkageV1::PublicationCapture
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (writePublicationLinkagePublicationFilesInto (project capture oracleAttestations) (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x707269736d706d2f7075626c69636174696f6e2d6f7261636c65732d636c6f737572652f3100)) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 6 (publicationLinkageWireLimits))) (writePublicationLinkagePublicationSourceLink (project capture sourceLink))) (writePublicationLinkagePublicationRequirements (project closure requirements))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project capture standardsLock))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project capture sdkLock))) (Production.PublicationAdmission.V1Wire::writePublicationWireBytes (project capture releaseValidation)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: publicationLinkageResponse,
+  parameters: [
+    closure : Production.PublicationAdmission.LinkageV1::PublicationClosure,
+    capture : Production.PublicationAdmission.LinkageV1::PublicationCapture
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.LinkageV1::publicationLinkageValidate closure capture)
+    | Option.none => (match (Production.PublicationAdmission.V1Wire::publicationWireOutput (Production.PublicationAdmission.V1Wire::publicationDeclarationPreimage (project closure declaration)))
+      | Production.PublicationAdmission.V1Wire::PublicationWireOutput.mk declaration declarationCause => (match declarationCause
+        | Option.some cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+        | Option.none => (match (Production.PublicationAdmission.V1Wire::publicationWireOutput (publicationLinkageservicesPreimage closure capture))
+          | Production.PublicationAdmission.V1Wire::PublicationWireOutput.mk services servicesCause => (match servicesCause
+            | Option.some cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+            | Option.none => (match (Production.PublicationAdmission.V1Wire::publicationWireOutput (publicationLinkagecontrolsPreimage closure capture))
+              | Production.PublicationAdmission.V1Wire::PublicationWireOutput.mk controls controlsCause => (match controlsCause
+                | Option.some cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                | Option.none => (match (Production.PublicationAdmission.V1Wire::publicationWireOutput (publicationLinkagedependenciesPreimage capture))
+                  | Production.PublicationAdmission.V1Wire::PublicationWireOutput.mk dependencies dependenciesCause => (match dependenciesCause
+                    | Option.some cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                    | Option.none => (match (Production.PublicationAdmission.V1Wire::publicationWireOutput (publicationLinkagecompilerPreimage capture))
+                      | Production.PublicationAdmission.V1Wire::PublicationWireOutput.mk compiler compilerCause => (match compilerCause
+                        | Option.some cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                        | Option.none => (match (Production.PublicationAdmission.V1Wire::publicationWireOutput (publicationLinkageruntimePreimage capture))
+                          | Production.PublicationAdmission.V1Wire::PublicationWireOutput.mk runtime runtimeCause => (match runtimeCause
+                            | Option.some cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                            | Option.none => (match (Production.PublicationAdmission.V1Wire::publicationWireOutput (publicationLinkageoraclesPreimage closure capture))
+                              | Production.PublicationAdmission.V1Wire::PublicationWireOutput.mk oracles oraclesCause => (match oraclesCause
+                                | Option.some cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                                | Option.none => (publicationLinkagePayloadInto (publicationLinkagePayloadInto (publicationLinkagePayloadInto (publicationLinkagePayloadInto (publicationLinkagePayloadInto (publicationLinkagePayloadInto (publicationLinkagePayloadInto (publicationLinkageWireJoin (publicationLinkageWireJoin (publicationLinkageWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 9 (publicationLinkageWireLimits))) (Production.PublicationAdmission.V1Wire::writePublicationWireNat 1)) (Production.PublicationAdmission.V1Wire::writePublicationWireNat 0)) declaration 2 67108864) services 2 67108864) controls 2 67108864) dependencies 2 67108864) compiler 2 67108864) runtime 2 67108864) oracles 2 67108864)))))))))))))))
+    | Option.some cause => (match cause
+      | Production.PublicationAdmission.LinkageV1::PublicationLinkageError.InvalidMetadata => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x83010100)
+      | Production.PublicationAdmission.LinkageV1::PublicationLinkageError.SourceMismatch => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x83010101)
+      | Production.PublicationAdmission.LinkageV1::PublicationLinkageError.InventoryMismatch => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x83010102)
+      | Production.PublicationAdmission.LinkageV1::PublicationLinkageError.RequirementMismatch => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x83010103))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: publicationLinkageFinish,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput, cursor : Nat],
+  result: (Result Bool Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireWindow input cursor)
+    | Result.error cause => (ctor Result.error [Bool, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok window => (Foundation.Codec.Cbor.V1.Primitive::finishCborCursor (record Foundation.Codec::BoundedCursor {bytes := window, offset := 0, limit := (prim length window : Nat)}) (publicationLinkageWireLimits))),
+  axioms: []
+}
+
+definition{
+  name: dispatchPublicationLinkage,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input 0 4)
+    | Result.error cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match ((project array count) =? 4)
+      | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Production.PublicationAdmission.V1Wire::readPublicationWireNat input (project array cursor))
+        | Result.error cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+        | Result.ok version => (match (Production.PublicationAdmission.V1Wire::readPublicationWireNat input (project version cursor))
+          | Result.error cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+          | Result.ok operation => (match (((project version value) =? 1) && ((project operation value) =? 0))
+            | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+            | Bool.true => (match (readPublicationLinkagePublicationClosure input (project operation cursor))
+              | Result.error cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+              | Result.ok closureRead => (match (readPublicationLinkagePublicationCapture input (project closureRead cursor))
+                | Result.error cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                | Result.ok captureRead => (match (publicationLinkageFinish input (project captureRead cursor))
+                  | Result.error cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                  | Result.ok unused => (publicationLinkageResponse (project closureRead value) (project captureRead value)))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: publicationLinkageWireBytes,
+  parameters: [input : Bytes],
+  result: Bytes,
+  body: (match ((prim length input : Nat) <=? 67108864)
+    | Bool.false => 0x83010206
+    | Bool.true => (match (dispatchPublicationLinkage (record Production.PublicationAdmission.V1Wire::PublicationWireInput {bytes := input}))
+      | Result.error cause => (Production.PublicationAdmission.V1Wire::publicationWireErrorBytes cause)
+      | Result.ok response => response)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: PublicationContextFields,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: declaration, type: Production.PublicationAdmission.V1::PublicationDeclaration},
+    {name: declarationIdentity, type: Bytes},
+    {name: subject, type: Production.PublicationAdmission.V1::PublicationSubject},
+    {name: instance, type: Bytes},
+    {name: publisherRevision, type: Bytes},
+    {name: publisherRef, type: String}
+  ]
+}
+
+structure{
+  name: PublicationLinkageReadContextFields,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: value, type: PublicationContextFields}, {name: cursor, type: Nat}]
+}
+
+definition{
+  name: readPublicationContextFields,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput, cursor : Nat],
+  result: (Result PublicationLinkageReadContextFields Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input cursor 6)
+    | Result.error cause => (ctor Result.error [PublicationLinkageReadContextFields, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match ((project array count) =? 6)
+      | Bool.false => (ctor Result.error [PublicationLinkageReadContextFields, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Production.PublicationAdmission.V1Wire::readPublicationWirePublicationDeclaration input (project array cursor))
+        | Result.error cause => (ctor Result.error [PublicationLinkageReadContextFields, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+        | Result.ok field0 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireBytes input (project field0 cursor) 32)
+          | Result.error cause => (ctor Result.error [PublicationLinkageReadContextFields, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+          | Result.ok field1 => (match (Production.PublicationAdmission.V1Wire::readPublicationWirePublicationSubject input (project field1 cursor))
+            | Result.error cause => (ctor Result.error [PublicationLinkageReadContextFields, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+            | Result.ok field2 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireBytes input (project field2 cursor) 32)
+              | Result.error cause => (ctor Result.error [PublicationLinkageReadContextFields, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+              | Result.ok field3 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireBytes input (project field3 cursor) 20)
+                | Result.error cause => (ctor Result.error [PublicationLinkageReadContextFields, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                | Result.ok field4 => (match (Production.PublicationAdmission.V1Wire::readPublicationWireText input (project field4 cursor))
+                  | Result.error cause => (ctor Result.error [PublicationLinkageReadContextFields, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                  | Result.ok field5 => (ctor Result.ok [PublicationLinkageReadContextFields, Foundation.Codec.Cbor.V1.Primitive::CborError] (record PublicationLinkageReadContextFields {value := (record PublicationContextFields {declaration := (project field0 value), declarationIdentity := (project field1 value), subject := (project field2 value), instance := (project field3 value), publisherRevision := (project field4 value), publisherRef := (project field5 value)}), cursor := (project field5 cursor)})))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: dispatchPublicationContextFields,
+  parameters: [input : Production.PublicationAdmission.V1Wire::PublicationWireInput],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Production.PublicationAdmission.V1Wire::publicationWireReadArray input 0 3)
+    | Result.error cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match ((project array count) =? 3)
+      | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Production.PublicationAdmission.V1Wire::readPublicationWireNat input (project array cursor))
+        | Result.error cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+        | Result.ok version => (match (Production.PublicationAdmission.V1Wire::readPublicationWireNat input (project version cursor))
+          | Result.error cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+          | Result.ok operation => (match (((project version value) =? 1) && ((project operation value) =? 0))
+            | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+            | Bool.true => (match (readPublicationContextFields input (project operation cursor))
+              | Result.error cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+              | Result.ok fields => (match (publicationLinkageFinish input (project fields cursor))
+                | Result.error cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+                | Result.ok finished => (Production.PublicationAdmission.V1Wire::publicationWirePreimageResult (Production.PublicationAdmission.V1Wire::publicationContextFieldsPreimage (project (project fields value) declaration) (project (project fields value) declarationIdentity) (project (project fields value) subject) (project (project fields value) instance) (project (project fields value) publisherRevision) (project (project fields value) publisherRef)))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: publicationContextFieldsWireBytes,
+  parameters: [input : Bytes],
+  result: Bytes,
+  body: (match ((prim length input : Nat) <=? 67108864)
+    | Bool.false => 0x83010206
+    | Bool.true => (match (dispatchPublicationContextFields (record Production.PublicationAdmission.V1Wire::PublicationWireInput {bytes := input}))
+      | Result.error cause => (Production.PublicationAdmission.V1Wire::publicationWireErrorBytes cause)
+      | Result.ok response => response)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+\end{semanticmodule}
+\end{lexlean}

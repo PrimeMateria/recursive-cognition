@@ -1,0 +1,693 @@
+\begin{lexlean}{Foundation.Browser.Application.V1.SessionJournalRetentionWire}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Browser.Application.V1.SessionJournalRetention}
+\importmodule{Foundation.Browser.Application.V1.EffectsWire}
+\importmodule{Foundation.Codec.Cbor.V1.Primitive}
+\importmodule{Foundation.Bytes}
+\title{Browser session journal retention wire format}
+\begin{semanticmodule}
+definition{
+  name: retentionWireLimits,
+  parameters: [],
+  result: Foundation.Codec.Cbor.V1.Primitive::CborLimits,
+  body: (record Foundation.Codec.Cbor.V1.Primitive::CborLimits {maximumInput := 67108864, maximumOutput := 67108864, maximumBytes := 1048576, maximumText := 128, maximumArrayItems := 4096}),
+  axioms: []
+}
+
+definition{
+  name: writeRetentionReference,
+  parameters: [value : Bytes],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match ((prim length value : Nat) =? 32)
+    | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+    | Bool.true => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (prim append 0x5820 value : Bytes))),
+  axioms: []
+}
+
+structure{
+  name: RetentionReadListBytes,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: value, type: (List Bytes)}, {name: cursor, type: Nat}]
+}
+
+definition{
+  name: readRetentionItemsListBytes,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat,
+    remaining : Nat,
+    depth : Nat
+  ],
+  result: (Result RetentionReadListBytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match depth
+    | Nat.zero => (ctor Result.error [RetentionReadListBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+    | Nat.succ prior => (match (remaining =? 0)
+      | Bool.false => (match (remaining =? 1)
+        | Bool.false => match{
+          branches: [
+            {
+              body: (ctor Result.error [RetentionReadListBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause),
+              binders: [wireCause],
+              constructor: Result.error
+            },
+            {
+              body: match{
+                branches: [
+                  {
+                    body: (ctor Result.error [RetentionReadListBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause),
+                    binders: [wireCause],
+                    constructor: Result.error
+                  },
+                  {
+                    body: (ctor Result.ok [RetentionReadListBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (record RetentionReadListBytes {value := (prim append (project var{
+                      name: first
+                    } value) (project var{
+                      name: second
+                    } value) : (List Bytes)), cursor := (project var{name: second} cursor)})),
+                    binders: [second],
+                    constructor: Result.ok
+                  }
+                ],
+                scrutinee: (readRetentionItemsListBytes input (project var{
+                  name: first
+                } cursor) (prim subtract remaining (prim quotient remaining 2 0 : Nat) : Nat) prior)
+              },
+              binders: [first],
+              constructor: Result.ok
+            }
+          ],
+          scrutinee: (readRetentionItemsListBytes input cursor (prim quotient remaining 2 0 : Nat) prior)
+        }
+        | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input cursor 32)
+          | Result.error wireCause => (ctor Result.error [RetentionReadListBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok item => (ctor Result.ok [RetentionReadListBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (record RetentionReadListBytes {value := (ctor List.cons [Bytes] (project item value) (ctor List.nil [Bytes])), cursor := (project item cursor)}))))
+      | Bool.true => (ctor Result.ok [RetentionReadListBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (record RetentionReadListBytes {value := (ctor List.nil [Bytes]), cursor := cursor})))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: depth
+}
+
+definition{
+  name: readRetentionListBytes,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result RetentionReadListBytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 4096)
+    | Result.error wireCause => (ctor Result.error [RetentionReadListBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (readRetentionItemsListBytes input (project header cursor) (project header count) 13)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeRetentionRangeListBytes,
+  parameters: [values : (List Bytes), start : Nat, count : Nat, depth : Nat],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match depth
+    | Nat.zero => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+    | Nat.succ prior => (match (count =? 0)
+      | Bool.false => (match (count =? 1)
+        | Bool.false => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (writeRetentionRangeListBytes values start (prim quotient count 2 0 : Nat) prior) (writeRetentionRangeListBytes values (start + (prim quotient count 2 0 : Nat)) (prim subtract count (prim quotient count 2 0 : Nat) : Nat) prior))
+        | Bool.true => (match (prim index values start : (Option Bytes))
+          | Option.none => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+          | Option.some item => (writeRetentionReference item)))
+      | Bool.true => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x))),
+  axioms: [],
+  recursive_argument: depth
+}
+
+definition{
+  name: writeRetentionItemsListBytes,
+  parameters: [values : (List Bytes), depth : Nat],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (writeRetentionRangeListBytes values 0 (prim length values : Nat) depth),
+  axioms: []
+}
+
+definition{
+  name: writeRetentionListBytes,
+  parameters: [value : (List Bytes)],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match ((prim length value : Nat) <=? 4096)
+    | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+    | Bool.true => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead (prim length value : Nat) (retentionWireLimits)) (writeRetentionItemsListBytes value 13))),
+  axioms: []
+}
+
+structure{
+  name: RetentionReadSessionRetentionRoot,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {
+      name: value,
+      type: Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionRoot
+    },
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readRetentionSessionRetentionRoot,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result RetentionReadSessionRetentionRoot Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 3)
+    | Result.error wireCause => (ctor Result.error [RetentionReadSessionRetentionRoot, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match ((project header count) =? 3)
+      | Bool.false => (ctor Result.error [RetentionReadSessionRetentionRoot, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireText input (project header cursor))
+        | Result.error wireCause => (ctor Result.error [RetentionReadSessionRetentionRoot, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok field0 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project field0 cursor) 32)
+          | Result.error wireCause => (ctor Result.error [RetentionReadSessionRetentionRoot, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok field1 => (match (readRetentionListBytes input (project field1 cursor))
+            | Result.error wireCause => (ctor Result.error [RetentionReadSessionRetentionRoot, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok field2 => (ctor Result.ok [RetentionReadSessionRetentionRoot, Foundation.Codec.Cbor.V1.Primitive::CborError] (record RetentionReadSessionRetentionRoot {value := (record Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionRoot {name := (project field0 value), head := (project field1 value), refs := (project field2 value)}), cursor := (project field2 cursor)}))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeRetentionSessionRetentionRoot,
+  parameters: [
+    value : Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionRoot
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 3 (retentionWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireText (project value name))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (writeRetentionReference (project value head)) (writeRetentionListBytes (project value refs)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: RetentionReadListSessionRetentionRoot,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {
+      name: value,
+      type: (List Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionRoot)
+    },
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readRetentionItemsListSessionRetentionRoot,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat,
+    remaining : Nat,
+    depth : Nat
+  ],
+  result: (Result RetentionReadListSessionRetentionRoot Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match depth
+    | Nat.zero => (ctor Result.error [RetentionReadListSessionRetentionRoot, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+    | Nat.succ prior => (match (remaining =? 0)
+      | Bool.false => (match (remaining =? 1)
+        | Bool.false => match{
+          branches: [
+            {
+              body: (ctor Result.error [RetentionReadListSessionRetentionRoot, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause),
+              binders: [wireCause],
+              constructor: Result.error
+            },
+            {
+              body: match{
+                branches: [
+                  {
+                    body: (ctor Result.error [RetentionReadListSessionRetentionRoot, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause),
+                    binders: [wireCause],
+                    constructor: Result.error
+                  },
+                  {
+                    body: (ctor Result.ok [RetentionReadListSessionRetentionRoot, Foundation.Codec.Cbor.V1.Primitive::CborError] (record RetentionReadListSessionRetentionRoot {value := (prim append (project var{
+                      name: first
+                    } value) (project var{
+                      name: second
+                    } value) : (List Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionRoot)), cursor := (project var{
+                      name: second
+                    } cursor)})),
+                    binders: [second],
+                    constructor: Result.ok
+                  }
+                ],
+                scrutinee: (readRetentionItemsListSessionRetentionRoot input (project var{
+                  name: first
+                } cursor) (prim subtract remaining (prim quotient remaining 2 0 : Nat) : Nat) prior)
+              },
+              binders: [first],
+              constructor: Result.ok
+            }
+          ],
+          scrutinee: (readRetentionItemsListSessionRetentionRoot input cursor (prim quotient remaining 2 0 : Nat) prior)
+        }
+        | Bool.true => (match (readRetentionSessionRetentionRoot input cursor)
+          | Result.error wireCause => (ctor Result.error [RetentionReadListSessionRetentionRoot, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok item => (ctor Result.ok [RetentionReadListSessionRetentionRoot, Foundation.Codec.Cbor.V1.Primitive::CborError] (record RetentionReadListSessionRetentionRoot {value := (ctor List.cons [Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionRoot] (project item value) (ctor List.nil [Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionRoot])), cursor := (project item cursor)}))))
+      | Bool.true => (ctor Result.ok [RetentionReadListSessionRetentionRoot, Foundation.Codec.Cbor.V1.Primitive::CborError] (record RetentionReadListSessionRetentionRoot {value := (ctor List.nil [Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionRoot]), cursor := cursor})))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: depth
+}
+
+definition{
+  name: readRetentionListSessionRetentionRoot,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result RetentionReadListSessionRetentionRoot Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 64)
+    | Result.error wireCause => (ctor Result.error [RetentionReadListSessionRetentionRoot, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (readRetentionItemsListSessionRetentionRoot input (project header cursor) (project header count) 7)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeRetentionRangeListSessionRetentionRoot,
+  parameters: [
+    values : (List Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionRoot),
+    start : Nat,
+    count : Nat,
+    depth : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match depth
+    | Nat.zero => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+    | Nat.succ prior => (match (count =? 0)
+      | Bool.false => (match (count =? 1)
+        | Bool.false => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (writeRetentionRangeListSessionRetentionRoot values start (prim quotient count 2 0 : Nat) prior) (writeRetentionRangeListSessionRetentionRoot values (start + (prim quotient count 2 0 : Nat)) (prim subtract count (prim quotient count 2 0 : Nat) : Nat) prior))
+        | Bool.true => (match (prim index values start : (Option Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionRoot))
+          | Option.none => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+          | Option.some item => (writeRetentionSessionRetentionRoot item)))
+      | Bool.true => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: depth
+}
+
+definition{
+  name: writeRetentionItemsListSessionRetentionRoot,
+  parameters: [
+    values : (List Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionRoot),
+    depth : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (writeRetentionRangeListSessionRetentionRoot values 0 (prim length values : Nat) depth),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeRetentionListSessionRetentionRoot,
+  parameters: [
+    value : (List Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionRoot)
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match ((prim length value : Nat) <=? 64)
+    | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+    | Bool.true => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead (prim length value : Nat) (retentionWireLimits)) (writeRetentionItemsListSessionRetentionRoot value 7))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: RetentionReadSessionRetentionSnapshot,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {
+      name: value,
+      type: Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionSnapshot
+    },
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readRetentionSessionRetentionSnapshot,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result RetentionReadSessionRetentionSnapshot Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 4)
+    | Result.error wireCause => (ctor Result.error [RetentionReadSessionRetentionSnapshot, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match ((project header count) =? 4)
+      | Bool.false => (ctor Result.error [RetentionReadSessionRetentionSnapshot, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project header cursor))
+        | Result.error wireCause => (ctor Result.error [RetentionReadSessionRetentionSnapshot, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok field0 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project field0 cursor))
+          | Result.error wireCause => (ctor Result.error [RetentionReadSessionRetentionSnapshot, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok field1 => (match (readRetentionListBytes input (project field1 cursor))
+            | Result.error wireCause => (ctor Result.error [RetentionReadSessionRetentionSnapshot, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok field2 => (match (readRetentionListSessionRetentionRoot input (project field2 cursor))
+              | Result.error wireCause => (ctor Result.error [RetentionReadSessionRetentionSnapshot, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok field3 => (ctor Result.ok [RetentionReadSessionRetentionSnapshot, Foundation.Codec.Cbor.V1.Primitive::CborError] (record RetentionReadSessionRetentionSnapshot {value := (record Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionSnapshot {version := (project field0 value), revision := (project field1 value), objects := (project field2 value), roots := (project field3 value)}), cursor := (project field3 cursor)})))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeRetentionSessionRetentionSnapshot,
+  parameters: [
+    value : Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionSnapshot
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 4 (retentionWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat (project value version))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat (project value revision)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (writeRetentionListBytes (project value objects)) (writeRetentionListSessionRetentionRoot (project value roots))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: RetentionReadOptionalBytes,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: value, type: (Option Bytes)}, {name: cursor, type: Nat}]
+}
+
+definition{
+  name: readRetentionOptionalBytes,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result RetentionReadOptionalBytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 2)
+    | Result.error wireCause => (ctor Result.error [RetentionReadOptionalBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project header cursor))
+      | Result.error wireCause => (ctor Result.error [RetentionReadOptionalBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok tag => (match ((project tag value) =? 0)
+        | Bool.false => (match ((project tag value) =? 1)
+          | Bool.false => (ctor Result.error [RetentionReadOptionalBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (match ((project header count) =? 2)
+            | Bool.false => (ctor Result.error [RetentionReadOptionalBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+            | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project tag cursor) 32)
+              | Result.error wireCause => (ctor Result.error [RetentionReadOptionalBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok item => (ctor Result.ok [RetentionReadOptionalBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (record RetentionReadOptionalBytes {value := (ctor Option.some [Bytes] (project item value)), cursor := (project item cursor)})))))
+        | Bool.true => (match ((project header count) =? 1)
+          | Bool.false => (ctor Result.error [RetentionReadOptionalBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (ctor Result.ok [RetentionReadOptionalBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (record RetentionReadOptionalBytes {value := (ctor Option.none [Bytes]), cursor := (project tag cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeRetentionOptionalBytes,
+  parameters: [value : (Option Bytes)],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Option.none => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (retentionWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat 0))
+    | Option.some item => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (retentionWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat 1) (writeRetentionReference item)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: RetentionReadSessionRetentionReplacement,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {
+      name: value,
+      type: Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionReplacement
+    },
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readRetentionSessionRetentionReplacement,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result RetentionReadSessionRetentionReplacement Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 4)
+    | Result.error wireCause => (ctor Result.error [RetentionReadSessionRetentionReplacement, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match ((project header count) =? 4)
+      | Bool.false => (ctor Result.error [RetentionReadSessionRetentionReplacement, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireText input (project header cursor))
+        | Result.error wireCause => (ctor Result.error [RetentionReadSessionRetentionReplacement, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok field0 => (match (readRetentionOptionalBytes input (project field0 cursor))
+          | Result.error wireCause => (ctor Result.error [RetentionReadSessionRetentionReplacement, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok field1 => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project field1 cursor) 32)
+            | Result.error wireCause => (ctor Result.error [RetentionReadSessionRetentionReplacement, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok field2 => (match (readRetentionListBytes input (project field2 cursor))
+              | Result.error wireCause => (ctor Result.error [RetentionReadSessionRetentionReplacement, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok field3 => (ctor Result.ok [RetentionReadSessionRetentionReplacement, Foundation.Codec.Cbor.V1.Primitive::CborError] (record RetentionReadSessionRetentionReplacement {value := (record Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionReplacement {name := (project field0 value), expected := (project field1 value), head := (project field2 value), refs := (project field3 value)}), cursor := (project field3 cursor)})))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeRetentionSessionRetentionReplacement,
+  parameters: [
+    value : Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionReplacement
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 4 (retentionWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireText (project value name))) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (writeRetentionOptionalBytes (project value expected)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (writeRetentionReference (project value head)) (writeRetentionListBytes (project value refs))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: RetentionReadSessionRetentionReferenceSet,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {
+      name: value,
+      type: Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionReferenceSet
+    },
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readRetentionSessionRetentionReferenceSet,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result RetentionReadSessionRetentionReferenceSet Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 1)
+    | Result.error wireCause => (ctor Result.error [RetentionReadSessionRetentionReferenceSet, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match ((project header count) =? 1)
+      | Bool.false => (ctor Result.error [RetentionReadSessionRetentionReferenceSet, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readRetentionListBytes input (project header cursor))
+        | Result.error wireCause => (ctor Result.error [RetentionReadSessionRetentionReferenceSet, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok field0 => (ctor Result.ok [RetentionReadSessionRetentionReferenceSet, Foundation.Codec.Cbor.V1.Primitive::CborError] (record RetentionReadSessionRetentionReferenceSet {value := (record Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionReferenceSet {values := (project field0 value)}), cursor := (project field0 cursor)}))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeRetentionSessionRetentionReferenceSet,
+  parameters: [
+    value : Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionReferenceSet
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (retentionWireLimits)) (writeRetentionListBytes (project value values))),
+  axioms: []
+}
+
+structure{
+  name: RetentionReadSessionRetentionRootSet,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {
+      name: value,
+      type: Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionRootSet
+    },
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readRetentionSessionRetentionRootSet,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result RetentionReadSessionRetentionRootSet Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 1)
+    | Result.error wireCause => (ctor Result.error [RetentionReadSessionRetentionRootSet, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match ((project header count) =? 1)
+      | Bool.false => (ctor Result.error [RetentionReadSessionRetentionRootSet, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readRetentionListSessionRetentionRoot input (project header cursor))
+        | Result.error wireCause => (ctor Result.error [RetentionReadSessionRetentionRootSet, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok field0 => (ctor Result.ok [RetentionReadSessionRetentionRootSet, Foundation.Codec.Cbor.V1.Primitive::CborError] (record RetentionReadSessionRetentionRootSet {value := (record Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionRootSet {values := (project field0 value)}), cursor := (project field0 cursor)}))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeRetentionSessionRetentionRootSet,
+  parameters: [
+    value : Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionRootSet
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (retentionWireLimits)) (writeRetentionListSessionRetentionRoot (project value values))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: RetentionReadOptionalSessionRetentionReplacement,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {
+      name: value,
+      type: (Option Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionReplacement)
+    },
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readRetentionOptionalSessionRetentionReplacement,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result RetentionReadOptionalSessionRetentionReplacement Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 2)
+    | Result.error wireCause => (ctor Result.error [RetentionReadOptionalSessionRetentionReplacement, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project header cursor))
+      | Result.error wireCause => (ctor Result.error [RetentionReadOptionalSessionRetentionReplacement, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok tag => (match ((project tag value) =? 0)
+        | Bool.false => (match ((project tag value) =? 1)
+          | Bool.false => (ctor Result.error [RetentionReadOptionalSessionRetentionReplacement, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (match ((project header count) =? 2)
+            | Bool.false => (ctor Result.error [RetentionReadOptionalSessionRetentionReplacement, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+            | Bool.true => (match (readRetentionSessionRetentionReplacement input (project tag cursor))
+              | Result.error wireCause => (ctor Result.error [RetentionReadOptionalSessionRetentionReplacement, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok item => (ctor Result.ok [RetentionReadOptionalSessionRetentionReplacement, Foundation.Codec.Cbor.V1.Primitive::CborError] (record RetentionReadOptionalSessionRetentionReplacement {value := (ctor Option.some [Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionReplacement] (project item value)), cursor := (project item cursor)})))))
+        | Bool.true => (match ((project header count) =? 1)
+          | Bool.false => (ctor Result.error [RetentionReadOptionalSessionRetentionReplacement, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (ctor Result.ok [RetentionReadOptionalSessionRetentionReplacement, Foundation.Codec.Cbor.V1.Primitive::CborError] (record RetentionReadOptionalSessionRetentionReplacement {value := (ctor Option.none [Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionReplacement]), cursor := (project tag cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeRetentionOptionalSessionRetentionReplacement,
+  parameters: [
+    value : (Option Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionReplacement)
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Option.none => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (retentionWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat 0))
+    | Option.some item => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (retentionWireLimits)) (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireNat 1) (writeRetentionSessionRetentionReplacement item)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: retentionProtocolFailure,
+  parameters: [
+    error : Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionError
+  ],
+  result: Bytes,
+  body: (match error
+    | Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionError.BadSnapshot => 0x83010100
+    | Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionError.BadReplacement => 0x83010101
+    | Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionError.BadAdditions => 0x83010102
+    | Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionError.BadRetirement => 0x83010103
+    | Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionError.ExpectedHeadMismatch => 0x83010104
+    | Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionError.MissingRetirement => 0x83010105
+    | Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionError.AdditionRetirementOverlap => 0x83010106
+    | Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionError.ProtectedOrMissingObject => 0x83010107
+    | Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionError.ObjectLimit => 0x83010108
+    | Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionError.RootLimit => 0x83010109
+    | Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionError.RevisionExhausted => 0x8301010a
+    | Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionError.InternalBudget => 0x8301010b),
+  axioms: []
+}
+
+definition{
+  name: retentionWireFailure,
+  parameters: [error : Foundation.Codec.Cbor.V1.Primitive::CborError],
+  result: Bytes,
+  body: (match error
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.BadLimits => 0x83010200
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.BadCursor => 0x83010201
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.Truncated => 0x83010202
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType => 0x83010203
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.UnsupportedHead => 0x83010204
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.NonCanonical => 0x83010205
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit => 0x83010206
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.InvalidUtf8 => 0x83010207
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput => 0x83010208),
+  axioms: []
+}
+
+definition{
+  name: writeRetentionResult,
+  parameters: [
+    value : (Result Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionSnapshot Foundation.Browser.Application.V1.SessionJournalRetention::SessionRetentionError)
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Result.error cause => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (retentionProtocolFailure cause))
+    | Result.ok snapshot => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x830100) (writeRetentionSessionRetentionSnapshot snapshot))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: dispatchRetentionWire,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    operation : Nat,
+    count : Nat,
+    cursor : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (operation =? 0)
+    | Bool.false => (match (operation =? 1)
+      | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (count =? 3)
+        | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+        | Bool.true => (match (readRetentionSessionRetentionSnapshot input cursor)
+          | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok argument0 => (match ((project argument0 cursor) =? (prim length (project input bytes) : Nat))
+            | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+            | Bool.true => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (match (Foundation.Browser.Application.V1.SessionJournalRetention::sessionRetentionSnapshotValid (project argument0 value))
+              | Bool.false => 0x830100f4
+              | Bool.true => 0x830100f5))))))
+    | Bool.true => (match (count =? 6)
+      | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readRetentionSessionRetentionSnapshot input cursor)
+        | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok argument0 => (match (readRetentionOptionalSessionRetentionReplacement input (project argument0 cursor))
+          | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok argument1 => (match (readRetentionListBytes input (project argument1 cursor))
+            | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok argument2 => (match (readRetentionListBytes input (project argument2 cursor))
+              | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok argument3 => (match ((project argument3 cursor) =? (prim length (project input bytes) : Nat))
+                | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+                | Bool.true => (writeRetentionResult (Foundation.Browser.Application.V1.SessionJournalRetention::commitSessionRetention (project argument0 value) (project argument1 value) (project argument2 value) (project argument3 value)))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readRetentionWire,
+  parameters: [input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input 0 6)
+    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok outer => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project outer cursor))
+      | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok version => (match ((project version value) =? 1)
+        | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+        | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project version cursor))
+          | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok tag => (dispatchRetentionWire input (project tag value) (project outer count) (project tag cursor)))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: sessionRetentionWireBytes,
+  parameters: [input : Bytes],
+  result: Bytes,
+  body: (match ((prim length input : Nat) <=? 67108864)
+    | Bool.false => 0x83010206
+    | Bool.true => (match (readRetentionWire (record Foundation.Browser.Application.V1.EffectsWire::EffectWireInput {bytes := input}))
+      | Result.error cause => (retentionWireFailure cause)
+      | Result.ok output => output)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+\end{semanticmodule}
+\end{lexlean}

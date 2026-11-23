@@ -1,0 +1,34 @@
+\begin{lexlean}{Foundation.Holo.V1.SourceManifest}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\title{Hologram source manifest}
+\begin{semanticmodule}
+structure{
+  name: SourceFile,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: path, type: String},
+    {name: sha256, type: Bytes},
+    {name: byteLength, type: UInt64}
+  ]
+}
+
+structure{
+  name: SourceManifest,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: version, type: UInt16},
+    {name: applicationName, type: String},
+    {name: coreContract, type: String},
+    {name: wasmPath, type: String},
+    {name: viewPath, type: String},
+    {name: files, type: (List SourceFile)}
+  ]
+}
+
+definition{name: sourceManifestVersion, parameters: [], result: UInt16, body: (4 : UInt16)}
+\end{semanticmodule}
+\end{lexlean}

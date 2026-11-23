@@ -1,0 +1,393 @@
+spec = "prismpm/stdlib-exports/1"
+lean_module = "PrismPM.Runtime"
+ir_module = "PrismPM"
+
+# These package entry points supplement the separately registered validator
+# runtime roots. Signatures preserve the original 0.1.x consumer contract;
+# executable semantics remain exclusively in the named LexLean declarations.
+# Baseline: 94697b1ff196ef362f4a6137ba72145e2ac68faf,
+# stdlib/generated/package/src/lib.rs (acceptance needs no network or Git history).
+[[export]]
+lean_name = "PrismPM.Foundation.Browser.V1.Workspace.reduceWorkspaceBytes"
+rust_name = "reduceWorkspaceBytes"
+rust_signature = "fn(Vec<u8>) -> Result<Vec<u8>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Browser.V1.WorkspaceCommand.workspaceCommandBytes"
+rust_name = "workspaceCommandBytes"
+rust_signature = "fn(Vec<u8>) -> Result<Vec<u8>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Browser.V1.WorkspaceEnvelope.workspaceEnvelopeBytes"
+rust_name = "workspaceEnvelopeBytes"
+rust_signature = "fn(Vec<u8>) -> Result<Vec<u8>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Browser.V1.WorkspaceJournal.workspaceJournalBytes"
+rust_name = "workspaceJournalBytes"
+rust_signature = "fn(Vec<u8>) -> Result<Vec<u8>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Browser.V1.WorkspaceQuery.workspaceQueryBytes"
+rust_name = "workspaceQueryBytes"
+rust_signature = "fn(Vec<u8>) -> Result<Vec<u8>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Bytes.appendBytes"
+rust_name = "appendBytes"
+rust_signature = "fn(Vec<u8>, Vec<u8>) -> Vec<u8>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Bytes.byteAt"
+rust_name = "byteAt"
+rust_signature = "fn(Vec<u8>, u64) -> Option<u8>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Bytes.byteLength"
+rust_name = "byteLength"
+rust_signature = "fn(Vec<u8>) -> u64"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Bytes.compareBytes"
+rust_name = "compareBytes"
+rust_signature = "fn(Vec<u8>, Vec<u8>) -> core::cmp::Ordering"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Bytes.sliceBytes"
+rust_name = "sliceBytes"
+rust_signature = "fn(Vec<u8>, u64, u64) -> Option<Vec<u8>>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Codec.formatInt64"
+rust_name = "formatInt64"
+rust_signature = "fn(i64) -> String"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Codec.parseInt64"
+rust_name = "parseInt64"
+rust_signature = "fn(String) -> Option<i64>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Core.portableTrue"
+rust_name = "portableTrue"
+rust_signature = "fn() -> bool"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.StandardsProfile.applicationSecurityEdition"
+rust_name = "applicationSecurityEdition"
+rust_signature = "fn(StandardsProfile) -> u64"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.StandardsProfile.architectureEdition"
+rust_name = "architectureEdition"
+rust_signature = "fn(StandardsProfile) -> u64"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.StandardsProfile.controlEdition"
+rust_name = "controlEdition"
+rust_signature = "fn(StandardsProfile) -> u64"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.StandardsProfile.qualityEdition"
+rust_name = "qualityEdition"
+rust_signature = "fn(StandardsProfile) -> u64"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.StandardsProfile.riskEdition"
+rust_name = "riskEdition"
+rust_signature = "fn(StandardsProfile) -> u64"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.BrowserWire.browserAppManifest"
+rust_name = "browserAppManifest"
+rust_signature = "fn(Vec<u8>, Vec<u8>, Vec<u8>) -> Option<Vec<u8>>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.BrowserWire.browserArchiveBody"
+rust_name = "browserArchiveBody"
+rust_signature = "fn(Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.BrowserWire.browserArchiveBodyBytes"
+rust_name = "browserArchiveBodyBytes"
+rust_signature = "fn(Vec<u8>) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.BrowserWire.browserArchiveExtension"
+rust_name = "browserArchiveExtension"
+rust_signature = "fn(Vec<u8>, u64) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.BrowserWire.browserArchiveFooter"
+rust_name = "browserArchiveFooter"
+rust_signature = "fn(Vec<u8>) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.BrowserWire.browserArchiveSection"
+rust_name = "browserArchiveSection"
+rust_signature = "fn(Vec<u8>, u64) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.BrowserWire.browserFrameArchive"
+rust_name = "browserFrameArchive"
+rust_signature = "fn(Vec<u8>, Vec<u8>) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.BrowserWire.browserManifestReference"
+rust_name = "browserManifestReference"
+rust_signature = "fn(Vec<u8>, u64) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.BrowserWire.browserValidAppManifest"
+rust_name = "browserValidAppManifest"
+rust_signature = "fn(&[u8]) -> bool"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.BrowserWire.browserValidArchiveBody"
+rust_name = "browserValidArchiveBody"
+rust_signature = "fn(&[u8]) -> Result<bool, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.BrowserWire.browserValidArchiveFrame"
+rust_name = "browserValidArchiveFrame"
+rust_signature = "fn(&[u8]) -> Result<bool, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.CoreWasm.contractName"
+rust_name = "contractName"
+rust_signature = "fn() -> String"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.appManifest"
+rust_name = "appManifest"
+rust_signature = "fn(Vec<u8>, Vec<u8>, Vec<u8>) -> Option<Vec<u8>>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.archiveAttestation"
+rust_name = "archiveAttestation"
+rust_signature = "fn(Vec<u8>) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.archiveBody"
+rust_name = "archiveBody"
+rust_signature = "fn(Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.archiveBodyBytes"
+rust_name = "archiveBodyBytes"
+rust_signature = "fn(Vec<u8>) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.archiveBodyWithAttestation"
+rust_name = "archiveBodyWithAttestation"
+rust_signature = "fn(Vec<u8>, Vec<u8>) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.archiveExtension"
+rust_name = "archiveExtension"
+rust_signature = "fn(Vec<u8>, u64) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.archiveFooter"
+rust_name = "archiveFooter"
+rust_signature = "fn(Vec<u8>) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.archiveSection"
+rust_name = "archiveSection"
+rust_signature = "fn(Vec<u8>, u64) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.archiveStripAttestation"
+rust_name = "archiveStripAttestation"
+rust_signature = "fn(Vec<u8>) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.canonicalArchiveBody"
+rust_name = "canonicalArchiveBody"
+rust_signature = "fn(&[CanonicalSection]) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.canonicalArchiveBodyBytes"
+rust_name = "canonicalArchiveBodyBytes"
+rust_signature = "fn(Vec<u8>) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.canonicalArchiveFooter"
+rust_name = "canonicalArchiveFooter"
+rust_signature = "fn(Vec<u8>) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.canonicalArchiveSection"
+rust_name = "canonicalArchiveSection"
+rust_signature = "fn(Vec<u8>, u64) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.canonicalArchiveSectionKind"
+rust_name = "canonicalArchiveSectionKind"
+rust_signature = "fn(Vec<u8>, u64) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.canonicalFrameArchive"
+rust_name = "canonicalFrameArchive"
+rust_signature = "fn(Vec<u8>, Vec<u8>) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.contentBlob"
+rust_name = "contentBlob"
+rust_signature = "fn(Vec<u8>, Vec<u8>) -> Option<Vec<u8>>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.contentBlobBytes"
+rust_name = "contentBlobBytes"
+rust_signature = "fn(Vec<u8>) -> Option<Vec<u8>>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.contentBlobLabel"
+rust_name = "contentBlobLabel"
+rust_signature = "fn(Vec<u8>) -> Option<Vec<u8>>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.emptyCapabilities"
+rust_name = "emptyCapabilities"
+rust_signature = "fn() -> Vec<u8>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.frameArchive"
+rust_name = "frameArchive"
+rust_signature = "fn(Vec<u8>, Vec<u8>) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.manifestReference"
+rust_name = "manifestReference"
+rust_signature = "fn(Vec<u8>, u64) -> Result<Option<Vec<u8>>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.validAppManifest"
+rust_name = "validAppManifest"
+rust_signature = "fn(&[u8]) -> bool"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.validArchiveBody"
+rust_name = "validArchiveBody"
+rust_signature = "fn(&[u8]) -> Result<bool, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.validArchiveFrame"
+rust_name = "validArchiveFrame"
+rust_signature = "fn(&[u8]) -> Result<bool, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.validCanonicalArchiveBody"
+rust_name = "validCanonicalArchiveBody"
+rust_signature = "fn(&[u8]) -> Result<bool, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Holo.V1.Wire.validCanonicalArchiveFrame"
+rust_name = "validCanonicalArchiveFrame"
+rust_signature = "fn(&[u8]) -> Result<bool, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Integer.checkedAddInt64"
+rust_name = "checkedAddInt64"
+rust_signature = "fn(i64, i64) -> Option<i64>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Integer.checkedDivideInt64"
+rust_name = "checkedDivideInt64"
+rust_signature = "fn(i64, i64) -> Option<i64>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Integer.checkedMultiplyInt64"
+rust_name = "checkedMultiplyInt64"
+rust_signature = "fn(i64, i64) -> Option<i64>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Integer.checkedNegateInt64"
+rust_name = "checkedNegateInt64"
+rust_signature = "fn(i64) -> Option<i64>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Integer.checkedSubtractInt64"
+rust_name = "checkedSubtractInt64"
+rust_signature = "fn(i64, i64) -> Option<i64>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Native.Application.V1.Lease.beginNativeLease"
+rust_name = "beginNativeLease"
+rust_signature = "fn(&NativeLane, Vec<u8>, u64, u64) -> Result<Result<NativeLane, NativeLeaseError>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Native.Application.V1.Lease.cancelNativeLease"
+rust_name = "cancelNativeLease"
+rust_signature = "fn(&NativeLane, u64) -> Result<Result<NativeLane, NativeLeaseError>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Native.Application.V1.Lease.closeNativeLane"
+rust_name = "closeNativeLane"
+rust_signature = "fn(&NativeLane, u64) -> Result<Result<NativeLane, NativeLeaseError>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Native.Application.V1.Lease.completeNativeLease"
+rust_name = "completeNativeLease"
+rust_signature = "fn(&NativeLane, &NativeLeaseBinding, u64) -> Result<Result<NativeLane, NativeLeaseError>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Native.Application.V1.Lease.nativeBindingEqual"
+rust_name = "nativeBindingEqual"
+rust_signature = "fn(&NativeLeaseBinding, &NativeLeaseBinding) -> bool"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Native.Application.V1.Lease.nativeLaneValid"
+rust_name = "nativeLaneValid"
+rust_signature = "fn(&NativeLane) -> Result<bool, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Native.Application.V1.Lease.openNativeLane"
+rust_name = "openNativeLane"
+rust_signature = "fn(Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>) -> Result<NativeLane, NativeLeaseError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Native.Application.V1.Lease.retainUnknownNativeCleanup"
+rust_name = "retainUnknownNativeCleanup"
+rust_signature = "fn(&NativeLane, &NativeLeaseBinding, u64) -> Result<Result<NativeLane, NativeLeaseError>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Native.Application.V1.Lease.retireCancelledNativeLease"
+rust_name = "retireCancelledNativeLease"
+rust_signature = "fn(&NativeLane, &NativeLeaseBinding, u64) -> Result<Result<NativeLane, NativeLeaseError>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Utf8.decode"
+rust_name = "decode"
+rust_signature = "fn(Vec<u8>) -> Option<String>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.Utf8.encode"
+rust_name = "encode"
+rust_signature = "fn(String) -> Vec<u8>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.View.Workspace.V1.Interaction.workspaceInteractionBytes"
+rust_name = "workspaceInteractionBytes"
+rust_signature = "fn(Vec<u8>) -> Result<Vec<u8>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Foundation.View.Workspace.V1.Interaction.workspacePresentationBytes"
+rust_name = "workspacePresentationBytes"
+rust_signature = "fn(Vec<u8>) -> Result<Vec<u8>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Production.PublicationAdmission.LinkageV1Wire.publicationLinkageWireBytes"
+rust_name = "publicationLinkageWireBytes"
+rust_signature = "fn(Vec<u8>) -> Result<Vec<u8>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Production.PublicationAdmission.V1Wire.publicationContextFieldsPreimage"
+rust_name = "publicationContextFieldsPreimage"
+rust_signature = "fn(&PublicationDeclaration, Vec<u8>, &PublicationSubject, Vec<u8>, Vec<u8>, String) -> Result<Result<Vec<u8>, CborError>, ComputeError>"
+
+[[export]]
+lean_name = "PrismPM.Production.PublicationAdmission.V1Wire.publicationWireBytes"
+rust_name = "publicationWireBytes"
+rust_signature = "fn(Vec<u8>) -> Result<Vec<u8>, ComputeError>"

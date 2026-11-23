@@ -1,0 +1,66 @@
+\begin{lexlean}{Foundation.Holo.V1.PrismExtension}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\title{Prism hologram extension}
+\begin{semanticmodule}
+inductive{
+  name: BrowserProjection,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: None, fields: []}, {name: Present, fields: [Bytes]}]
+}
+
+inductive{
+  name: ViewBinding,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: None, fields: []},
+    {name: Present, fields: [Bytes, Bytes, BrowserProjection]}
+  ]
+}
+
+structure{
+  name: ModelProvenance,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: schema, type: String},
+    {name: modelContentKappa, type: Bytes},
+    {name: modelId, type: Bytes},
+    {name: sourceId, type: Bytes},
+    {name: semanticId, type: Bytes},
+    {name: compilerSemanticsId, type: Bytes},
+    {name: snapshotId, type: Bytes},
+    {name: stdlibSemanticsId, type: Bytes},
+    {name: prismStdlibCrateSha256, type: Bytes},
+    {name: lexleanCommit, type: Bytes},
+    {name: lexleanPackageSha256, type: Bytes},
+    {name: lean4ProdCommit, type: Bytes},
+    {name: hologramLiveCommit, type: Bytes},
+    {name: uorHologramCommit, type: Bytes},
+    {name: targetProfileId, type: Bytes},
+    {name: coreWasmContract, type: String},
+    {name: leanManifestSha256, type: Bytes},
+    {name: lcnfManifestSha256, type: Bytes},
+    {name: generatedCoreSha256, type: Bytes},
+    {name: cargoName, type: String},
+    {name: cargoVersion, type: String},
+    {name: cargoCrateSha256, type: Bytes},
+    {name: guestContentKappa, type: Bytes},
+    {name: viewBinding, type: ViewBinding},
+    {name: applicationKappa, type: Bytes}
+  ]
+}
+
+definition{
+  name: extensionName,
+  parameters: [],
+  result: String,
+  body: "https://uor.foundation/extension/prismpm-model/v1"
+}
+
+definition{name: schema, parameters: [], result: String, body: "prismpm/model-provenance/1"}
+\end{semanticmodule}
+\end{lexlean}

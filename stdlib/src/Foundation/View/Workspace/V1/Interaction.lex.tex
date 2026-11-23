@@ -1,0 +1,1139 @@
+\begin{lexlean}{Foundation.View.Workspace.V1.Interaction}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Browser.V1.Workspace}
+\importmodule{Foundation.View.V1.Interaction}
+\title{Workspace interaction model}
+\begin{semanticmodule}
+inductive{
+  name: WorkspaceInteractionError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: BadEncoding, fields: []},
+    {name: InvalidState, fields: []},
+    {name: InvalidIntent, fields: []},
+    {name: Busy, fields: []},
+    {name: ReplayRequired, fields: []},
+    {name: Closed, fields: []},
+    {name: CounterExhausted, fields: []},
+    {name: NoSelection, fields: []},
+    {name: NoNextPage, fields: []},
+    {name: WrongPhase, fields: []},
+    {name: CorrelationMismatch, fields: []},
+    {name: InvalidOutcome, fields: []},
+    {name: InvalidPage, fields: []},
+    {name: UnknownOperation, fields: []}
+  ]
+}
+
+definition{
+  name: encodeWorkspaceInteractionError,
+  parameters: [error : WorkspaceInteractionError],
+  result: Bytes,
+  body: (match error
+    | WorkspaceInteractionError.BadEncoding => 0x01
+    | WorkspaceInteractionError.InvalidState => 0x02
+    | WorkspaceInteractionError.InvalidIntent => 0x03
+    | WorkspaceInteractionError.Busy => 0x04
+    | WorkspaceInteractionError.ReplayRequired => 0x05
+    | WorkspaceInteractionError.Closed => 0x06
+    | WorkspaceInteractionError.CounterExhausted => 0x07
+    | WorkspaceInteractionError.NoSelection => 0x08
+    | WorkspaceInteractionError.NoNextPage => 0x09
+    | WorkspaceInteractionError.WrongPhase => 0x0a
+    | WorkspaceInteractionError.CorrelationMismatch => 0x0b
+    | WorkspaceInteractionError.InvalidOutcome => 0x0c
+    | WorkspaceInteractionError.InvalidPage => 0x0d
+    | WorkspaceInteractionError.UnknownOperation => 0x0e),
+  axioms: []
+}
+
+definition{
+  name: interactionOctet,
+  parameters: [value : Foundation.Browser.V1.Workspace::WorkspaceByteView],
+  result: Nat,
+  body: (match ((prim length (project value bytes) : Nat) =? 1)
+    | Bool.false => 0
+    | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x80 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+      | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xc0 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+        | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xe0 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+          | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xf0 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+            | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xf8 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+              | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xfc : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xfe : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xff : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 255
+                    | Bool.true => 254)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xfd : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 253
+                    | Bool.true => 252))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xfa : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xfb : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 251
+                    | Bool.true => 250)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xf9 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 249
+                    | Bool.true => 248)))
+              | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xf4 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xf6 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xf7 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 247
+                    | Bool.true => 246)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xf5 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 245
+                    | Bool.true => 244))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xf2 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xf3 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 243
+                    | Bool.true => 242)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xf1 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 241
+                    | Bool.true => 240))))
+            | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xe8 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+              | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xec : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xee : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xef : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 239
+                    | Bool.true => 238)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xed : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 237
+                    | Bool.true => 236))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xea : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xeb : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 235
+                    | Bool.true => 234)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xe9 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 233
+                    | Bool.true => 232)))
+              | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xe4 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xe6 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xe7 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 231
+                    | Bool.true => 230)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xe5 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 229
+                    | Bool.true => 228))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xe2 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xe3 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 227
+                    | Bool.true => 226)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xe1 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 225
+                    | Bool.true => 224)))))
+          | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xd0 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+            | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xd8 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+              | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xdc : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xde : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xdf : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 223
+                    | Bool.true => 222)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xdd : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 221
+                    | Bool.true => 220))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xda : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xdb : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 219
+                    | Bool.true => 218)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xd9 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 217
+                    | Bool.true => 216)))
+              | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xd4 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xd6 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xd7 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 215
+                    | Bool.true => 214)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xd5 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 213
+                    | Bool.true => 212))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xd2 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xd3 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 211
+                    | Bool.true => 210)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xd1 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 209
+                    | Bool.true => 208))))
+            | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xc8 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+              | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xcc : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xce : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xcf : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 207
+                    | Bool.true => 206)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xcd : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 205
+                    | Bool.true => 204))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xca : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xcb : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 203
+                    | Bool.true => 202)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xc9 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 201
+                    | Bool.true => 200)))
+              | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xc4 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xc6 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xc7 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 199
+                    | Bool.true => 198)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xc5 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 197
+                    | Bool.true => 196))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xc2 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xc3 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 195
+                    | Bool.true => 194)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xc1 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 193
+                    | Bool.true => 192))))))
+        | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xa0 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+          | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xb0 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+            | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xb8 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+              | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xbc : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xbe : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xbf : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 191
+                    | Bool.true => 190)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xbd : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 189
+                    | Bool.true => 188))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xba : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xbb : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 187
+                    | Bool.true => 186)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xb9 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 185
+                    | Bool.true => 184)))
+              | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xb4 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xb6 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xb7 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 183
+                    | Bool.true => 182)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xb5 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 181
+                    | Bool.true => 180))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xb2 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xb3 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 179
+                    | Bool.true => 178)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xb1 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 177
+                    | Bool.true => 176))))
+            | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xa8 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+              | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xac : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xae : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xaf : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 175
+                    | Bool.true => 174)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xad : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 173
+                    | Bool.true => 172))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xaa : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xab : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 171
+                    | Bool.true => 170)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xa9 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 169
+                    | Bool.true => 168)))
+              | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xa4 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xa6 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xa7 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 167
+                    | Bool.true => 166)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xa5 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 165
+                    | Bool.true => 164))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xa2 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0xa3 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 163
+                    | Bool.true => 162)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0xa1 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 161
+                    | Bool.true => 160)))))
+          | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x90 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+            | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x98 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+              | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x9c : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x9e : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x9f : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 159
+                    | Bool.true => 158)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x9d : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 157
+                    | Bool.true => 156))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x9a : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x9b : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 155
+                    | Bool.true => 154)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x99 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 153
+                    | Bool.true => 152)))
+              | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x94 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x96 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x97 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 151
+                    | Bool.true => 150)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x95 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 149
+                    | Bool.true => 148))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x92 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x93 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 147
+                    | Bool.true => 146)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x91 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 145
+                    | Bool.true => 144))))
+            | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x88 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+              | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x8c : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x8e : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x8f : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 143
+                    | Bool.true => 142)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x8d : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 141
+                    | Bool.true => 140))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x8a : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x8b : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 139
+                    | Bool.true => 138)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x89 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 137
+                    | Bool.true => 136)))
+              | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x84 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x86 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x87 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 135
+                    | Bool.true => 134)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x85 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 133
+                    | Bool.true => 132))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x82 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x83 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 131
+                    | Bool.true => 130)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x81 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 129
+                    | Bool.true => 128)))))))
+      | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x40 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+        | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x60 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+          | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x70 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+            | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x78 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+              | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x7c : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x7e : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x7f : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 127
+                    | Bool.true => 126)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x7d : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 125
+                    | Bool.true => 124))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x7a : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x7b : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 123
+                    | Bool.true => 122)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x79 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 121
+                    | Bool.true => 120)))
+              | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x74 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x76 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x77 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 119
+                    | Bool.true => 118)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x75 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 117
+                    | Bool.true => 116))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x72 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x73 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 115
+                    | Bool.true => 114)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x71 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 113
+                    | Bool.true => 112))))
+            | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x68 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+              | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x6c : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x6e : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x6f : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 111
+                    | Bool.true => 110)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x6d : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 109
+                    | Bool.true => 108))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x6a : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x6b : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 107
+                    | Bool.true => 106)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x69 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 105
+                    | Bool.true => 104)))
+              | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x64 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x66 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x67 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 103
+                    | Bool.true => 102)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x65 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 101
+                    | Bool.true => 100))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x62 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x63 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 99
+                    | Bool.true => 98)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x61 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 97
+                    | Bool.true => 96)))))
+          | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x50 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+            | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x58 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+              | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x5c : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x5e : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x5f : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 95
+                    | Bool.true => 94)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x5d : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 93
+                    | Bool.true => 92))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x5a : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x5b : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 91
+                    | Bool.true => 90)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x59 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 89
+                    | Bool.true => 88)))
+              | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x54 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x56 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x57 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 87
+                    | Bool.true => 86)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x55 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 85
+                    | Bool.true => 84))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x52 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x53 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 83
+                    | Bool.true => 82)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x51 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 81
+                    | Bool.true => 80))))
+            | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x48 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+              | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x4c : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x4e : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x4f : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 79
+                    | Bool.true => 78)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x4d : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 77
+                    | Bool.true => 76))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x4a : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x4b : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 75
+                    | Bool.true => 74)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x49 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 73
+                    | Bool.true => 72)))
+              | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x44 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x46 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x47 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 71
+                    | Bool.true => 70)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x45 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 69
+                    | Bool.true => 68))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x42 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x43 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 67
+                    | Bool.true => 66)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x41 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 65
+                    | Bool.true => 64))))))
+        | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x20 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+          | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x30 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+            | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x38 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+              | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x3c : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x3e : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x3f : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 63
+                    | Bool.true => 62)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x3d : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 61
+                    | Bool.true => 60))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x3a : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x3b : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 59
+                    | Bool.true => 58)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x39 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 57
+                    | Bool.true => 56)))
+              | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x34 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x36 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x37 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 55
+                    | Bool.true => 54)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x35 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 53
+                    | Bool.true => 52))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x32 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x33 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 51
+                    | Bool.true => 50)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x31 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 49
+                    | Bool.true => 48))))
+            | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x28 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+              | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x2c : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x2e : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x2f : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 47
+                    | Bool.true => 46)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x2d : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 45
+                    | Bool.true => 44))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x2a : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x2b : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 43
+                    | Bool.true => 42)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x29 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 41
+                    | Bool.true => 40)))
+              | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x24 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x26 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x27 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 39
+                    | Bool.true => 38)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x25 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 37
+                    | Bool.true => 36))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x22 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x23 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 35
+                    | Bool.true => 34)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x21 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 33
+                    | Bool.true => 32)))))
+          | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x10 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+            | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x18 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+              | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x1c : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x1e : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x1f : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 31
+                    | Bool.true => 30)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x1d : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 29
+                    | Bool.true => 28))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x1a : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x1b : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 27
+                    | Bool.true => 26)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x19 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 25
+                    | Bool.true => 24)))
+              | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x14 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x16 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x17 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 23
+                    | Bool.true => 22)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x15 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 21
+                    | Bool.true => 20))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x12 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x13 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 19
+                    | Bool.true => 18)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x11 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 17
+                    | Bool.true => 16))))
+            | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x08 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+              | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x0c : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x0e : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x0f : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 15
+                    | Bool.true => 14)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x0d : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 13
+                    | Bool.true => 12))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x0a : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x0b : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 11
+                    | Bool.true => 10)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x09 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 9
+                    | Bool.true => 8)))
+              | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x04 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x06 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x07 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 7
+                    | Bool.true => 6)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x05 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 5
+                    | Bool.true => 4))
+                | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x02 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                  | Bool.false => (match (prim equal (prim compare_bytes (project value bytes) 0x03 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 3
+                    | Bool.true => 2)
+                  | Bool.true => (match (prim equal (prim compare_bytes (project value bytes) 0x01 : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool)
+                    | Bool.false => 1
+                    | Bool.true => 0))))))))),
+  axioms: [propext]
+}
+
+definition{
+  name: interactionU16,
+  parameters: [value : Foundation.Browser.V1.Workspace::WorkspaceByteView, offset : Nat],
+  result: Nat,
+  body: ((prim multiply (interactionOctet (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView value offset 1)})) 256 : Nat) + (interactionOctet (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView value (offset + 1) 1)}))),
+  axioms: [propext]
+}
+
+definition{
+  name: interactionU24,
+  parameters: [value : Foundation.Browser.V1.Workspace::WorkspaceByteView, offset : Nat],
+  result: Nat,
+  body: ((prim multiply (interactionOctet (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView value offset 1)})) 65536 : Nat) + (interactionU16 value (offset + 1))),
+  axioms: [propext]
+}
+
+definition{
+  name: interactionCursorValid,
+  parameters: [
+    cursor : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    workspace : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    table : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bool,
+  body: (((prim length (project cursor bytes) : Nat) =? 135) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView cursor 0 4) 0x50514301) && ((((prim length (Foundation.Browser.V1.Workspace::byteWindowView cursor 4 32) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView cursor 4 32) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && ((((prim length (Foundation.Browser.V1.Workspace::byteWindowView cursor 36 32) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView cursor 36 32) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView cursor 68 32) (project workspace bytes)) && ((((prim length (Foundation.Browser.V1.Workspace::byteWindowView cursor 100 32) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView cursor 100 32) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView cursor 132 1) (project table bytes)) && ((16 <=? (interactionU16 cursor 133)) && (((prim remainder (interactionU16 cursor 133) 16 1 : Nat) =? 0) && (((interactionU16 cursor 133) <=? (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (project table bytes) 0x00)
+    | Bool.false => 240
+    | Bool.true => 48)) && true)))))))))),
+  axioms: [propext]
+}
+
+definition{
+  name: interactionMemberSeen,
+  parameters: [
+    principal : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    seen : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    remaining : Nat
+  ],
+  result: Bool,
+  body: (match remaining
+    | Nat.zero => false
+    | Nat.succ rest => ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (project principal bytes) (Foundation.Browser.V1.Workspace::byteWindowView seen (prim multiply rest 32 : Nat) 32)) || (interactionMemberSeen principal seen rest))),
+  axioms: [propext],
+  recursive_argument: remaining
+}
+
+definition{
+  name: interactionMemberRows,
+  parameters: [
+    rows : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    remaining : Nat,
+    position : Nat,
+    previous : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bool,
+  body: (match remaining
+    | Nat.zero => ((prim length (project rows bytes) : Nat) =? 0)
+    | Nat.succ rest => ((33 <=? (prim length (project rows bytes) : Nat)) && ((((prim length (Foundation.Browser.V1.Workspace::byteWindowView rows 0 32) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView rows 0 32) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && ((match (position =? 0)
+      | Bool.false => ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView rows 32 1) 0x01) || (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView rows 32 1) 0x02))
+      | Bool.true => (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView rows 32 1) 0x00)) && ((not (interactionMemberSeen (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView rows 0 32)}) previous (prim quotient (prim length (project previous bytes) : Nat) 32 0 : Nat))) && ((interactionMemberRows (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView rows 33 (prim subtract (prim length (project rows bytes) : Nat) 33 : Nat))}) rest (position + 1) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (prim append (prim append 0x (project previous bytes) : Bytes) (Foundation.Browser.V1.Workspace::byteWindowView rows 0 32) : Bytes)})) && true)))))),
+  axioms: [propext],
+  recursive_argument: remaining
+}
+
+definition{
+  name: interactionMessageRows,
+  parameters: [rows : Foundation.Browser.V1.Workspace::WorkspaceByteView, remaining : Nat],
+  result: Bool,
+  body: (match remaining
+    | Nat.zero => ((prim length (project rows bytes) : Nat) =? 0)
+    | Nat.succ rest => ((67 <=? (prim length (project rows bytes) : Nat)) && ((((prim length (Foundation.Browser.V1.Workspace::byteWindowView rows 0 32) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView rows 0 32) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && ((((prim length (Foundation.Browser.V1.Workspace::byteWindowView rows 32 32) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView rows 32 32) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && ((1 <=? (interactionU16 rows 64)) && (((interactionU16 rows 64) <=? 4096) && (((66 + (interactionU16 rows 64)) <=? (prim length (project rows bytes) : Nat)) && ((Foundation.Browser.V1.Workspace::validMessageText (Foundation.Browser.V1.Workspace::byteWindowView rows 66 (interactionU16 rows 64))) && ((interactionMessageRows (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView rows (66 + (interactionU16 rows 64)) (prim subtract (prim length (project rows bytes) : Nat) (66 + (interactionU16 rows 64)) : Nat))}) rest) && true))))))))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: remaining
+}
+
+definition{
+  name: interactionPageShape,
+  parameters: [page : Foundation.Browser.V1.Workspace::WorkspaceByteView],
+  result: Bool,
+  body: ((76 <=? (prim length (project page bytes) : Nat)) && (((prim length (project page bytes) : Nat) <=? 66803) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView page 0 1) 0x00) && (((interactionOctet (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView page 1 1)})) <=? 1) && ((((prim length (Foundation.Browser.V1.Workspace::byteWindowView page 2 32) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView page 2 32) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && ((((prim length (Foundation.Browser.V1.Workspace::byteWindowView page 34 32) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView page 34 32) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && ((((interactionU16 page 71) =? 0) || ((interactionU16 page 71) =? 135)) && (((76 + (interactionU16 page 71)) <=? (prim length (project page bytes) : Nat)) && (((prim length (project page bytes) : Nat) =? ((76 + (interactionU16 page 71)) + (interactionU24 page (73 + (interactionU16 page 71))))) && (((interactionOctet (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView page 70 1)})) <=? 16) && (((interactionU16 page 68) <=? (interactionU16 page 66)) && (((prim remainder (interactionU16 page 68) 16 1 : Nat) =? 0) && (((interactionOctet (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView page 70 1)})) =? (match ((prim subtract (interactionU16 page 66) (interactionU16 page 68) : Nat) <=? 16)
+    | Bool.false => 16
+    | Bool.true => (prim subtract (interactionU16 page 66) (interactionU16 page 68) : Nat))) && ((match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView page 1 1) 0x00)
+    | Bool.false => ((interactionU16 page 66) <=? 256)
+    | Bool.true => ((1 <=? (interactionU16 page 66)) && (((interactionU16 page 66) <=? 64) && true))) && ((match ((interactionOctet (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView page 70 1)})) =? 0)
+    | Bool.false => true
+    | Bool.true => ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView page 1 1) 0x01) && (((interactionU16 page 66) =? 0) && (((interactionU16 page 68) =? 0) && true)))) && true))))))))))))))),
+  axioms: [propext]
+}
+
+definition{
+  name: interactionPageValid,
+  parameters: [page : Foundation.Browser.V1.Workspace::WorkspaceByteView],
+  result: Bool,
+  body: ((interactionPageShape page) && ((match ((interactionU16 page 66) <=? ((interactionU16 page 68) + (interactionOctet (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView page 70 1)}))))
+    | Bool.false => ((interactionCursorValid (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView page 73 (interactionU16 page 71))}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView page 2 32)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView page 1 1)})) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindow (Foundation.Browser.V1.Workspace::byteWindowView page 73 (interactionU16 page 71)) 100 32) (Foundation.Browser.V1.Workspace::byteWindowView page 34 32)) && (((interactionU16 (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView page 73 (interactionU16 page 71))}) 133) =? ((interactionU16 page 68) + (interactionOctet (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView page 70 1)})))) && true)))
+    | Bool.true => ((interactionU16 page 71) =? 0)) && ((match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView page 1 1) 0x00)
+    | Bool.false => (interactionMessageRows (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView page (76 + (interactionU16 page 71)) (interactionU24 page (73 + (interactionU16 page 71))))}) (interactionOctet (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView page 70 1)})))
+    | Bool.true => (interactionMemberRows (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView page (76 + (interactionU16 page 71)) (interactionU24 page (73 + (interactionU16 page 71))))}) (interactionOctet (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView page 70 1)})) (interactionU16 page 68) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x}))) && true))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: interactionCommandValid,
+  parameters: [command : Foundation.Browser.V1.Workspace::WorkspaceByteView],
+  result: Bool,
+  body: ((1 <=? (prim length (project command bytes) : Nat)) && (((prim length (project command bytes) : Nat) <=? 4097) && ((match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView command 0 1) 0x00)
+    | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView command 0 1) 0x04)
+      | Bool.false => ((1 <=? (interactionOctet (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView command 0 1)}))) && (((interactionOctet (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView command 0 1)})) <=? 3) && ((((prim length (Foundation.Browser.V1.Workspace::byteWindowView command 1 (prim subtract (prim length (project command bytes) : Nat) 1 : Nat)) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView command 1 (prim subtract (prim length (project command bytes) : Nat) 1 : Nat)) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && true)))
+      | Bool.true => (Foundation.Browser.V1.Workspace::validMessageText (Foundation.Browser.V1.Workspace::byteWindowView command 1 (prim subtract (prim length (project command bytes) : Nat) 1 : Nat))))
+    | Bool.true => ((prim length (project command bytes) : Nat) =? 1)) && true))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: interactionStateShape,
+  parameters: [state : Foundation.Browser.V1.Workspace::WorkspaceByteView],
+  result: Bool,
+  body: ((79 <=? (prim length (project state bytes) : Nat)) && (((prim length (project state bytes) : Nat) <=? 66882) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 0 4) 0x50564901) && ((((prim length (Foundation.Browser.V1.Workspace::byteWindowView state 4 32) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 4 32) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && (((interactionOctet (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 70 1)})) <=? 3) && (((interactionOctet (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 71 1)})) <=? 1) && (((interactionOctet (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 72 1)})) <=? 2) && (((interactionU16 state 73) <=? 4097) && (((79 + (interactionU16 state 73)) <=? (prim length (project state bytes) : Nat)) && (((interactionU24 state (75 + (interactionU16 state 73))) <=? 66803) && (((prim length (project state bytes) : Nat) =? ((79 + (interactionU16 state 73)) + (interactionU24 state (75 + (interactionU16 state 73))))) && (((interactionOctet (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state ((3 + (75 + (interactionU16 state 73))) + (interactionU24 state (75 + (interactionU16 state 73)))) 1)})) <=? 4) && true)))))))))))),
+  axioms: [propext]
+}
+
+definition{
+  name: interactionPendingValid,
+  parameters: [state : Foundation.Browser.V1.Workspace::WorkspaceByteView],
+  result: Bool,
+  body: ((((prim length (Foundation.Browser.V1.Workspace::byteWindowView state 36 32) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 36 32) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && ((1 <=? (interactionU16 state 68)) && (((prim length (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73)))) : Nat) =? 0) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state ((3 + (75 + (interactionU16 state 73))) + (interactionU24 state (75 + (interactionU16 state 73)))) 1) 0x00) && ((match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 72 1) 0x00)
+    | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 72 1) 0x01)
+      | Bool.false => ((prim length (Foundation.Browser.V1.Workspace::byteWindowView state 75 (interactionU16 state 73)) : Nat) =? 0)
+      | Bool.true => (interactionCommandValid (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 75 (interactionU16 state 73))})))
+    | Bool.true => (((prim length (Foundation.Browser.V1.Workspace::byteWindowView state 75 (interactionU16 state 73)) : Nat) =? 0) || (interactionCursorValid (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 75 (interactionU16 state 73))}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 36 32)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 71 1)})))) && true))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: interactionStateValid,
+  parameters: [state : Foundation.Browser.V1.Workspace::WorkspaceByteView],
+  result: Bool,
+  body: ((interactionStateShape state) && ((match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 70 1) 0x01)
+    | Bool.false => ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 72 1) 0x00) && (((prim length (Foundation.Browser.V1.Workspace::byteWindowView state 75 (interactionU16 state 73)) : Nat) =? 0) && ((match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 70 1) 0x03)
+      | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 70 1) 0x02)
+        | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 36 32) (Foundation.Browser.V1.Workspace::zeroDigest))
+          | Bool.false => ((((prim length (Foundation.Browser.V1.Workspace::byteWindowView state 36 32) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 36 32) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && ((match ((prim length (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73)))) : Nat) =? 0)
+            | Bool.false => ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state ((3 + (75 + (interactionU16 state 73))) + (interactionU24 state (75 + (interactionU16 state 73)))) 1) 0x00) && ((interactionPageValid (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73))))})) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindow (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73)))) 2 32) (Foundation.Browser.V1.Workspace::byteWindowView state 36 32)) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindow (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73)))) 1 1) (Foundation.Browser.V1.Workspace::byteWindowView state 71 1)) && true))))
+            | Bool.true => true) && true))
+          | Bool.true => (((interactionU16 state 68) =? 0) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 71 1) 0x00) && (((prim length (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73)))) : Nat) =? 0) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state ((3 + (75 + (interactionU16 state 73))) + (interactionU24 state (75 + (interactionU16 state 73)))) 1) 0x00) && true)))))
+        | Bool.true => ((((prim length (Foundation.Browser.V1.Workspace::byteWindowView state 36 32) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 36 32) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && (((prim length (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73)))) : Nat) =? 0) && true)))
+      | Bool.true => ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 36 32) (Foundation.Browser.V1.Workspace::zeroDigest)) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 71 1) 0x00) && (((prim length (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73)))) : Nat) =? 0) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state ((3 + (75 + (interactionU16 state 73))) + (interactionU24 state (75 + (interactionU16 state 73)))) 1) 0x00) && true))))) && true)))
+    | Bool.true => (interactionPendingValid state)) && true)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: interactionState,
+  parameters: [
+    session : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    workspace : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    serial : Nat,
+    phase : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    table : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    kind : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    pending : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    page : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    status : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bytes,
+  body: (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append 0x 0x50564901 : Bytes) (project session bytes) : Bytes) (project workspace bytes) : Bytes) (Foundation.Browser.V1.Workspace::encodeU16 serial) : Bytes) (project phase bytes) : Bytes) (project table bytes) : Bytes) (project kind bytes) : Bytes) (Foundation.Browser.V1.Workspace::encodeU16 (prim length (project pending bytes) : Nat)) : Bytes) (project pending bytes) : Bytes) (Foundation.Browser.V1.Workspace::encodeU24 (prim length (project page bytes) : Nat)) : Bytes) (project page bytes) : Bytes) (project status bytes) : Bytes),
+  axioms: []
+}
+
+definition{
+  name: interactionSuccess,
+  parameters: [
+    state : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    effect : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bytes,
+  body: (prim append (prim append (prim append (prim append (prim append 0x 0x00 : Bytes) (Foundation.Browser.V1.Workspace::encodeU24 (prim length (project state bytes) : Nat)) : Bytes) (project state bytes) : Bytes) (Foundation.Browser.V1.Workspace::encodeU16 (prim length (project effect bytes) : Nat)) : Bytes) (project effect bytes) : Bytes),
+  axioms: []
+}
+
+definition{
+  name: interactionStart,
+  parameters: [
+    state : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    workspace : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    table : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    kind : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    payload : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bytes,
+  body: (match ((interactionU16 state 68) =? 65535)
+    | Bool.false => (interactionSuccess (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (interactionState (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 4 32)}) workspace ((interactionU16 state 68) + 1) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x01}) table kind payload (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}))}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (prim append (prim append (prim append (prim append (prim append (prim append (prim append 0x (Foundation.Browser.V1.Workspace::byteWindowView state 4 32) : Bytes) (Foundation.Browser.V1.Workspace::encodeU16 ((interactionU16 state 68) + 1)) : Bytes) (project kind bytes) : Bytes) (project workspace bytes) : Bytes) (project table bytes) : Bytes) (Foundation.Browser.V1.Workspace::encodeU16 (prim length (project payload bytes) : Nat)) : Bytes) (project payload bytes) : Bytes)}))
+    | Bool.true => (encodeWorkspaceInteractionError constructor{
+      arguments: [],
+      constructor: WorkspaceInteractionError.CounterExhausted,
+      type_arguments: []
+    })),
+  axioms: [propext]
+}
+
+definition{
+  name: interactionIntentSelected,
+  parameters: [
+    state : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    intent : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bytes,
+  body: (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView intent 0 1) 0x01)
+    | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView intent 0 1) 0x02)
+      | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView intent 0 1) 0x03)
+        | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView intent 0 1) 0x04)
+          | Bool.false => (interactionStart state (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 36 32)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 71 1)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x02}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x}))
+          | Bool.true => (interactionStart state (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 36 32)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 71 1)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x01}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView intent 1 (prim subtract (prim length (project intent bytes) : Nat) 1 : Nat))})))
+        | Bool.true => (match (((prim length (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73)))) : Nat) =? 0) || ((interactionU16 (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73))))}) 71) =? 0))
+          | Bool.false => (interactionStart state (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 36 32)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 71 1)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindow (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73)))) 73 (interactionU16 (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73))))}) 71))}))
+          | Bool.true => (encodeWorkspaceInteractionError constructor{
+            arguments: [],
+            constructor: WorkspaceInteractionError.NoNextPage,
+            type_arguments: []
+          })))
+      | Bool.true => (interactionStart state (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 36 32)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x01}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x})))
+    | Bool.true => (interactionStart state (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 36 32)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x}))),
+  axioms: [propext]
+}
+
+definition{
+  name: interactionIntentShape,
+  parameters: [intent : Foundation.Browser.V1.Workspace::WorkspaceByteView],
+  result: Bool,
+  body: ((1 <=? (prim length (project intent bytes) : Nat)) && (((prim length (project intent bytes) : Nat) <=? 4098) && ((match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView intent 0 1) 0x00)
+    | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView intent 0 1) 0x04)
+      | Bool.false => (((prim length (project intent bytes) : Nat) =? 1) && (((interactionOctet (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView intent 0 1)})) <=? 6) && true))
+      | Bool.true => (interactionCommandValid (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView intent 1 (prim subtract (prim length (project intent bytes) : Nat) 1 : Nat))})))
+    | Bool.true => (((prim length (Foundation.Browser.V1.Workspace::byteWindowView intent 1 (prim subtract (prim length (project intent bytes) : Nat) 1 : Nat)) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView intent 1 (prim subtract (prim length (project intent bytes) : Nat) 1 : Nat)) (Foundation.Browser.V1.Workspace::zeroDigest))) && true))) && true))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: interactionIntent,
+  parameters: [
+    state : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    intent : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bytes,
+  body: (match (not (interactionIntentShape intent))
+    | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (project intent bytes) 0x06)
+      | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 70 1) 0x03)
+        | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 70 1) 0x01)
+          | Bool.false => (match ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 70 1) 0x02) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (project intent bytes) 0x05)) && true))
+            | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView intent 0 1) 0x00)
+              | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 36 32) (Foundation.Browser.V1.Workspace::zeroDigest))
+                | Bool.false => (interactionIntentSelected state intent)
+                | Bool.true => (encodeWorkspaceInteractionError constructor{
+                  arguments: [],
+                  constructor: WorkspaceInteractionError.NoSelection,
+                  type_arguments: []
+                }))
+              | Bool.true => (interactionStart state (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView intent 1 32)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x})))
+            | Bool.true => (encodeWorkspaceInteractionError constructor{
+              arguments: [],
+              constructor: WorkspaceInteractionError.ReplayRequired,
+              type_arguments: []
+            }))
+          | Bool.true => (encodeWorkspaceInteractionError constructor{
+            arguments: [],
+            constructor: WorkspaceInteractionError.Busy,
+            type_arguments: []
+          }))
+        | Bool.true => (encodeWorkspaceInteractionError constructor{
+          arguments: [],
+          constructor: WorkspaceInteractionError.Closed,
+          type_arguments: []
+        }))
+      | Bool.true => (interactionSuccess (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (interactionState (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 4 32)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::zeroDigest)}) (interactionU16 state 68) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x03}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}))}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x})))
+    | Bool.true => (encodeWorkspaceInteractionError constructor{
+      arguments: [],
+      constructor: WorkspaceInteractionError.InvalidIntent,
+      type_arguments: []
+    })),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: interactionCompletionShape,
+  parameters: [completion : Foundation.Browser.V1.Workspace::WorkspaceByteView],
+  result: Bool,
+  body: ((39 <=? (prim length (project completion bytes) : Nat)) && (((prim length (project completion bytes) : Nat) <=? 66842) && (((interactionU24 completion 36) <=? 66803) && (((prim length (project completion bytes) : Nat) =? (39 + (interactionU24 completion 36))) && (((interactionOctet (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView completion 35 1)})) <=? 5) && true))))),
+  axioms: [propext]
+}
+
+definition{
+  name: interactionPageMatches,
+  parameters: [
+    state : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    page : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bool,
+  body: ((interactionPageValid page) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView page 2 32) (Foundation.Browser.V1.Workspace::byteWindowView state 36 32)) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView page 1 1) (Foundation.Browser.V1.Workspace::byteWindowView state 71 1)) && ((match ((prim length (Foundation.Browser.V1.Workspace::byteWindowView state 75 (interactionU16 state 73)) : Nat) =? 0)
+    | Bool.false => ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView page 34 32) (Foundation.Browser.V1.Workspace::byteWindow (Foundation.Browser.V1.Workspace::byteWindowView state 75 (interactionU16 state 73)) 100 32)) && (((interactionU16 page 68) =? (interactionU16 (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 75 (interactionU16 state 73))}) 133)) && ((match ((prim length (Foundation.Browser.V1.Workspace::byteWindowView page 73 (interactionU16 page 71)) : Nat) =? 0)
+      | Bool.false => (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindow (Foundation.Browser.V1.Workspace::byteWindowView page 73 (interactionU16 page 71)) 4 64) (Foundation.Browser.V1.Workspace::byteWindow (Foundation.Browser.V1.Workspace::byteWindowView state 75 (interactionU16 state 73)) 4 64))
+      | Bool.true => true) && true)))
+    | Bool.true => ((interactionU16 page 68) =? 0)) && true)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: interactionCompleteQuery,
+  parameters: [
+    state : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    completion : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bytes,
+  body: (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView completion 35 1) 0x00)
+    | Bool.false => (match (((prim length (Foundation.Browser.V1.Workspace::byteWindowView completion 39 (interactionU24 completion 36)) : Nat) =? 0) && (((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView completion 35 1) 0x01) || (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView completion 35 1) 0x04)) && true))
+      | Bool.false => (encodeWorkspaceInteractionError constructor{
+        arguments: [],
+        constructor: WorkspaceInteractionError.InvalidOutcome,
+        type_arguments: []
+      })
+      | Bool.true => (interactionSuccess (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (interactionState (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 4 32)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 36 32)}) (interactionU16 state 68) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 71 1)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView completion 35 1)}))}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x})))
+    | Bool.true => (match (interactionPageMatches state (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView completion 39 (interactionU24 completion 36))}))
+      | Bool.false => (encodeWorkspaceInteractionError constructor{
+        arguments: [],
+        constructor: WorkspaceInteractionError.InvalidPage,
+        type_arguments: []
+      })
+      | Bool.true => (interactionSuccess (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (interactionState (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 4 32)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 36 32)}) (interactionU16 state 68) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 71 1)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView completion 39 (interactionU24 completion 36))}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}))}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x})))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: interactionCompleteWrite,
+  parameters: [
+    state : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    completion : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bytes,
+  body: (match (not ((prim length (Foundation.Browser.V1.Workspace::byteWindowView completion 39 (interactionU24 completion 36)) : Nat) =? 0))
+    | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 72 1) 0x02)
+      | Bool.false => (interactionSuccess (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (interactionState (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 4 32)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 36 32)}) (interactionU16 state 68) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (match (not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView completion 35 1) 0x01))
+        | Bool.false => 0x00
+        | Bool.true => 0x02)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 71 1)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView completion 35 1) 0x05)
+        | Bool.false => (Foundation.Browser.V1.Workspace::byteWindowView completion 35 1)
+        | Bool.true => 0x01)}))}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x}))
+      | Bool.true => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView completion 35 1) 0x00)
+        | Bool.false => (match ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView completion 35 1) 0x01) || (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView completion 35 1) 0x04))
+          | Bool.false => (encodeWorkspaceInteractionError constructor{
+            arguments: [],
+            constructor: WorkspaceInteractionError.InvalidOutcome,
+            type_arguments: []
+          })
+          | Bool.true => (interactionSuccess (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (interactionState (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 4 32)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 36 32)}) (interactionU16 state 68) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x02}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 71 1)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView completion 35 1)}))}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x})))
+        | Bool.true => (interactionSuccess (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (interactionState (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 4 32)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 36 32)}) (interactionU16 state 68) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state 71 1)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}))}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x}))))
+    | Bool.true => (encodeWorkspaceInteractionError constructor{
+      arguments: [],
+      constructor: WorkspaceInteractionError.InvalidOutcome,
+      type_arguments: []
+    })),
+  axioms: [propext]
+}
+
+definition{
+  name: interactionComplete,
+  parameters: [
+    state : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    completion : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bytes,
+  body: (match (not (interactionCompletionShape completion))
+    | Bool.false => (match (not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 70 1) 0x01))
+      | Bool.false => (match (not ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView completion 0 32) (Foundation.Browser.V1.Workspace::byteWindowView state 4 32)) && (((interactionU16 completion 32) =? (interactionU16 state 68)) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView completion 34 1) (Foundation.Browser.V1.Workspace::byteWindowView state 72 1)) && true))))
+        | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 72 1) 0x00)
+          | Bool.false => (interactionCompleteWrite state completion)
+          | Bool.true => (interactionCompleteQuery state completion))
+        | Bool.true => (encodeWorkspaceInteractionError constructor{
+          arguments: [],
+          constructor: WorkspaceInteractionError.CorrelationMismatch,
+          type_arguments: []
+        }))
+      | Bool.true => (encodeWorkspaceInteractionError constructor{
+        arguments: [],
+        constructor: WorkspaceInteractionError.WrongPhase,
+        type_arguments: []
+      }))
+    | Bool.true => (encodeWorkspaceInteractionError constructor{
+      arguments: [],
+      constructor: WorkspaceInteractionError.BadEncoding,
+      type_arguments: []
+    })),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: workspaceViewFocus,
+  parameters: [state : Foundation.Browser.V1.Workspace::WorkspaceByteView],
+  result: Foundation.View.V1.Interaction::FocusBehavior,
+  body: (match ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 70 1) 0x02) || ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 70 1) 0x00) && (((not ((prim length (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73)))) : Nat) =? 0)) || (not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state ((3 + (75 + (interactionU16 state 73))) + (interactionU24 state (75 + (interactionU16 state 73)))) 1) 0x00))) && true)))
+    | Bool.false => constructor{
+      arguments: [],
+      constructor: Foundation.View.V1.Interaction::FocusBehavior.RetainFocus,
+      type_arguments: []
+    }
+    | Bool.true => constructor{
+      arguments: [],
+      constructor: Foundation.View.V1.Interaction::FocusBehavior.MoveFocusToResult,
+      type_arguments: []
+    }),
+  axioms: [propext]
+}
+
+definition{
+  name: workspaceViewLiveMode,
+  parameters: [state : Foundation.Browser.V1.Workspace::WorkspaceByteView],
+  result: Foundation.View.V1.Interaction::LiveMode,
+  body: (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 70 1) 0x03)
+    | Bool.false => (match (not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state ((3 + (75 + (interactionU16 state 73))) + (interactionU24 state (75 + (interactionU16 state 73)))) 1) 0x00))
+      | Bool.false => (match ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 70 1) 0x01) || ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 70 1) 0x02) || (not ((prim length (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73)))) : Nat) =? 0))))
+        | Bool.false => constructor{
+          arguments: [],
+          constructor: Foundation.View.V1.Interaction::LiveMode.Off,
+          type_arguments: []
+        }
+        | Bool.true => constructor{
+          arguments: [],
+          constructor: Foundation.View.V1.Interaction::LiveMode.Polite,
+          type_arguments: []
+        })
+      | Bool.true => constructor{
+        arguments: [],
+        constructor: Foundation.View.V1.Interaction::LiveMode.Assertive,
+        type_arguments: []
+      })
+    | Bool.true => constructor{
+      arguments: [],
+      constructor: Foundation.View.V1.Interaction::LiveMode.Off,
+      type_arguments: []
+    }),
+  axioms: [propext]
+}
+
+definition{
+  name: interactionFocusCode,
+  parameters: [focus : Foundation.View.V1.Interaction::FocusBehavior],
+  result: Bytes,
+  body: (match focus
+    | Foundation.View.V1.Interaction::FocusBehavior.RetainFocus => 0x00
+    | Foundation.View.V1.Interaction::FocusBehavior.MoveFocusToResult => 0x01),
+  axioms: []
+}
+
+definition{
+  name: interactionLiveCode,
+  parameters: [live : Foundation.View.V1.Interaction::LiveMode],
+  result: Bytes,
+  body: (match live
+    | Foundation.View.V1.Interaction::LiveMode.Off => 0x00
+    | Foundation.View.V1.Interaction::LiveMode.Polite => 0x01
+    | Foundation.View.V1.Interaction::LiveMode.Assertive => 0x02),
+  axioms: []
+}
+
+definition{
+  name: interactionControls,
+  parameters: [state : Foundation.Browser.V1.Workspace::WorkspaceByteView],
+  result: Bytes,
+  body: (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 70 1) 0x03)
+    | Bool.false => (match ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 70 1) 0x01) || ((interactionU16 state 68) =? 65535))
+      | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 70 1) 0x02)
+        | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView state 36 32) (Foundation.Browser.V1.Workspace::zeroDigest))
+          | Bool.false => (match ((not ((prim length (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73)))) : Nat) =? 0)) && ((not ((prim length (Foundation.Browser.V1.Workspace::byteWindow (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73)))) 73 (interactionU16 (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73))))}) 71)) : Nat) =? 0)) && true))
+            | Bool.false => 0x77
+            | Bool.true => 0x7f)
+          | Bool.true => 0x41)
+        | Bool.true => 0x60)
+      | Bool.true => 0x40)
+    | Bool.true => 0x00),
+  axioms: [propext]
+}
+
+definition{
+  name: interactionPresentation,
+  parameters: [state : Foundation.Browser.V1.Workspace::WorkspaceByteView],
+  result: Bytes,
+  body: (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append 0x 0x0050564e01 : Bytes) (Foundation.Browser.V1.Workspace::byteWindowView state 70 1) : Bytes) (Foundation.Browser.V1.Workspace::byteWindowView state ((3 + (75 + (interactionU16 state 73))) + (interactionU24 state (75 + (interactionU16 state 73)))) 1) : Bytes) (Foundation.Browser.V1.Workspace::byteWindowView state 71 1) : Bytes) (interactionControls state) : Bytes) (interactionFocusCode (workspaceViewFocus state)) : Bytes) (interactionLiveCode (workspaceViewLiveMode state)) : Bytes) (Foundation.Browser.V1.Workspace::byteWindowView state 36 32) : Bytes) (match ((prim length (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73)))) : Nat) =? 0)
+    | Bool.false => (prim append (prim append (prim append (prim append (prim append (prim append (prim append 0x (Foundation.Browser.V1.Workspace::byteWindow (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73)))) 34 32) : Bytes) (Foundation.Browser.V1.Workspace::encodeU16 (interactionU16 (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73))))}) 66)) : Bytes) (Foundation.Browser.V1.Workspace::encodeU16 (interactionU16 (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73))))}) 68)) : Bytes) (Foundation.Browser.V1.Workspace::encodeOctet (interactionOctet (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindow (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73)))) 70 1)}))) : Bytes) (match ((prim length (Foundation.Browser.V1.Workspace::byteWindow (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73)))) 73 (interactionU16 (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73))))}) 71)) : Nat) =? 0)
+      | Bool.false => 0x01
+      | Bool.true => 0x00) : Bytes) (Foundation.Browser.V1.Workspace::encodeU24 (prim length (Foundation.Browser.V1.Workspace::byteWindow (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73)))) (76 + (interactionU16 (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73))))}) 71)) (interactionU24 (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73))))}) (73 + (interactionU16 (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73))))}) 71)))) : Nat)) : Bytes) (Foundation.Browser.V1.Workspace::byteWindow (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73)))) (76 + (interactionU16 (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73))))}) 71)) (interactionU24 (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73))))}) (73 + (interactionU16 (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView state (3 + (75 + (interactionU16 state 73))) (interactionU24 state (75 + (interactionU16 state 73))))}) 71)))) : Bytes)
+    | Bool.true => (prim append (prim append 0x (Foundation.Browser.V1.Workspace::zeroDigest) : Bytes) 0x000000000000000000 : Bytes)) : Bytes),
+  axioms: [propext]
+}
+
+definition{
+  name: workspacePresentationBytes,
+  parameters: [state : Bytes],
+  result: Bytes,
+  body: (match (interactionStateValid (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := state}))
+    | Bool.false => (encodeWorkspaceInteractionError constructor{
+      arguments: [],
+      constructor: WorkspaceInteractionError.InvalidState,
+      type_arguments: []
+    })
+    | Bool.true => (interactionPresentation (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := state}))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: interactionWithState,
+  parameters: [
+    operation : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    state : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    event : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bytes,
+  body: (match (not (interactionStateValid state))
+    | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (project operation bytes) 0x01)
+      | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (project operation bytes) 0x02)
+        | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (project operation bytes) 0x03)
+          | Bool.false => (encodeWorkspaceInteractionError constructor{
+            arguments: [],
+            constructor: WorkspaceInteractionError.UnknownOperation,
+            type_arguments: []
+          })
+          | Bool.true => (match ((prim length (project event bytes) : Nat) =? 0)
+            | Bool.false => (encodeWorkspaceInteractionError constructor{
+              arguments: [],
+              constructor: WorkspaceInteractionError.BadEncoding,
+              type_arguments: []
+            })
+            | Bool.true => (interactionPresentation state)))
+        | Bool.true => (interactionComplete state event))
+      | Bool.true => (interactionIntent state event))
+    | Bool.true => (encodeWorkspaceInteractionError constructor{
+      arguments: [],
+      constructor: WorkspaceInteractionError.InvalidState,
+      type_arguments: []
+    })),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: workspaceInteractionBytes,
+  parameters: [request : Bytes],
+  result: Bytes,
+  body: (match (((prim length request : Nat) =? 0) || (not ((prim length request : Nat) <=? 133728)))
+    | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindow request 0 1) 0x00)
+      | Bool.false => (match ((4 <=? (prim length request : Nat)) && (((interactionU24 (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := request}) 1) <=? 66882) && (((4 + (interactionU24 (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := request}) 1)) <=? (prim length request : Nat)) && true)))
+        | Bool.false => (encodeWorkspaceInteractionError constructor{
+          arguments: [],
+          constructor: WorkspaceInteractionError.BadEncoding,
+          type_arguments: []
+        })
+        | Bool.true => (interactionWithState (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindow request 0 1)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindow request 4 (interactionU24 (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := request}) 1))}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindow request (4 + (interactionU24 (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := request}) 1)) (prim subtract (prim length request : Nat) (4 + (interactionU24 (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := request}) 1)) : Nat))})))
+      | Bool.true => (match (((prim length request : Nat) =? 33) && ((((prim length (Foundation.Browser.V1.Workspace::byteWindow request 1 32) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindow request 1 32) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && true))
+        | Bool.false => (encodeWorkspaceInteractionError constructor{
+          arguments: [],
+          constructor: WorkspaceInteractionError.BadEncoding,
+          type_arguments: []
+        })
+        | Bool.true => (interactionSuccess (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (interactionState (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindow request 1 32)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::zeroDigest)}) 0 (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x00}))}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := 0x}))))
+    | Bool.true => (encodeWorkspaceInteractionError constructor{
+      arguments: [],
+      constructor: WorkspaceInteractionError.BadEncoding,
+      type_arguments: []
+    })),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+\end{semanticmodule}
+\end{lexlean}

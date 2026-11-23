@@ -1,0 +1,159 @@
+{
+  "timestamp": "20261123T220551",
+  "iso_time": "2026-11-23T22:05:51.682915+00:00",
+  "overall_status": true,
+  "total_duration": 3.7126629919948755,
+  "suites": [
+    {
+      "suite_id": "SUITE-S1",
+      "name": "Prime-Boundary Spectral Binning & Jensen-Shannon Divergence Scaling",
+      "invariant": "INV-RC-031a",
+      "status": true,
+      "duration": 1.9418596749892458,
+      "evaluations": [
+        {
+          "samples": 10,
+          "min_bin_count": 0,
+          "max_bin_count": 2,
+          "entropy": 2.7683938159972974
+        },
+        {
+          "samples": 100,
+          "min_bin_count": 1,
+          "max_bin_count": 18,
+          "entropy": 3.122321222123682
+        },
+        {
+          "samples": 1000,
+          "min_bin_count": 26,
+          "max_bin_count": 224,
+          "entropy": 3.226157207480309
+        },
+        {
+          "samples": 10000,
+          "min_bin_count": 305,
+          "max_bin_count": 1975,
+          "entropy": 3.251408299008698
+        },
+        {
+          "samples": 100000,
+          "min_bin_count": 3419,
+          "max_bin_count": 19793,
+          "entropy": 3.2607034182755936
+        },
+        {
+          "samples": 1000000,
+          "min_bin_count": 33205,
+          "max_bin_count": 199756,
+          "entropy": 3.2570128849855715
+        }
+      ],
+      "metrics": {
+        "bin_count": 11,
+        "frequency_band_hz": [
+          1.0,
+          31.0
+        ],
+        "internal_prime_boundaries": [
+          2,
+          3,
+          5,
+          7,
+          11,
+          13,
+          17,
+          19,
+          23,
+          29
+        ],
+        "js_symmetry_diff": 0.0,
+        "js_identity_diff": 0.0,
+        "js_divergence_example": 0.3972564033140798
+      },
+      "errors": []
+    },
+    {
+      "suite_id": "SUITE-S2",
+      "name": "Discrete-Time Control Barrier Function (DT-CBF) Forward Invariance & Disturbance Stress",
+      "invariant": "INV-RC-031b",
+      "status": true,
+      "duration": 0.9647395580104785,
+      "metrics": {
+        "num_trajectories": 10000,
+        "steps_per_trajectory": 50,
+        "total_steps_simulated": 500000,
+        "active_interventions": 21048,
+        "barrier_violations": 0,
+        "min_observed_safety_margin": 1.1,
+        "gamma": 0.5
+      },
+      "errors": []
+    },
+    {
+      "suite_id": "SUITE-S3",
+      "name": "Zero-Float Exact Rational Ordering & Scaling Invariance",
+      "invariant": "INV-RC-031c",
+      "status": true,
+      "duration": 0.3468233949970454,
+      "metrics": {
+        "tested_pairs": 100000,
+        "transitivity_violations": 0,
+        "scale_invariance_violations": 0,
+        "helper_theorem_verified": true
+      },
+      "errors": []
+    },
+    {
+      "suite_id": "SUITE-S4",
+      "name": "Hybrid Stability, Mode Switching & Dwell-Time Zeno Prevention",
+      "invariant": "INV-RC-031d",
+      "status": true,
+      "duration": 0.004886512004304677,
+      "metrics": {
+        "num_event_triggers": 1000,
+        "admitted_mode_switches": 308,
+        "blocked_chatter_events": 431,
+        "zeno_violations": 0,
+        "tau_min_seconds": 1.0,
+        "lyapunov_contraction_rho": 0.95,
+        "initial_energy": 100.0,
+        "final_energy": 1.3767986420319193e-05
+      },
+      "errors": []
+    },
+    {
+      "suite_id": "SUITE-S5",
+      "name": "Microsecond Throughput & Execution Latency Benchmarks",
+      "invariant": "INV-RC-031e",
+      "status": true,
+      "duration": 0.45160669699544087,
+      "benchmarks": {
+        "spectral_js_divergence": {
+          "iterations": 10000,
+          "p50_us": 26.597997930366546,
+          "p95_us": 74.16934386128557,
+          "p99_us": 102.91066500940362,
+          "max_us": 205.01499238889664,
+          "throughput_ops_sec": 27847
+        },
+        "dt_cbf_invariance_check": {
+          "iterations": 50000,
+          "p50_us": 0.15199475456029177,
+          "p95_us": 0.46601053327322006,
+          "p99_us": 0.5589972715824842,
+          "max_us": 67.21199315506965,
+          "throughput_ops_sec": 4412213
+        },
+        "rational_order_cross_mult": {
+          "iterations": 50000,
+          "p50_us": 0.11498923413455486,
+          "p95_us": 0.24604960344731375,
+          "p99_us": 0.39300357457250357,
+          "max_us": 31.458010198548436,
+          "throughput_ops_sec": 6710945
+        }
+      },
+      "errors": []
+    }
+  ]
+}

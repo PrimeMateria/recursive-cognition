@@ -1,0 +1,161 @@
+\begin{lexlean}{Foundation.Crypto.P256.Wire}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Crypto.P256.Model}
+\importmodule{Foundation.Browser.Application.V1.EffectsWire}
+\importmodule{Foundation.Codec.Cbor.V1.Primitive}
+\title{Elliptic curve arithmetic wire format}
+\begin{semanticmodule}
+structure{
+  name: P256LimbRead,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: values, type: (List Nat)}, {name: cursor, type: Nat}]
+}
+
+definition{
+  name: p256ReadLimbItems,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat,
+    remaining : Nat
+  ],
+  result: (Result P256LimbRead Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match remaining
+    | Nat.zero => (ctor Result.ok [P256LimbRead, Foundation.Codec.Cbor.V1.Primitive::CborError] (record P256LimbRead {values := (ctor List.nil [Nat]), cursor := cursor}))
+    | Nat.succ prior => (match (prior <=? 16)
+      | Bool.false => (ctor Result.error [P256LimbRead, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+      | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input cursor)
+        | Result.error cause => (ctor Result.error [P256LimbRead, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+        | Result.ok item => (match (p256ReadLimbItems input (project item cursor) prior)
+          | Result.error cause => (ctor Result.error [P256LimbRead, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+          | Result.ok rest => (ctor Result.ok [P256LimbRead, Foundation.Codec.Cbor.V1.Primitive::CborError] (record P256LimbRead {values := (ctor List.cons [Nat] (project item value) (project rest values)), cursor := (project rest cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: remaining
+}
+
+definition{
+  name: p256PointRequest,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input cursor 480)
+    | Result.error cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok key => (match ((project key cursor) =? (prim length (project input bytes) : Nat))
+      | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+      | Bool.true => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x830100) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBool (Foundation.Crypto.P256.Model::p256PublicKeyValid (project key value)))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: p256LimbRequest,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input cursor 17)
+    | Result.error cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok array => (match (p256ReadLimbItems input (project array cursor) (project array count))
+      | Result.error cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+      | Result.ok limbs => (match ((project limbs cursor) =? (prim length (project input bytes) : Nat))
+        | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+        | Bool.true => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x830100) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBool (Foundation.Crypto.P256.Model::p256FieldValid (project limbs values))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: p256ArithmeticResponse,
+  parameters: [operation : Nat, leftBytes : Bytes, rightBytes : Bytes],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Crypto.P256.Model::p256DecodeField leftBytes)
+    | Option.none => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x83010100)
+    | Option.some left => (match (Foundation.Crypto.P256.Model::p256DecodeField rightBytes)
+      | Option.none => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x83010100)
+      | Option.some right => (match (match (operation =? 1)
+          | Bool.false => (match (operation =? 2)
+            | Bool.false => (Foundation.Crypto.P256.Model::p256FieldMultiply left right)
+            | Bool.true => (Foundation.Crypto.P256.Model::p256FieldSubtract left right))
+          | Bool.true => (Foundation.Crypto.P256.Model::p256FieldAdd left right))
+        | Option.none => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x83010100)
+        | Option.some computed => (match (Foundation.Crypto.P256.Model::p256EncodeField computed)
+          | Option.none => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x83010100)
+          | Option.some encoded => (Foundation.Browser.Application.V1.EffectsWire::effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x830100) (Foundation.Browser.Application.V1.EffectsWire::writeEffectWireBytes encoded)))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: p256ArithmeticRequest,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat,
+    operation : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input cursor 64)
+    | Result.error cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok left => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireBytes input (project left cursor) 64)
+      | Result.error cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+      | Result.ok right => (match ((project right cursor) =? (prim length (project input bytes) : Nat))
+        | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput))
+        | Bool.true => (p256ArithmeticResponse operation (project left value) (project right value))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: p256Dispatch,
+  parameters: [
+    input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput,
+    cursor : Nat,
+    operation : Nat,
+    count : Nat
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (operation =? 0)
+    | Bool.false => (match (operation =? 4)
+      | Bool.false => (match (operation <=? 3)
+        | Bool.false => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x83010101)
+        | Bool.true => (match (count =? 4)
+          | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (p256ArithmeticRequest input cursor operation)))
+      | Bool.true => (match (count =? 3)
+        | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+        | Bool.true => (p256LimbRequest input cursor)))
+    | Bool.true => (match (count =? 3)
+      | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (p256PointRequest input cursor))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: p256ReadRequest,
+  parameters: [input : Foundation.Browser.Application.V1.EffectsWire::EffectWireInput],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (Foundation.Browser.Application.V1.EffectsWire::effectWireReadArray input 0 4)
+    | Result.error cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+    | Result.ok outer => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project outer cursor))
+      | Result.error cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+      | Result.ok version => (match ((project version value) =? 1)
+        | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+        | Bool.true => (match (Foundation.Browser.Application.V1.EffectsWire::readEffectWireNat input (project version cursor))
+          | Result.error cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+          | Result.ok operation => (p256Dispatch input (project operation cursor) (project operation value) (project outer count)))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: p256WireBytes,
+  parameters: [input : Bytes],
+  result: Bytes,
+  body: (match ((prim length input : Nat) <=? 512)
+    | Bool.false => 0x83010206
+    | Bool.true => (match (p256ReadRequest (record Foundation.Browser.Application.V1.EffectsWire::EffectWireInput {bytes := input}))
+      | Result.error cause => (Foundation.Browser.Application.V1.EffectsWire::effectWireErrorBytes cause)
+      | Result.ok output => output)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+\end{semanticmodule}
+\end{lexlean}

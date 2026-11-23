@@ -1,0 +1,630 @@
+\begin{lexlean}{Foundation.Browser.V1.Workspace}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\title{Browser workspace reducer}
+\begin{semanticmodule}
+structure{
+  name: WorkspaceByteView,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: bytes, type: Bytes}]
+}
+
+inductive{
+  name: WorkspaceRole,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Owner, fields: []},
+    {name: Contributor, fields: []},
+    {name: Reader, fields: []},
+    {name: Absent, fields: []}
+  ]
+}
+
+inductive{
+  name: WorkspaceAction,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Genesis, fields: []},
+    {name: GrantContributor, fields: []},
+    {name: GrantReader, fields: []},
+    {name: Revoke, fields: []},
+    {name: PostMessage, fields: []}
+  ]
+}
+
+inductive{
+  name: WorkspaceError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: BadEncoding, fields: []},
+    {name: BadState, fields: []},
+    {name: BadIdentity, fields: []},
+    {name: WrongWorkspace, fields: []},
+    {name: Replay, fields: []},
+    {name: StaleParent, fields: []},
+    {name: StaleSequence, fields: []},
+    {name: NotOwner, fields: []},
+    {name: OwnerImmutable, fields: []},
+    {name: AlreadyMember, fields: []},
+    {name: UnknownMember, fields: []},
+    {name: CannotPost, fields: []},
+    {name: MemberLimit, fields: []},
+    {name: MessageLimit, fields: []},
+    {name: EventLimit, fields: []},
+    {name: MessageBodyLimit, fields: []},
+    {name: InvalidUtf8, fields: []},
+    {name: GenesisRequired, fields: []},
+    {name: AlreadyInitialized, fields: []}
+  ]
+}
+
+structure{
+  name: WorkspaceState,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: workspace, type: Bytes},
+    {name: owner, type: Bytes},
+    {name: head, type: Bytes},
+    {name: sequence, type: Nat},
+    {name: members, type: Bytes},
+    {name: messages, type: Bytes},
+    {name: messageCount, type: Nat},
+    {name: seen, type: Bytes}
+  ]
+}
+
+structure{
+  name: AuthenticatedEvent,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: workspace, type: Bytes},
+    {name: eventId, type: Bytes},
+    {name: parent, type: Bytes},
+    {name: sequence, type: Nat},
+    {name: author, type: Bytes},
+    {name: action, type: WorkspaceAction},
+    {name: body, type: Bytes}
+  ]
+}
+
+inductive{
+  name: WorkspaceTransition,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Accepted, fields: [WorkspaceState]},
+    {name: Rejected, fields: [WorkspaceError]}
+  ]
+}
+
+definition{
+  name: workspaceBytesEqual,
+  parameters: [left : Bytes, right : Bytes],
+  result: Bool,
+  body: (prim equal (prim compare_bytes left right : Ordering) (prim compare_bytes 0x00 0x00 : Ordering) : Bool),
+  axioms: [propext]
+}
+
+definition{
+  name: byteWindow,
+  parameters: [value : Bytes, start : Nat, count : Nat],
+  result: Bytes,
+  body: (match (prim slice value start count : (Option Bytes))
+    | Option.none => 0x
+    | Option.some part => part),
+  axioms: []
+}
+
+definition{
+  name: byteWindowView,
+  parameters: [view : WorkspaceByteView, start : Nat, count : Nat],
+  result: Bytes,
+  body: (match (prim slice (project view bytes) start count : (Option Bytes))
+    | Option.none => 0x
+    | Option.some part => part),
+  axioms: []
+}
+
+definition{
+  name: workspaceOctetMatches,
+  parameters: [value : Bytes, offset : Nat, expected : UInt8],
+  result: Bool,
+  body: (match (prim index value offset : (Option UInt8))
+    | Option.none => false
+    | Option.some octet => (prim equal octet expected : Bool)),
+  axioms: []
+}
+
+definition{
+  name: workspaceOctetsEqualAt,
+  parameters: [value : Bytes, offset : Nat, expected : Bytes, position : Nat],
+  result: Bool,
+  body: (match (prim index value offset : (Option UInt8))
+    | Option.none => false
+    | Option.some octet => (workspaceOctetMatches expected position octet)),
+  axioms: []
+}
+
+definition{
+  name: workspaceDigestOctetsEqual,
+  parameters: [value : Bytes, start : Nat, expected : Bytes, remaining : Nat],
+  result: Bool,
+  body: (match remaining
+    | Nat.zero => true
+    | Nat.succ rest => ((workspaceOctetsEqualAt value (start + rest) expected rest) && ((workspaceDigestOctetsEqual value start expected rest) && true))),
+  axioms: [],
+  recursive_argument: remaining
+}
+
+definition{
+  name: workspaceWindowEqual,
+  parameters: [value : Bytes, start : Nat, count : Nat, expected : Bytes],
+  result: Bool,
+  body: (if (count =? 32) then (((start + 32) <=? (prim length value : Nat)) && (((prim length expected : Nat) =? 32) && ((workspaceDigestOctetsEqual value start expected 32) && true))) else (match (prim slice value start count : (Option Bytes))
+    | Option.none => false
+    | Option.some part => (workspaceBytesEqual part expected))),
+  axioms: [propext]
+}
+
+definition{
+  name: zeroDigest,
+  parameters: [],
+  result: Bytes,
+  body: 0x0000000000000000000000000000000000000000000000000000000000000000,
+  axioms: []
+}
+
+definition{
+  name: encodeOctet,
+  parameters: [value : Nat],
+  result: Bytes,
+  body: (if (value <? 128) then (if (value <? 64) then (if (value <? 32) then (if (value <? 16) then (byteWindow 0x000102030405060708090a0b0c0d0e0f (prim subtract value 0 : Nat) 1) else (byteWindow 0x101112131415161718191a1b1c1d1e1f (prim subtract value 16 : Nat) 1)) else (if (value <? 48) then (byteWindow 0x202122232425262728292a2b2c2d2e2f (prim subtract value 32 : Nat) 1) else (byteWindow 0x303132333435363738393a3b3c3d3e3f (prim subtract value 48 : Nat) 1))) else (if (value <? 96) then (if (value <? 80) then (byteWindow 0x404142434445464748494a4b4c4d4e4f (prim subtract value 64 : Nat) 1) else (byteWindow 0x505152535455565758595a5b5c5d5e5f (prim subtract value 80 : Nat) 1)) else (if (value <? 112) then (byteWindow 0x606162636465666768696a6b6c6d6e6f (prim subtract value 96 : Nat) 1) else (byteWindow 0x707172737475767778797a7b7c7d7e7f (prim subtract value 112 : Nat) 1)))) else (if (value <? 192) then (if (value <? 160) then (if (value <? 144) then (byteWindow 0x808182838485868788898a8b8c8d8e8f (prim subtract value 128 : Nat) 1) else (byteWindow 0x909192939495969798999a9b9c9d9e9f (prim subtract value 144 : Nat) 1)) else (if (value <? 176) then (byteWindow 0xa0a1a2a3a4a5a6a7a8a9aaabacadaeaf (prim subtract value 160 : Nat) 1) else (byteWindow 0xb0b1b2b3b4b5b6b7b8b9babbbcbdbebf (prim subtract value 176 : Nat) 1))) else (if (value <? 224) then (if (value <? 208) then (byteWindow 0xc0c1c2c3c4c5c6c7c8c9cacbcccdcecf (prim subtract value 192 : Nat) 1) else (byteWindow 0xd0d1d2d3d4d5d6d7d8d9dadbdcdddedf (prim subtract value 208 : Nat) 1)) else (if (value <? 240) then (byteWindow 0xe0e1e2e3e4e5e6e7e8e9eaebecedeeef (prim subtract value 224 : Nat) 1) else (byteWindow 0xf0f1f2f3f4f5f6f7f8f9fafbfcfdfeff (prim subtract value 240 : Nat) 1))))),
+  axioms: []
+}
+
+definition{
+  name: decodeOctetSearch,
+  parameters: [value : Bytes, count : Nat],
+  result: Nat,
+  body: (match count
+    | Nat.zero => 0
+    | Nat.succ rest => (if (workspaceBytesEqual value (encodeOctet rest)) then rest else (decodeOctetSearch value rest))),
+  axioms: [propext],
+  recursive_argument: count
+}
+
+definition{
+  name: decodeOctet,
+  parameters: [value : Bytes],
+  result: Nat,
+  body: (decodeOctetSearch value 256),
+  axioms: [propext]
+}
+
+definition{
+  name: encodeU16,
+  parameters: [value : Nat],
+  result: Bytes,
+  body: (prim append (prim append 0x (encodeOctet (prim quotient value 256 0 : Nat)) : Bytes) (encodeOctet (prim remainder value 256 0 : Nat)) : Bytes),
+  axioms: []
+}
+
+definition{
+  name: decodeU16,
+  parameters: [value : Bytes],
+  result: Nat,
+  body: ((prim multiply (decodeOctet (byteWindow value 0 1)) 256 : Nat) + (decodeOctet (byteWindow value 1 1))),
+  axioms: [propext]
+}
+
+definition{
+  name: readU16At,
+  parameters: [value : Bytes, offset : Nat],
+  result: Nat,
+  body: (match (prim slice value offset 2 : (Option Bytes))
+    | Option.none => 0
+    | Option.some part => (decodeU16 part)),
+  axioms: [propext]
+}
+
+definition{
+  name: encodeU24,
+  parameters: [value : Nat],
+  result: Bytes,
+  body: (prim append (prim append 0x (encodeOctet (prim quotient value 65536 0 : Nat)) : Bytes) (encodeU16 (prim remainder value 65536 0 : Nat)) : Bytes),
+  axioms: []
+}
+
+definition{
+  name: decodeU24,
+  parameters: [value : Bytes],
+  result: Nat,
+  body: ((prim multiply (decodeOctet (byteWindow value 0 1)) 65536 : Nat) + (readU16At value 1)),
+  axioms: [propext]
+}
+
+definition{
+  name: readU24At,
+  parameters: [value : Bytes, offset : Nat],
+  result: Nat,
+  body: (match (prim slice value offset 3 : (Option Bytes))
+    | Option.none => 0
+    | Option.some part => (decodeU24 part)),
+  axioms: [propext]
+}
+
+definition{
+  name: digestPresent,
+  parameters: [digest : Bytes, table : Bytes, width : Nat, count : Nat],
+  result: Bool,
+  body: (match count
+    | Nat.zero => false
+    | Nat.succ rest => ((workspaceWindowEqual table (prim multiply rest width : Nat) 32 digest) || ((digestPresent digest table width rest) || false))),
+  axioms: [propext],
+  recursive_argument: count
+}
+
+definition{
+  name: workspaceRowUnique,
+  parameters: [table : Bytes, width : Nat, position : Nat],
+  result: Bool,
+  body: (match (prim slice table (prim multiply position width : Nat) 32 : (Option Bytes))
+    | Option.none => false
+    | Option.some digest => (not (digestPresent digest table width position))),
+  axioms: [propext]
+}
+
+definition{
+  name: digestsUnique,
+  parameters: [table : Bytes, width : Nat, count : Nat],
+  result: Bool,
+  body: (match count
+    | Nat.zero => true
+    | Nat.succ rest => ((workspaceRowUnique table width rest) && ((digestsUnique table width rest) && true))),
+  axioms: [propext],
+  recursive_argument: count
+}
+
+definition{
+  name: memberRoleCode,
+  parameters: [principal : Bytes, members : Bytes, count : Nat],
+  result: Bytes,
+  body: (match count
+    | Nat.zero => 0x00
+    | Nat.succ rest => (if (workspaceBytesEqual principal (byteWindow members (prim multiply rest 33 : Nat) 32)) then (byteWindow members ((prim multiply rest 33 : Nat) + 32) 1) else (memberRoleCode principal members rest))),
+  axioms: [propext],
+  recursive_argument: count
+}
+
+definition{
+  name: workspaceRole,
+  parameters: [state : WorkspaceState, principal : Bytes],
+  result: WorkspaceRole,
+  body: (if (workspaceBytesEqual (project state owner) principal) then (ctor WorkspaceRole.Owner) else (if (workspaceBytesEqual (memberRoleCode principal (project state members) (prim quotient (prim length (project state members) : Nat) 33 0 : Nat)) 0x01) then (ctor WorkspaceRole.Contributor) else (if (workspaceBytesEqual (memberRoleCode principal (project state members) (prim quotient (prim length (project state members) : Nat) 33 0 : Nat)) 0x02) then (ctor WorkspaceRole.Reader) else (ctor WorkspaceRole.Absent)))),
+  axioms: [propext]
+}
+
+definition{
+  name: membersWellFormed,
+  parameters: [owner : Bytes, members : Bytes, count : Nat],
+  result: Bool,
+  body: (match count
+    | Nat.zero => true
+    | Nat.succ rest => ((not (workspaceBytesEqual owner (byteWindow members (prim multiply rest 33 : Nat) 32))) && (((workspaceBytesEqual (byteWindow members ((prim multiply rest 33 : Nat) + 32) 1) 0x01) || ((workspaceBytesEqual (byteWindow members ((prim multiply rest 33 : Nat) + 32) 1) 0x02) || false)) && ((membersWellFormed owner members rest) && true)))),
+  axioms: [propext],
+  recursive_argument: count
+}
+
+definition{
+  name: removeMember,
+  parameters: [principal : Bytes, members : Bytes, count : Nat],
+  result: Bytes,
+  body: (match count
+    | Nat.zero => 0x
+    | Nat.succ rest => (if (workspaceBytesEqual principal (byteWindow members (prim multiply rest 33 : Nat) 32)) then (byteWindow members 0 (prim multiply rest 33 : Nat)) else (prim append (prim append 0x (removeMember principal members rest) : Bytes) (byteWindow members (prim multiply rest 33 : Nat) 33) : Bytes))),
+  axioms: [propext],
+  recursive_argument: count
+}
+
+definition{
+  name: decodeMessageText,
+  parameters: [value : Bytes],
+  result: (Option String),
+  body: (prim utf8_decode value : (Option String)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: validMessageText,
+  parameters: [body : Bytes],
+  result: Bool,
+  body: ((0 <? (prim length body : Nat)) && (((prim length body : Nat) <=? 4096) && ((match (prim utf8_decode (prim append (prim append 0x 0x : Bytes) body : Bytes) : (Option String))
+    | Option.none => false
+    | Option.some text => true) && true))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: eventPosition,
+  parameters: [digest : Bytes, table : Bytes, count : Nat],
+  result: Nat,
+  body: (match count
+    | Nat.zero => 0
+    | Nat.succ rest => (if (workspaceWindowEqual table (prim multiply rest 32 : Nat) 32 digest) then (rest + 1) else (eventPosition digest table rest))),
+  axioms: [propext],
+  recursive_argument: count
+}
+
+definition{
+  name: messagePosition,
+  parameters: [messages : Bytes, seen : Bytes, offset : Nat],
+  result: Nat,
+  body: (match (prim slice messages offset 32 : (Option Bytes))
+    | Option.none => 0
+    | Option.some digest => (eventPosition digest seen (prim quotient (prim length seen : Nat) 32 0 : Nat))),
+  axioms: [propext]
+}
+
+definition{
+  name: messageBodyWellFormed,
+  parameters: [messages : Bytes, offset : Nat, count : Nat],
+  result: Bool,
+  body: (match (prim slice messages offset count : (Option Bytes))
+    | Option.none => false
+    | Option.some body => (validMessageText body)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: messagesWellFormed,
+  parameters: [messages : Bytes, seen : Bytes, offset : Nat, count : Nat, previous : Nat],
+  result: Bool,
+  body: (match count
+    | Nat.zero => (offset =? (prim length messages : Nat))
+    | Nat.succ rest => (((offset + 66) <=? (prim length messages : Nat)) && ((previous <? (messagePosition messages seen offset)) && ((messageBodyWellFormed messages (offset + 66) (readU16At messages (offset + 64))) && ((messagesWellFormed messages seen ((offset + 66) + (readU16At messages (offset + 64))) rest (messagePosition messages seen offset)) && true))))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: count
+}
+
+definition{
+  name: workspaceStateValid,
+  parameters: [state : WorkspaceState],
+  result: Bool,
+  body: (((prim quotient (prim length (project state members) : Nat) 33 0 : Nat) <=? (project state sequence)) && (((project state messageCount) <=? (project state sequence)) && ((((prim length (project state workspace) : Nat) =? 32) && (((prim length (project state owner) : Nat) =? 32) && (((prim length (project state head) : Nat) =? 32) && (((project state sequence) <? 1024) && (((prim length (project state seen) : Nat) =? (prim multiply ((project state sequence) + 1) 32 : Nat)) && (((prim length (project state members) : Nat) <=? 2079) && (((prim remainder (prim length (project state members) : Nat) 33 0 : Nat) =? 0) && (((project state messageCount) <=? 256) && (((prim length (project state messages) : Nat) <=? 1065472) && ((workspaceWindowEqual (project state seen) (prim multiply (project state sequence) 32 : Nat) 32 (project state head)) && ((not (digestPresent 0x0000000000000000000000000000000000000000000000000000000000000000 (project state seen) 32 ((project state sequence) + 1))) && ((digestsUnique (project state seen) 32 ((project state sequence) + 1)) && ((digestsUnique (project state members) 33 (prim quotient (prim length (project state members) : Nat) 33 0 : Nat)) && ((membersWellFormed (project state owner) (project state members) (prim quotient (prim length (project state members) : Nat) 33 0 : Nat)) && ((messagesWellFormed (project state messages) (project state seen) 0 (project state messageCount) 1) && true))))))))))))))) && true))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: grantMember,
+  parameters: [state : WorkspaceState, event : AuthenticatedEvent, role : Bytes],
+  result: WorkspaceTransition,
+  body: (if (not ((prim length (project event body) : Nat) =? 32)) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.BadIdentity)) else (if (not (workspaceBytesEqual (project event author) (project state owner))) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.NotOwner)) else (if (workspaceBytesEqual (project event body) (project state owner)) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.OwnerImmutable)) else (if (digestPresent (project event body) (project state members) 33 (prim quotient (prim length (project state members) : Nat) 33 0 : Nat)) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.AlreadyMember)) else (if (2079 <=? (prim length (project state members) : Nat)) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.MemberLimit)) else (ctor WorkspaceTransition.Accepted (record WorkspaceState {workspace := (project state workspace), owner := (project state owner), head := (project event eventId), sequence := (project event sequence), members := (prim append (prim append (prim append 0x (project state members) : Bytes) (project event body) : Bytes) role : Bytes), messages := (project state messages), messageCount := (project state messageCount), seen := (prim append (prim append 0x (project state seen) : Bytes) (project event eventId) : Bytes)}))))))),
+  axioms: [propext]
+}
+
+definition{
+  name: applyWorkspaceAction,
+  parameters: [state : WorkspaceState, event : AuthenticatedEvent],
+  result: WorkspaceTransition,
+  body: (match (project event action)
+    | WorkspaceAction.Genesis => (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.AlreadyInitialized))
+    | WorkspaceAction.GrantContributor => (grantMember state event 0x01)
+    | WorkspaceAction.GrantReader => (grantMember state event 0x02)
+    | WorkspaceAction.Revoke => (if (not ((prim length (project event body) : Nat) =? 32)) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.BadIdentity)) else (if (not (workspaceBytesEqual (project event author) (project state owner))) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.NotOwner)) else (if (workspaceBytesEqual (project event body) (project state owner)) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.OwnerImmutable)) else (if (not (digestPresent (project event body) (project state members) 33 (prim quotient (prim length (project state members) : Nat) 33 0 : Nat))) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.UnknownMember)) else (ctor WorkspaceTransition.Accepted (record WorkspaceState {workspace := (project state workspace), owner := (project state owner), head := (project event eventId), sequence := (project event sequence), members := (removeMember (project event body) (project state members) (prim quotient (prim length (project state members) : Nat) 33 0 : Nat)), messages := (project state messages), messageCount := (project state messageCount), seen := (prim append (prim append 0x (project state seen) : Bytes) (project event eventId) : Bytes)}))))))
+    | WorkspaceAction.PostMessage => (if (not ((workspaceBytesEqual (project event author) (project state owner)) || ((workspaceBytesEqual (memberRoleCode (project event author) (project state members) (prim quotient (prim length (project state members) : Nat) 33 0 : Nat)) 0x01) || false))) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.CannotPost)) else (if (((prim length (project event body) : Nat) =? 0) || ((4096 <? (prim length (project event body) : Nat)) || false)) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.MessageBodyLimit)) else (if (not (validMessageText (project event body))) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.InvalidUtf8)) else (if (256 <=? (project state messageCount)) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.MessageLimit)) else (ctor WorkspaceTransition.Accepted (record WorkspaceState {workspace := (project state workspace), owner := (project state owner), head := (project event eventId), sequence := (project event sequence), members := (project state members), messages := (prim append (prim append (prim append (prim append (prim append 0x (project state messages) : Bytes) (project event eventId) : Bytes) (project event author) : Bytes) (encodeU16 (prim length (project event body) : Nat)) : Bytes) (project event body) : Bytes), messageCount := ((project state messageCount) + 1), seen := (prim append (prim append 0x (project state seen) : Bytes) (project event eventId) : Bytes)}))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: reduceExistingWorkspace,
+  parameters: [state : WorkspaceState, event : AuthenticatedEvent],
+  result: WorkspaceTransition,
+  body: (if (not (workspaceStateValid state)) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.BadState)) else (if (not (workspaceBytesEqual (project state workspace) (project event workspace))) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.WrongWorkspace)) else (if (digestPresent (project event eventId) (project state seen) 32 ((project state sequence) + 1)) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.Replay)) else (if (not (workspaceBytesEqual (project state head) (project event parent))) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.StaleParent)) else (if (not ((project event sequence) =? ((project state sequence) + 1))) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.StaleSequence)) else (if (1023 <=? (project state sequence)) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.EventLimit)) else (applyWorkspaceAction state event))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: createWorkspace,
+  parameters: [event : AuthenticatedEvent],
+  result: WorkspaceTransition,
+  body: (match (project event action)
+    | WorkspaceAction.Genesis => (if (not (workspaceBytesEqual (project event parent) 0x0000000000000000000000000000000000000000000000000000000000000000)) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.StaleParent)) else (if (not ((project event sequence) =? 0)) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.StaleSequence)) else (if (not ((prim length (project event body) : Nat) =? 0)) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.BadEncoding)) else (ctor WorkspaceTransition.Accepted (record WorkspaceState {workspace := (project event workspace), owner := (project event author), head := (project event eventId), sequence := 0, members := 0x, messages := 0x, messageCount := 0, seen := (project event eventId)})))))
+    | WorkspaceAction.GrantContributor => (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.GenesisRequired))
+    | WorkspaceAction.GrantReader => (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.GenesisRequired))
+    | WorkspaceAction.Revoke => (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.GenesisRequired))
+    | WorkspaceAction.PostMessage => (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.GenesisRequired))),
+  axioms: [propext]
+}
+
+definition{
+  name: reduceAuthenticatedEvent,
+  parameters: [state : (Option WorkspaceState), event : AuthenticatedEvent],
+  result: WorkspaceTransition,
+  body: (if (not (((prim length (project event workspace) : Nat) =? 32) && (((prim length (project event eventId) : Nat) =? 32) && (((prim length (project event parent) : Nat) =? 32) && (((prim length (project event author) : Nat) =? 32) && ((not (workspaceBytesEqual (project event eventId) 0x0000000000000000000000000000000000000000000000000000000000000000)) && true)))))) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.BadIdentity)) else (if (4096 <? (prim length (project event body) : Nat)) then (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.MessageBodyLimit)) else (match state
+    | Option.none => (createWorkspace event)
+    | Option.some existing => (reduceExistingWorkspace existing event)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: encodeWorkspaceState,
+  parameters: [state : WorkspaceState],
+  result: Bytes,
+  body: (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append 0x 0x01 : Bytes) (project state workspace) : Bytes) (project state owner) : Bytes) (project state head) : Bytes) (encodeU16 (project state sequence)) : Bytes) (encodeU16 (project state messageCount)) : Bytes) (encodeU16 (prim length (project state members) : Nat)) : Bytes) (encodeU24 (prim length (project state messages) : Nat)) : Bytes) (encodeU16 (prim length (project state seen) : Nat)) : Bytes) (project state members) : Bytes) (project state messages) : Bytes) (project state seen) : Bytes),
+  axioms: []
+}
+
+definition{
+  name: decodeWorkspaceStateFieldsView,
+  parameters: [view : WorkspaceByteView, memberSize : Nat, messageSize : Nat, seenSize : Nat],
+  result: (Option WorkspaceState),
+  body: (if ((memberSize <=? 2079) && ((messageSize <=? 1065472) && ((seenSize <=? 32768) && (((prim length (project view bytes) : Nat) =? (108 + (memberSize + (messageSize + seenSize)))) && true)))) then (ctor Option.some [WorkspaceState] (record WorkspaceState {workspace := (byteWindowView view 1 32), owner := (byteWindowView view 33 32), head := (byteWindowView view 65 32), sequence := (readU16At (project view bytes) 97), members := (byteWindowView view 108 memberSize), messages := (byteWindowView view (108 + memberSize) messageSize), messageCount := (readU16At (project view bytes) 99), seen := (byteWindowView view (108 + (memberSize + messageSize)) seenSize)})) else (ctor Option.none [WorkspaceState])),
+  axioms: [propext]
+}
+
+definition{
+  name: decodeWorkspaceStateFields,
+  parameters: [value : Bytes, memberSize : Nat, messageSize : Nat, seenSize : Nat],
+  result: (Option WorkspaceState),
+  body: (decodeWorkspaceStateFieldsView (record WorkspaceByteView {bytes := value}) memberSize messageSize seenSize),
+  axioms: [propext]
+}
+
+definition{
+  name: decodeWorkspaceStateView,
+  parameters: [view : WorkspaceByteView],
+  result: (Option WorkspaceState),
+  body: (if ((108 <=? (prim length (project view bytes) : Nat)) && (((prim length (project view bytes) : Nat) <=? 1100427) && ((workspaceBytesEqual (byteWindowView view 0 1) 0x01) && true))) then (decodeWorkspaceStateFieldsView view (readU16At (project view bytes) 101) (readU24At (project view bytes) 103) (readU16At (project view bytes) 106)) else (ctor Option.none [WorkspaceState])),
+  axioms: [propext]
+}
+
+definition{
+  name: decodeWorkspaceState,
+  parameters: [value : Bytes],
+  result: (Option WorkspaceState),
+  body: (decodeWorkspaceStateView (record WorkspaceByteView {bytes := value})),
+  axioms: [propext]
+}
+
+definition{
+  name: encodeWorkspaceAction,
+  parameters: [action : WorkspaceAction],
+  result: Bytes,
+  body: (match action
+    | WorkspaceAction.Genesis => 0x00
+    | WorkspaceAction.GrantContributor => 0x01
+    | WorkspaceAction.GrantReader => 0x02
+    | WorkspaceAction.Revoke => 0x03
+    | WorkspaceAction.PostMessage => 0x04),
+  axioms: []
+}
+
+definition{
+  name: encodeAuthenticatedEvent,
+  parameters: [event : AuthenticatedEvent],
+  result: Bytes,
+  body: (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append 0x 0x01 : Bytes) (encodeWorkspaceAction (project event action)) : Bytes) (project event workspace) : Bytes) (project event eventId) : Bytes) (project event parent) : Bytes) (project event author) : Bytes) (encodeU16 (project event sequence)) : Bytes) (encodeU16 (prim length (project event body) : Nat)) : Bytes) (project event body) : Bytes),
+  axioms: []
+}
+
+definition{
+  name: decodeAuthenticatedEvent,
+  parameters: [value : Bytes],
+  result: (Option AuthenticatedEvent),
+  body: (if (((134 <=? (prim length value : Nat)) && (((prim length value : Nat) <=? 4230) && ((workspaceBytesEqual (byteWindow value 0 1) 0x01) && true))) && (((prim length value : Nat) =? (134 + (readU16At value 132))) && true)) then (if (workspaceBytesEqual (byteWindow value 1 1) 0x00) then (ctor Option.some [AuthenticatedEvent] (record AuthenticatedEvent {workspace := (byteWindow value 2 32), eventId := (byteWindow value 34 32), parent := (byteWindow value 66 32), sequence := (readU16At value 130), author := (byteWindow value 98 32), action := (ctor WorkspaceAction.Genesis), body := (byteWindow value 134 (prim subtract (prim length value : Nat) 134 : Nat))})) else (if (workspaceBytesEqual (byteWindow value 1 1) 0x01) then (ctor Option.some [AuthenticatedEvent] (record AuthenticatedEvent {workspace := (byteWindow value 2 32), eventId := (byteWindow value 34 32), parent := (byteWindow value 66 32), sequence := (readU16At value 130), author := (byteWindow value 98 32), action := (ctor WorkspaceAction.GrantContributor), body := (byteWindow value 134 (prim subtract (prim length value : Nat) 134 : Nat))})) else (if (workspaceBytesEqual (byteWindow value 1 1) 0x02) then (ctor Option.some [AuthenticatedEvent] (record AuthenticatedEvent {workspace := (byteWindow value 2 32), eventId := (byteWindow value 34 32), parent := (byteWindow value 66 32), sequence := (readU16At value 130), author := (byteWindow value 98 32), action := (ctor WorkspaceAction.GrantReader), body := (byteWindow value 134 (prim subtract (prim length value : Nat) 134 : Nat))})) else (if (workspaceBytesEqual (byteWindow value 1 1) 0x03) then (ctor Option.some [AuthenticatedEvent] (record AuthenticatedEvent {workspace := (byteWindow value 2 32), eventId := (byteWindow value 34 32), parent := (byteWindow value 66 32), sequence := (readU16At value 130), author := (byteWindow value 98 32), action := (ctor WorkspaceAction.Revoke), body := (byteWindow value 134 (prim subtract (prim length value : Nat) 134 : Nat))})) else (if (workspaceBytesEqual (byteWindow value 1 1) 0x04) then (ctor Option.some [AuthenticatedEvent] (record AuthenticatedEvent {workspace := (byteWindow value 2 32), eventId := (byteWindow value 34 32), parent := (byteWindow value 66 32), sequence := (readU16At value 130), author := (byteWindow value 98 32), action := (ctor WorkspaceAction.PostMessage), body := (byteWindow value 134 (prim subtract (prim length value : Nat) 134 : Nat))})) else (ctor Option.none [AuthenticatedEvent])))))) else (ctor Option.none [AuthenticatedEvent])),
+  axioms: [propext]
+}
+
+definition{
+  name: reduceDecodedState,
+  parameters: [state : (Option WorkspaceState), event : AuthenticatedEvent],
+  result: WorkspaceTransition,
+  body: (match state
+    | Option.none => (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.BadEncoding))
+    | Option.some existing => (reduceAuthenticatedEvent (ctor Option.some [WorkspaceState] existing) event)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: reduceWorkspaceBytesEvent,
+  parameters: [stateBytes : Bytes, event : AuthenticatedEvent],
+  result: WorkspaceTransition,
+  body: (if ((prim length stateBytes : Nat) =? 0) then (reduceAuthenticatedEvent (ctor Option.none [WorkspaceState]) event) else (reduceDecodedState (decodeWorkspaceState stateBytes) event)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: reduceWorkspaceBytesParts,
+  parameters: [stateBytes : Bytes, eventBytes : Bytes],
+  result: WorkspaceTransition,
+  body: (match (decodeAuthenticatedEvent eventBytes)
+    | Option.none => (ctor WorkspaceTransition.Rejected (ctor WorkspaceError.BadEncoding))
+    | Option.some event => (reduceWorkspaceBytesEvent stateBytes event)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: encodeWorkspaceError,
+  parameters: [error : WorkspaceError],
+  result: Bytes,
+  body: (match error
+    | WorkspaceError.BadEncoding => 0x01
+    | WorkspaceError.BadState => 0x02
+    | WorkspaceError.BadIdentity => 0x03
+    | WorkspaceError.WrongWorkspace => 0x04
+    | WorkspaceError.Replay => 0x05
+    | WorkspaceError.StaleParent => 0x06
+    | WorkspaceError.StaleSequence => 0x07
+    | WorkspaceError.NotOwner => 0x08
+    | WorkspaceError.OwnerImmutable => 0x09
+    | WorkspaceError.AlreadyMember => 0x0a
+    | WorkspaceError.UnknownMember => 0x0b
+    | WorkspaceError.CannotPost => 0x0c
+    | WorkspaceError.MemberLimit => 0x0d
+    | WorkspaceError.MessageLimit => 0x0e
+    | WorkspaceError.EventLimit => 0x0f
+    | WorkspaceError.MessageBodyLimit => 0x10
+    | WorkspaceError.InvalidUtf8 => 0x11
+    | WorkspaceError.GenesisRequired => 0x12
+    | WorkspaceError.AlreadyInitialized => 0x13),
+  axioms: []
+}
+
+definition{
+  name: encodeWorkspaceTransition,
+  parameters: [transition : WorkspaceTransition],
+  result: Bytes,
+  body: (match transition
+    | WorkspaceTransition.Accepted state => (prim append (prim append 0x 0x00 : Bytes) (encodeWorkspaceState state) : Bytes)
+    | WorkspaceTransition.Rejected error => (encodeWorkspaceError error)),
+  axioms: []
+}
+
+definition{
+  name: reduceWorkspaceBytesView,
+  parameters: [view : WorkspaceByteView],
+  result: Bytes,
+  body: (if ((7 <=? (prim length (project view bytes) : Nat)) && (((prim length (project view bytes) : Nat) <=? 1104664) && ((workspaceBytesEqual (byteWindowView view 0 4) 0x50575201) && (((readU24At (project view bytes) 4) <=? (prim subtract (prim length (project view bytes) : Nat) 7 : Nat)) && true)))) then (encodeWorkspaceTransition (reduceWorkspaceBytesParts (byteWindowView view 7 (readU24At (project view bytes) 4)) (byteWindowView view (7 + (readU24At (project view bytes) 4)) (prim subtract (prim subtract (prim length (project view bytes) : Nat) 7 : Nat) (readU24At (project view bytes) 4) : Nat)))) else (encodeWorkspaceError (ctor WorkspaceError.BadEncoding))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: reduceWorkspaceBytes,
+  parameters: [request : Bytes],
+  result: Bytes,
+  body: (reduceWorkspaceBytesView (record WorkspaceByteView {bytes := request})),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: encodeWorkspaceRequest,
+  parameters: [stateBytes : Bytes, eventBytes : Bytes],
+  result: Bytes,
+  body: (prim append (prim append (prim append (prim append 0x 0x50575201 : Bytes) (encodeU24 (prim length stateBytes : Nat)) : Bytes) stateBytes : Bytes) eventBytes : Bytes),
+  axioms: []
+}
+
+definition{
+  name: encodeUnsignedEvent,
+  parameters: [event : AuthenticatedEvent],
+  result: Bytes,
+  body: (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append 0x 0x01 : Bytes) (encodeWorkspaceAction (project event action)) : Bytes) (project event workspace) : Bytes) (project event parent) : Bytes) (project event author) : Bytes) (encodeU16 (project event sequence)) : Bytes) (encodeU16 (prim length (project event body) : Nat)) : Bytes) (project event body) : Bytes),
+  axioms: []
+}
+
+definition{
+  name: workspaceSigningPreimage,
+  parameters: [event : AuthenticatedEvent],
+  result: Bytes,
+  body: (prim append (prim append (prim append (prim append 0x 0x707269736d706d2f62726f777365722d7369676e61747572652f3100 : Bytes) 0x0019 : Bytes) 0x707269736d706d2f776f726b73706163652d6576656e742f31 : Bytes) (encodeUnsignedEvent event) : Bytes),
+  axioms: []
+}
+\end{semanticmodule}
+\end{lexlean}

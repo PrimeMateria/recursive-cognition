@@ -1,0 +1,4 @@
+lexlean 0.4.5
+language 1.0
+compiler-semantics blake3:033237f7056dad2227e8d0344867d657f07f17f90e98d0dfa9b7bf684b3132e9
+lean-toolchain leanprover/lean4:v4.32.2

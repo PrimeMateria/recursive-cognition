@@ -1,0 +1,592 @@
+\begin{lexlean}{Foundation.Browser.V1.WorkspaceJournal}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Browser.V1.Workspace}
+\importmodule{Foundation.Browser.V1.WorkspaceEnvelope}
+\title{Browser workspace journal}
+\begin{semanticmodule}
+definition{
+  name: journalCount,
+  parameters: [head : Foundation.Browser.V1.Workspace::WorkspaceByteView],
+  result: Nat,
+  body: (match ((prim length (project head bytes) : Nat) =? 0)
+    | Bool.false => (Foundation.Browser.V1.Workspace::readU16At (project head bytes) 36)
+    | Bool.true => 0),
+  axioms: [propext]
+}
+
+definition{
+  name: journalDigestValid,
+  parameters: [value : Foundation.Browser.V1.Workspace::WorkspaceByteView],
+  result: Bool,
+  body: (((prim length (project value bytes) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (project value bytes) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)),
+  axioms: [propext]
+}
+
+definition{
+  name: journalOctetCandidateEqual,
+  parameters: [left : UInt8, right : (Option UInt8)],
+  result: Bool,
+  body: (match right
+    | Option.none => false
+    | Option.some rightValue => (prim equal left rightValue : Bool)),
+  axioms: []
+}
+
+definition{
+  name: journalOctetsEqual,
+  parameters: [left : (Option UInt8), right : (Option UInt8)],
+  result: Bool,
+  body: (match left
+    | Option.none => false
+    | Option.some leftValue => (journalOctetCandidateEqual leftValue right)),
+  axioms: []
+}
+
+definition{
+  name: journalRowBytesEqual,
+  parameters: [
+    view : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    left : Nat,
+    right : Nat,
+    remaining : Nat
+  ],
+  result: Bool,
+  body: (match remaining
+    | Nat.zero => true
+    | Nat.succ rest => ((journalOctetsEqual (prim index (project view bytes) (left + rest) : (Option UInt8)) (prim index (project view bytes) (right + rest) : (Option UInt8))) && ((journalRowBytesEqual view left right rest) && true))),
+  axioms: [],
+  recursive_argument: remaining
+}
+
+definition{
+  name: journalPriorRowBlock,
+  parameters: [
+    view : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    position : Nat,
+    offset : Nat,
+    start : Nat,
+    remaining : Nat
+  ],
+  result: Bool,
+  body: (match remaining
+    | Nat.zero => true
+    | Nat.succ rest => ((match (position <=? (start + rest))
+      | Bool.false => (not (journalRowBytesEqual view ((prim multiply position 64 : Nat) + offset) ((prim multiply (start + rest) 64 : Nat) + offset) 32))
+      | Bool.true => true) && ((journalPriorRowBlock view position offset start rest) && true))),
+  axioms: [],
+  recursive_argument: remaining
+}
+
+definition{
+  name: journalPriorRowBlocks,
+  parameters: [
+    view : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    position : Nat,
+    offset : Nat,
+    groups : Nat
+  ],
+  result: Bool,
+  body: (match groups
+    | Nat.zero => true
+    | Nat.succ rest => ((match (position <=? (prim multiply rest 32 : Nat))
+      | Bool.false => (journalPriorRowBlock view position offset (prim multiply rest 32 : Nat) 32)
+      | Bool.true => true) && ((journalPriorRowBlocks view position offset rest) && true))),
+  axioms: [],
+  recursive_argument: groups
+}
+
+definition{
+  name: journalPriorDigestAbsent,
+  parameters: [
+    view : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    digest : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    offset : Nat,
+    count : Nat
+  ],
+  result: Bool,
+  body: (match count
+    | Nat.zero => true
+    | Nat.succ rest => ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView view ((prim multiply rest 64 : Nat) + offset) 32) (project digest bytes))) && ((journalPriorDigestAbsent view digest offset rest) && true))),
+  axioms: [propext],
+  recursive_argument: count
+}
+
+definition{
+  name: journalRowValid,
+  parameters: [view : Foundation.Browser.V1.Workspace::WorkspaceByteView, position : Nat],
+  result: Bool,
+  body: ((((prim length (Foundation.Browser.V1.Workspace::byteWindowView view (prim multiply position 64 : Nat) 32) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView view (prim multiply position 64 : Nat) 32) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && ((((prim length (Foundation.Browser.V1.Workspace::byteWindowView view ((prim multiply position 64 : Nat) + 32) 32) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView view ((prim multiply position 64 : Nat) + 32) 32) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && ((journalPriorRowBlocks view position 0 32) && ((journalPriorRowBlocks view position 32 32) && true)))),
+  axioms: [propext]
+}
+
+definition{
+  name: journalRowsBlock,
+  parameters: [
+    view : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    count : Nat,
+    start : Nat,
+    remaining : Nat
+  ],
+  result: Bool,
+  body: (match remaining
+    | Nat.zero => true
+    | Nat.succ rest => ((match (count <=? (start + rest))
+      | Bool.false => (journalRowValid view (start + rest))
+      | Bool.true => true) && ((journalRowsBlock view count start rest) && true))),
+  axioms: [propext],
+  recursive_argument: remaining
+}
+
+definition{
+  name: journalRowsBlocks,
+  parameters: [
+    view : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    count : Nat,
+    groups : Nat
+  ],
+  result: Bool,
+  body: (match groups
+    | Nat.zero => true
+    | Nat.succ rest => ((match (count <=? (prim multiply rest 32 : Nat))
+      | Bool.false => (journalRowsBlock view count (prim multiply rest 32 : Nat) 32)
+      | Bool.true => true) && ((journalRowsBlocks view count rest) && true))),
+  axioms: [propext],
+  recursive_argument: groups
+}
+
+definition{
+  name: journalRowsValid,
+  parameters: [view : Foundation.Browser.V1.Workspace::WorkspaceByteView, count : Nat],
+  result: Bool,
+  body: ((count <=? 1024) && ((journalRowsBlocks view count 32) && true)),
+  axioms: [propext]
+}
+
+definition{
+  name: journalHeadValid,
+  parameters: [head : Foundation.Browser.V1.Workspace::WorkspaceByteView],
+  result: Bool,
+  body: (match ((prim length (project head bytes) : Nat) =? 0)
+    | Bool.false => ((102 <=? (prim length (project head bytes) : Nat)) && (((prim length (project head bytes) : Nat) <=? 65574) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView head 0 4) 0x50574a01) && ((((prim length (Foundation.Browser.V1.Workspace::byteWindowView head 4 32) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView head 4 32) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && ((1 <=? (journalCount head)) && (((journalCount head) <=? 1024) && (((prim length (project head bytes) : Nat) =? (38 + (prim multiply (journalCount head) 64 : Nat))) && ((journalRowsValid (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView head 38 (prim subtract (prim length (project head bytes) : Nat) 38 : Nat))}) (journalCount head)) && true))))))))
+    | Bool.true => true),
+  axioms: [propext]
+}
+
+definition{
+  name: journalSeenMatches,
+  parameters: [
+    rows : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    seen : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    count : Nat
+  ],
+  result: Bool,
+  body: (match count
+    | Nat.zero => true
+    | Nat.succ rest => ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView rows (prim multiply rest 64 : Nat) 32) (Foundation.Browser.V1.Workspace::byteWindowView seen (prim multiply rest 32 : Nat) 32)) && ((journalSeenMatches rows seen rest) && true))),
+  axioms: [propext],
+  recursive_argument: count
+}
+
+definition{
+  name: journalStateMatchesDecoded,
+  parameters: [
+    head : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    state : Foundation.Browser.V1.Workspace::WorkspaceState
+  ],
+  result: Bool,
+  body: ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView head 4 32) (project state workspace)) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView head (38 + (prim multiply (prim subtract (journalCount head) 1 : Nat) 64 : Nat)) 32) (project state head)) && ((((project state sequence) + 1) =? (journalCount head)) && (((prim length (project state seen) : Nat) =? (prim multiply (journalCount head) 32 : Nat)) && ((journalSeenMatches (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView head 38 (prim subtract (prim length (project head bytes) : Nat) 38 : Nat))}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (project state seen)}) (journalCount head)) && true))))),
+  axioms: [propext]
+}
+
+definition{
+  name: journalStateMatches,
+  parameters: [
+    head : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    state : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bool,
+  body: (match ((prim length (project head bytes) : Nat) =? 0)
+    | Bool.false => (match (Foundation.Browser.V1.Workspace::decodeWorkspaceState (project state bytes))
+      | Option.none => false
+      | Option.some decoded => (journalStateMatchesDecoded head decoded))
+    | Bool.true => ((prim length (project state bytes) : Nat) =? 0)),
+  axioms: [propext]
+}
+
+definition{
+  name: journalNextHead,
+  parameters: [
+    head : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    event : Foundation.Browser.V1.Workspace::AuthenticatedEvent,
+    objectId : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bytes,
+  body: (prim append (prim append (prim append (prim append (prim append (prim append 0x 0x50574a01 : Bytes) (project event workspace) : Bytes) (Foundation.Browser.V1.Workspace::encodeU16 ((journalCount head) + 1)) : Bytes) (match ((prim length (project head bytes) : Nat) =? 0)
+    | Bool.false => (Foundation.Browser.V1.Workspace::byteWindowView head 38 (prim subtract (prim length (project head bytes) : Nat) 38 : Nat))
+    | Bool.true => 0x) : Bytes) (project event eventId) : Bytes) (project objectId bytes) : Bytes),
+  axioms: [propext]
+}
+
+definition{
+  name: journalPlanBytes,
+  parameters: [
+    nextHead : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    nextState : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bytes,
+  body: (prim append (prim append (prim append (prim append (prim append 0x 0x00 : Bytes) (Foundation.Browser.V1.Workspace::encodeU24 (prim length (project nextHead bytes) : Nat)) : Bytes) (Foundation.Browser.V1.Workspace::encodeU24 (prim length (project nextState bytes) : Nat)) : Bytes) (project nextHead bytes) : Bytes) (project nextState bytes) : Bytes),
+  axioms: []
+}
+
+definition{
+  name: journalAcceptedPlan,
+  parameters: [
+    head : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    event : Foundation.Browser.V1.Workspace::AuthenticatedEvent,
+    objectId : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    nextState : Foundation.Browser.V1.Workspace::WorkspaceState
+  ],
+  result: Bytes,
+  body: (journalPlanBytes (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (journalNextHead head event objectId)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::encodeWorkspaceState nextState)})),
+  axioms: [propext]
+}
+
+definition{
+  name: journalReduce,
+  parameters: [
+    head : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    state : (Option Foundation.Browser.V1.Workspace::WorkspaceState),
+    objectId : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    event : Foundation.Browser.V1.Workspace::AuthenticatedEvent
+  ],
+  result: Bytes,
+  body: (match (Foundation.Browser.V1.Workspace::reduceAuthenticatedEvent state event)
+    | Foundation.Browser.V1.Workspace::WorkspaceTransition.Rejected error => (prim append (prim append 0x 0x10 : Bytes) (Foundation.Browser.V1.Workspace::encodeWorkspaceError error) : Bytes)
+    | Foundation.Browser.V1.Workspace::WorkspaceTransition.Accepted nextState => (journalAcceptedPlan head event objectId nextState)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: journalAppendChecked,
+  parameters: [
+    head : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    state : (Option Foundation.Browser.V1.Workspace::WorkspaceState),
+    objectId : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    event : Foundation.Browser.V1.Workspace::AuthenticatedEvent
+  ],
+  result: Bytes,
+  body: (match (not (((prim length (project event workspace) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (project event workspace) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)))
+    | Bool.false => (match (not (((prim length (project objectId bytes) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (project objectId bytes) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)))
+      | Bool.false => (match (1024 <=? (journalCount head))
+        | Bool.false => (match (not (journalPriorDigestAbsent (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (match ((prim length (project head bytes) : Nat) =? 0)
+            | Bool.false => (Foundation.Browser.V1.Workspace::byteWindowView head 38 (prim subtract (prim length (project head bytes) : Nat) 38 : Nat))
+            | Bool.true => 0x)}) objectId 32 (journalCount head)))
+          | Bool.false => (journalReduce head state objectId event)
+          | Bool.true => 0x05)
+        | Bool.true => 0x06)
+      | Bool.true => 0x04)
+    | Bool.true => 0x02),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: journalAppendExisting,
+  parameters: [
+    head : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    state : Foundation.Browser.V1.Workspace::WorkspaceState,
+    objectId : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    event : Foundation.Browser.V1.Workspace::AuthenticatedEvent
+  ],
+  result: Bytes,
+  body: (match (journalStateMatchesDecoded head state)
+    | Bool.false => 0x03
+    | Bool.true => (journalAppendChecked head (ctor Option.some [Foundation.Browser.V1.Workspace::WorkspaceState] state) objectId event)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: journalAppendEvent,
+  parameters: [
+    head : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    state : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    objectId : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    event : Foundation.Browser.V1.Workspace::AuthenticatedEvent
+  ],
+  result: Bytes,
+  body: (match (not (journalHeadValid head))
+    | Bool.false => (match ((prim length (project head bytes) : Nat) =? 0)
+      | Bool.false => (match (Foundation.Browser.V1.Workspace::decodeWorkspaceState (project state bytes))
+        | Option.none => 0x03
+        | Option.some existing => (journalAppendExisting head existing objectId event))
+      | Bool.true => (match ((prim length (project state bytes) : Nat) =? 0)
+        | Bool.false => 0x03
+        | Bool.true => (journalAppendChecked head (ctor Option.none [Foundation.Browser.V1.Workspace::WorkspaceState]) objectId event)))
+    | Bool.true => 0x02),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: journalAppendCandidate,
+  parameters: [
+    head : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    state : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    objectId : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    candidate : Foundation.Browser.V1.WorkspaceEnvelope::WorkspaceEnvelope
+  ],
+  result: Bytes,
+  body: (match (Foundation.Browser.V1.Workspace::decodeAuthenticatedEvent (project candidate eventBytes))
+    | Option.none => 0x01
+    | Option.some event => (journalAppendEvent head state objectId event)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: prepareJournalAppend,
+  parameters: [
+    head : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    state : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    objectId : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    envelope : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bytes,
+  body: (match (Foundation.Browser.V1.WorkspaceEnvelope::decodeWorkspaceEnvelope (project envelope bytes))
+    | Option.none => 0x01
+    | Option.some candidate => (journalAppendCandidate head state objectId candidate)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: journalAppendFields,
+  parameters: [
+    request : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    headLength : Nat,
+    stateLength : Nat
+  ],
+  result: Bytes,
+  body: (match ((headLength <=? 65574) && ((stateLength <=? 1100427) && ((((305 + headLength) + stateLength) <=? (prim length (project request bytes) : Nat)) && (((prim length (project request bytes) : Nat) <=? ((4401 + headLength) + stateLength)) && true))))
+    | Bool.false => 0x01
+    | Bool.true => (prepareJournalAppend (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView request 6 headLength)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView request (6 + headLength) stateLength)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView request ((6 + headLength) + stateLength) 32)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView request ((38 + headLength) + stateLength) (prim subtract (prim length (project request bytes) : Nat) ((38 + headLength) + stateLength) : Nat))}))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: journalAppendBytes,
+  parameters: [request : Foundation.Browser.V1.Workspace::WorkspaceByteView],
+  result: Bytes,
+  body: (match (6 <=? (prim length (project request bytes) : Nat))
+    | Bool.false => 0x01
+    | Bool.true => (journalAppendFields request (Foundation.Browser.V1.Workspace::readU24At (project request bytes) 0) (Foundation.Browser.V1.Workspace::readU24At (project request bytes) 3))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: journalReplayBound,
+  parameters: [
+    target : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    head : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    state : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    objectId : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    envelope : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    event : Foundation.Browser.V1.Workspace::AuthenticatedEvent
+  ],
+  result: Bytes,
+  body: (match ((journalHeadValid target) && ((not ((prim length (project target bytes) : Nat) =? 0)) && ((journalHeadValid head) && ((((journalCount head) + 1) <=? (journalCount target)) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView head 38 (prim subtract (prim length (project head bytes) : Nat) 38 : Nat)) (Foundation.Browser.V1.Workspace::byteWindowView target 38 (prim multiply (journalCount head) 64 : Nat))) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (project event workspace) (Foundation.Browser.V1.Workspace::byteWindowView target 4 32)) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (project event eventId) (Foundation.Browser.V1.Workspace::byteWindowView target (38 + (prim multiply (journalCount head) 64 : Nat)) 32)) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (project objectId bytes) (Foundation.Browser.V1.Workspace::byteWindowView target (70 + (prim multiply (journalCount head) 64 : Nat)) 32)) && true))))))))
+    | Bool.false => 0x07
+    | Bool.true => (prepareJournalAppend head state objectId envelope)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: journalReplayCandidate,
+  parameters: [
+    target : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    head : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    state : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    objectId : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    envelope : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    candidate : Foundation.Browser.V1.WorkspaceEnvelope::WorkspaceEnvelope
+  ],
+  result: Bytes,
+  body: (match (Foundation.Browser.V1.Workspace::decodeAuthenticatedEvent (project candidate eventBytes))
+    | Option.none => 0x01
+    | Option.some event => (journalReplayBound target head state objectId envelope event)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: replayJournalEntry,
+  parameters: [
+    target : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    head : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    state : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    objectId : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    envelope : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bytes,
+  body: (match (Foundation.Browser.V1.WorkspaceEnvelope::decodeWorkspaceEnvelope (project envelope bytes))
+    | Option.none => 0x01
+    | Option.some candidate => (journalReplayCandidate target head state objectId envelope candidate)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: journalReplayFields,
+  parameters: [
+    target : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    request : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    headLength : Nat,
+    stateLength : Nat
+  ],
+  result: Bytes,
+  body: (match ((headLength <=? 65574) && ((stateLength <=? 1100427) && ((((305 + headLength) + stateLength) <=? (prim length (project request bytes) : Nat)) && (((prim length (project request bytes) : Nat) <=? ((4401 + headLength) + stateLength)) && true))))
+    | Bool.false => 0x01
+    | Bool.true => (replayJournalEntry target (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView request 6 headLength)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView request (6 + headLength) stateLength)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView request ((6 + headLength) + stateLength) 32)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView request ((38 + headLength) + stateLength) (prim subtract (prim length (project request bytes) : Nat) ((38 + headLength) + stateLength) : Nat))}))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: journalReplayPayload,
+  parameters: [
+    target : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    request : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bytes,
+  body: (match (6 <=? (prim length (project request bytes) : Nat))
+    | Bool.false => 0x01
+    | Bool.true => (journalReplayFields target request (Foundation.Browser.V1.Workspace::readU24At (project request bytes) 0) (Foundation.Browser.V1.Workspace::readU24At (project request bytes) 3))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: journalReplayBytes,
+  parameters: [request : Foundation.Browser.V1.Workspace::WorkspaceByteView, targetLength : Nat],
+  result: Bytes,
+  body: (match ((targetLength <=? 65574) && (((3 + targetLength) <=? (prim length (project request bytes) : Nat)) && true))
+    | Bool.false => 0x01
+    | Bool.true => (journalReplayPayload (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView request 3 targetLength)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView request (3 + targetLength) (prim subtract (prim length (project request bytes) : Nat) (3 + targetLength) : Nat))}))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: finishJournalReplay,
+  parameters: [
+    target : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    head : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    state : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bytes,
+  body: (match ((journalHeadValid target) && ((not ((prim length (project target bytes) : Nat) =? 0)) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (project target bytes) (project head bytes)) && ((journalStateMatches head state) && true))))
+    | Bool.false => 0x08
+    | Bool.true => (prim append (prim append 0x 0x00 : Bytes) (project state bytes) : Bytes)),
+  axioms: [propext]
+}
+
+definition{
+  name: journalReplayCompleteFields,
+  parameters: [
+    request : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    targetLength : Nat,
+    headLength : Nat,
+    stateLength : Nat
+  ],
+  result: Bytes,
+  body: (match ((targetLength <=? 65574) && ((headLength <=? 65574) && ((stateLength <=? 1100427) && (((prim length (project request bytes) : Nat) =? (((9 + targetLength) + headLength) + stateLength)) && true))))
+    | Bool.false => 0x01
+    | Bool.true => (finishJournalReplay (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView request 9 targetLength)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView request (9 + targetLength) headLength)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView request ((9 + targetLength) + headLength) stateLength)}))),
+  axioms: [propext]
+}
+
+definition{
+  name: journalCommitBound,
+  parameters: [
+    session : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    receipt : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bool,
+  body: (((prim length (project session bytes) : Nat) =? 129) && (((prim length (project receipt bytes) : Nat) =? 161) && ((((prim length (Foundation.Browser.V1.Workspace::byteWindowView session 1 32) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView session 1 32) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && ((((prim length (Foundation.Browser.V1.Workspace::byteWindowView session 65 32) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView session 65 32) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && ((((prim length (Foundation.Browser.V1.Workspace::byteWindowView session 97 32) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView session 97 32) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && ((Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView session 1 128) (Foundation.Browser.V1.Workspace::byteWindowView receipt 1 128)) && true)))))),
+  axioms: [propext]
+}
+
+definition{
+  name: journalCommitResult,
+  parameters: [
+    session : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    receipt : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    status : Nat
+  ],
+  result: Bytes,
+  body: (match (status =? 0)
+    | Bool.false => (match ((1 <=? status) && ((status <=? 5) && ((match (status =? 1)
+        | Bool.false => (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView receipt 129 32) (Foundation.Browser.V1.Workspace::byteWindowView session 33 32))
+        | Bool.true => (not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView receipt 129 32) (Foundation.Browser.V1.Workspace::byteWindowView session 33 32)))) && true)))
+      | Bool.false => 0x09
+      | Bool.true => (prim append (prim append (prim append 0x (Foundation.Browser.V1.Workspace::encodeOctet (32 + status)) : Bytes) 0x02 : Bytes) (Foundation.Browser.V1.Workspace::byteWindowView session 1 128) : Bytes))
+    | Bool.true => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView receipt 129 32) (Foundation.Browser.V1.Workspace::byteWindowView session 65 32))
+      | Bool.false => 0x09
+      | Bool.true => (prim append (prim append 0x 0x0001 : Bytes) (Foundation.Browser.V1.Workspace::byteWindowView session 1 128) : Bytes))),
+  axioms: [propext]
+}
+
+definition{
+  name: finishJournalCommit,
+  parameters: [
+    session : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    receipt : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bytes,
+  body: (match (not (journalCommitBound session receipt))
+    | Bool.false => (match (not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView session 0 1) 0x00))
+      | Bool.false => (journalCommitResult session receipt (Foundation.Browser.V1.Workspace::decodeOctet (Foundation.Browser.V1.Workspace::byteWindowView receipt 0 1)))
+      | Bool.true => 0x0a)
+    | Bool.true => 0x09),
+  axioms: [propext]
+}
+
+definition{
+  name: workspaceJournalOperation,
+  parameters: [
+    operation : Foundation.Browser.V1.Workspace::WorkspaceByteView,
+    payload : Foundation.Browser.V1.Workspace::WorkspaceByteView
+  ],
+  result: Bytes,
+  body: (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (project operation bytes) 0x00)
+    | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (project operation bytes) 0x01)
+      | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (project operation bytes) 0x02)
+        | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (project operation bytes) 0x03)
+          | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (project operation bytes) 0x04)
+            | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (project operation bytes) 0x05)
+              | Bool.false => (match (Foundation.Browser.V1.Workspace::workspaceBytesEqual (project operation bytes) 0x06)
+                | Bool.false => 0x0b
+                | Bool.true => (Foundation.Browser.V1.WorkspaceEnvelope::workspaceEnvelopeBytes (project payload bytes)))
+              | Bool.true => (match (((prim length (project payload bytes) : Nat) =? 96) && ((((prim length (Foundation.Browser.V1.Workspace::byteWindowView payload 32 32) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView payload 32 32) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && ((((prim length (Foundation.Browser.V1.Workspace::byteWindowView payload 64 32) : Nat) =? 32) && ((not (Foundation.Browser.V1.Workspace::workspaceBytesEqual (Foundation.Browser.V1.Workspace::byteWindowView payload 64 32) (Foundation.Browser.V1.Workspace::zeroDigest))) && true)) && true)))
+                | Bool.false => 0x09
+                | Bool.true => (prim append (prim append (prim append 0x 0x00 : Bytes) 0x707269736d706d2f6a6f75726e616c2d636f6d6d69742f3100 : Bytes) (project payload bytes) : Bytes)))
+            | Bool.true => (match (9 <=? (prim length (project payload bytes) : Nat))
+              | Bool.false => 0x01
+              | Bool.true => (journalReplayCompleteFields payload (Foundation.Browser.V1.Workspace::readU24At (project payload bytes) 0) (Foundation.Browser.V1.Workspace::readU24At (project payload bytes) 3) (Foundation.Browser.V1.Workspace::readU24At (project payload bytes) 6))))
+          | Bool.true => (match (3 <=? (prim length (project payload bytes) : Nat))
+            | Bool.false => 0x01
+            | Bool.true => (journalReplayBytes payload (Foundation.Browser.V1.Workspace::readU24At (project payload bytes) 0))))
+        | Bool.true => (match ((prim length (project payload bytes) : Nat) =? 290)
+          | Bool.false => 0x01
+          | Bool.true => (finishJournalCommit (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView payload 0 129)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindowView payload 129 161)}))))
+      | Bool.true => (journalAppendBytes payload))
+    | Bool.true => (match (journalHeadValid payload)
+      | Bool.false => 0x02
+      | Bool.true => (prim append (prim append 0x 0x00 : Bytes) (project payload bytes) : Bytes))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: workspaceJournalBytes,
+  parameters: [request : Bytes],
+  result: Bytes,
+  body: (match ((1 <=? (prim length request : Nat)) && (((prim length request : Nat) <=? 1235980) && true))
+    | Bool.false => 0x01
+    | Bool.true => (workspaceJournalOperation (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindow request 0 1)}) (record Foundation.Browser.V1.Workspace::WorkspaceByteView {bytes := (Foundation.Browser.V1.Workspace::byteWindow request 1 (prim subtract (prim length request : Nat) 1 : Nat))}))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+\end{semanticmodule}
+\end{lexlean}

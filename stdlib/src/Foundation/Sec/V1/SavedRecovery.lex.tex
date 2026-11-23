@@ -1,0 +1,517 @@
+\begin{lexlean}{Foundation.Sec.V1.SavedRecovery}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\title{Saved recovery code}
+\begin{semanticmodule}
+structure{
+  name: SavedCodeSlot,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: codeRef, type: Bytes},
+    {name: verifierCommitment, type: Bytes},
+    {name: consumed, type: Bool}
+  ]
+}
+
+structure{
+  name: SavedCodeInventory,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: slots, type: (List SavedCodeSlot)}]
+}
+
+structure{
+  name: CredentialBinding,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: scope, type: Bytes},
+    {name: account, type: Bytes},
+    {name: revision, type: Nat},
+    {name: recoveryEpoch, type: Nat},
+    {name: credentialRef, type: Bytes},
+    {name: authorizationRef, type: Bytes}
+  ]
+}
+
+structure{
+  name: SavedRecoveryState,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: binding, type: CredentialBinding},
+    {name: enabled, type: Bool},
+    {name: retentionCapacity, type: Nat},
+    {name: slots, type: (List SavedCodeSlot)}
+  ]
+}
+
+structure{
+  name: SavedRecoveryRequest,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: binding, type: CredentialBinding},
+    {name: codeRef, type: Bytes},
+    {name: replacementCredentialRef, type: Bytes}
+  ]
+}
+
+structure{
+  name: AdmittedSavedRecovery,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: request, type: SavedRecoveryRequest},
+    {name: matchedCommitment, type: Bytes},
+    {name: replacementCode, type: SavedCodeSlot}
+  ]
+}
+
+structure{
+  name: SavedCodeReplacement,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: binding, type: CredentialBinding},
+    {name: replacementCodes, type: (List SavedCodeSlot)}
+  ]
+}
+
+structure{
+  name: AdmittedCodeReplacement,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: request, type: SavedCodeReplacement}]
+}
+
+structure{
+  name: RecoveryNotificationIntent,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: scope, type: Bytes},
+    {name: account, type: Bytes},
+    {name: previousRevision, type: Nat},
+    {name: revision, type: Nat},
+    {name: previousEpoch, type: Nat},
+    {name: recoveryEpoch, type: Nat},
+    {name: credentialRef, type: Bytes},
+    {name: credentialsRecovered, type: Bool}
+  ]
+}
+
+inductive{
+  name: SavedRecoveryError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: InvalidState, fields: []},
+    {name: IdentityDisabled, fields: []},
+    {name: WrongScope, fields: []},
+    {name: WrongAccount, fields: []},
+    {name: StaleRevision, fields: []},
+    {name: StaleEpoch, fields: []},
+    {name: CurrentCredentialMismatch, fields: []},
+    {name: CurrentAuthorizationMismatch, fields: []},
+    {name: InvalidRequest, fields: []},
+    {name: EvidenceMismatch, fields: []},
+    {name: UnknownCode, fields: []},
+    {name: ConsumedCode, fields: []},
+    {name: VerifierMismatch, fields: []},
+    {name: ReusedCode, fields: []},
+    {name: InvalidReplacement, fields: []},
+    {name: RetentionExhausted, fields: []},
+    {name: CounterExhausted, fields: []}
+  ]
+}
+
+inductive{
+  name: SavedRecoveryTransition,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Rejected, fields: [SavedRecoveryError]},
+    {name: Accepted, fields: [SavedRecoveryState, RecoveryNotificationIntent]}
+  ]
+}
+
+definition{
+  name: recoveryBytesEqual,
+  parameters: [left : Bytes, right : Bytes],
+  result: Bool,
+  body: (prim equal (prim compare_bytes left right : Ordering) (prim compare_bytes 0x00 0x00 : Ordering) : Bool),
+  axioms: [propext]
+}
+
+definition{
+  name: recoveryReferenceValid,
+  parameters: [value : Bytes],
+  result: Bool,
+  body: ((1 <=? (prim length value : Nat)) && (((prim length value : Nat) <=? 128) && true)),
+  axioms: []
+}
+
+definition{
+  name: savedCodeCount,
+  parameters: [slots : (List SavedCodeSlot)],
+  result: Nat,
+  body: match{
+    branches: [
+      {body: 0, binders: [], constructor: List.nil},
+      {body: (1 + (savedCodeCount rest)), binders: [first, rest], constructor: List.cons}
+    ],
+    scrutinee: slots
+  },
+  axioms: [],
+  recursive_argument: slots
+}
+
+definition{
+  name: savedCodeConflicts,
+  parameters: [slots : (List SavedCodeSlot), slot : SavedCodeSlot],
+  result: Bool,
+  body: match{
+    branches: [
+      {body: false, binders: [], constructor: List.nil},
+      {
+        body: ((recoveryBytesEqual (project var{
+          name: first
+        } codeRef) (project slot codeRef)) || ((recoveryBytesEqual (project var{
+          name: first
+        } verifierCommitment) (project slot verifierCommitment)) || ((savedCodeConflicts rest slot) || false))),
+        binders: [first, rest],
+        constructor: List.cons
+      }
+    ],
+    scrutinee: slots
+  },
+  axioms: [propext],
+  recursive_argument: slots
+}
+
+definition{
+  name: savedCodesValid,
+  parameters: [slots : (List SavedCodeSlot)],
+  result: Bool,
+  body: match{
+    branches: [
+      {body: true, binders: [], constructor: List.nil},
+      {
+        body: ((recoveryReferenceValid (project var{
+          name: first
+        } codeRef)) && ((recoveryReferenceValid (project var{
+          name: first
+        } verifierCommitment)) && ((not (savedCodeConflicts rest var{
+          name: first
+        })) && ((savedCodesValid rest) && true)))),
+        binders: [first, rest],
+        constructor: List.cons
+      }
+    ],
+    scrutinee: slots
+  },
+  axioms: [propext],
+  recursive_argument: slots
+}
+
+definition{
+  name: savedCodesActive,
+  parameters: [slots : (List SavedCodeSlot)],
+  result: Bool,
+  body: match{
+    branches: [
+      {body: true, binders: [], constructor: List.nil},
+      {
+        body: ((not (project var{name: first} consumed)) && ((savedCodesActive rest) && true)),
+        binders: [first, rest],
+        constructor: List.cons
+      }
+    ],
+    scrutinee: slots
+  },
+  axioms: [],
+  recursive_argument: slots
+}
+
+definition{
+  name: savedCodesFresh,
+  parameters: [fresh : (List SavedCodeSlot), previous : (List SavedCodeSlot)],
+  result: Bool,
+  body: match{
+    branches: [
+      {body: true, binders: [], constructor: List.nil},
+      {
+        body: ((not (savedCodeConflicts previous var{
+          name: first
+        })) && ((savedCodesFresh rest previous) && true)),
+        binders: [first, rest],
+        constructor: List.cons
+      }
+    ],
+    scrutinee: fresh
+  },
+  axioms: [propext],
+  recursive_argument: fresh
+}
+
+definition{
+  name: savedCodeFind,
+  parameters: [slots : (List SavedCodeSlot), codeRef : Bytes],
+  result: (Option SavedCodeSlot),
+  body: match{
+    branches: [
+      {body: (ctor Option.none [SavedCodeSlot]), binders: [], constructor: List.nil},
+      {
+        body: (match (recoveryBytesEqual (project var{name: first} codeRef) codeRef)
+          | Bool.false => (savedCodeFind rest codeRef)
+          | Bool.true => (ctor Option.some [SavedCodeSlot] var{name: first})),
+        binders: [first, rest],
+        constructor: List.cons
+      }
+    ],
+    scrutinee: slots
+  },
+  axioms: [propext],
+  recursive_argument: slots
+}
+
+definition{
+  name: consumeSavedCode,
+  parameters: [slots : (List SavedCodeSlot), codeRef : Bytes],
+  result: SavedCodeInventory,
+  body: match{
+    branches: [
+      {
+        body: (record SavedCodeInventory {slots := (nil SavedCodeSlot)}),
+        binders: [],
+        constructor: List.nil
+      },
+      {
+        body: (record SavedCodeInventory {slots := (cons (match (recoveryBytesEqual (project var{
+            name: first
+          } codeRef) codeRef)
+          | Bool.false => var{name: first}
+          | Bool.true => (record SavedCodeSlot {codeRef := (project var{
+            name: first
+          } codeRef), verifierCommitment := (project var{
+            name: first
+          } verifierCommitment), consumed := true})) (project (consumeSavedCode rest codeRef) slots))}),
+        binders: [first, rest],
+        constructor: List.cons
+      }
+    ],
+    scrutinee: slots
+  },
+  axioms: [propext],
+  recursive_argument: slots
+}
+
+definition{
+  name: retireSavedCodes,
+  parameters: [slots : (List SavedCodeSlot)],
+  result: SavedCodeInventory,
+  body: match{
+    branches: [
+      {
+        body: (record SavedCodeInventory {slots := (nil SavedCodeSlot)}),
+        binders: [],
+        constructor: List.nil
+      },
+      {
+        body: (record SavedCodeInventory {slots := (cons (record SavedCodeSlot {codeRef := (project var{
+          name: first
+        } codeRef), verifierCommitment := (project var{
+          name: first
+        } verifierCommitment), consumed := true}) (project (retireSavedCodes rest) slots))}),
+        binders: [first, rest],
+        constructor: List.cons
+      }
+    ],
+    scrutinee: slots
+  },
+  axioms: [],
+  recursive_argument: slots
+}
+
+definition{
+  name: appendSavedCodes,
+  parameters: [left : (List SavedCodeSlot), right : (List SavedCodeSlot)],
+  result: SavedCodeInventory,
+  body: match{
+    branches: [
+      {body: (record SavedCodeInventory {slots := right}), binders: [], constructor: List.nil},
+      {
+        body: (record SavedCodeInventory {slots := (cons var{
+          name: first
+        } (project (appendSavedCodes rest right) slots))}),
+        binders: [first, rest],
+        constructor: List.cons
+      }
+    ],
+    scrutinee: left
+  },
+  axioms: [],
+  recursive_argument: left
+}
+
+definition{
+  name: savedCodesEqual,
+  parameters: [left : (List SavedCodeSlot), right : (List SavedCodeSlot)],
+  result: Bool,
+  body: match{
+    branches: [
+      {
+        body: (match right | List.nil => true | List.cons unusedFirst unusedRest => false),
+        binders: [],
+        constructor: List.nil
+      },
+      {
+        body: (match right
+          | List.nil => false
+          | List.cons other tail => ((recoveryBytesEqual (project var{
+            name: first
+          } codeRef) (project other codeRef)) && ((recoveryBytesEqual (project var{
+            name: first
+          } verifierCommitment) (project other verifierCommitment)) && ((match (project var{
+              name: first
+            } consumed)
+            | Bool.false => (not (project other consumed))
+            | Bool.true => (project other consumed)) && ((savedCodesEqual rest tail) && true))))),
+        binders: [first, rest],
+        constructor: List.cons
+      }
+    ],
+    scrutinee: left
+  },
+  axioms: [propext],
+  recursive_argument: left
+}
+
+definition{
+  name: credentialBindingValid,
+  parameters: [binding : CredentialBinding],
+  result: Bool,
+  body: ((recoveryReferenceValid (project binding scope)) && ((recoveryReferenceValid (project binding account)) && ((recoveryReferenceValid (project binding credentialRef)) && ((recoveryReferenceValid (project binding authorizationRef)) && (((project binding revision) <=? 4294967295) && (((project binding recoveryEpoch) <=? 4294967295) && true)))))),
+  axioms: []
+}
+
+definition{
+  name: credentialBindingsEqual,
+  parameters: [left : CredentialBinding, right : CredentialBinding],
+  result: Bool,
+  body: ((recoveryBytesEqual (project left scope) (project right scope)) && ((recoveryBytesEqual (project left account) (project right account)) && ((recoveryBytesEqual (project left credentialRef) (project right credentialRef)) && ((recoveryBytesEqual (project left authorizationRef) (project right authorizationRef)) && (((project left revision) =? (project right revision)) && (((project left recoveryEpoch) =? (project right recoveryEpoch)) && true)))))),
+  axioms: [propext]
+}
+
+definition{
+  name: savedRecoveryStateValid,
+  parameters: [state : SavedRecoveryState],
+  result: Bool,
+  body: ((credentialBindingValid (project state binding)) && ((1 <=? (project state retentionCapacity)) && (((project state retentionCapacity) <=? 256) && (((savedCodeCount (project state slots)) <=? (project state retentionCapacity)) && ((savedCodesValid (project state slots)) && true))))),
+  axioms: [propext]
+}
+
+definition{
+  name: savedRecoveryRequestsEqual,
+  parameters: [left : SavedRecoveryRequest, right : SavedRecoveryRequest],
+  result: Bool,
+  body: ((credentialBindingsEqual (project left binding) (project right binding)) && ((recoveryBytesEqual (project left codeRef) (project right codeRef)) && ((recoveryBytesEqual (project left replacementCredentialRef) (project right replacementCredentialRef)) && true))),
+  axioms: [propext]
+}
+
+definition{
+  name: savedCodeReplacementsEqual,
+  parameters: [left : SavedCodeReplacement, right : SavedCodeReplacement],
+  result: Bool,
+  body: ((credentialBindingsEqual (project left binding) (project right binding)) && ((savedCodesEqual (project left replacementCodes) (project right replacementCodes)) && true)),
+  axioms: [propext]
+}
+
+definition{
+  name: recoverSavedCredential,
+  parameters: [
+    state : SavedRecoveryState,
+    request : SavedRecoveryRequest,
+    admission : AdmittedSavedRecovery
+  ],
+  result: SavedRecoveryTransition,
+  body: (match (savedRecoveryStateValid state)
+    | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.InvalidState))
+    | Bool.true => (match (project state enabled)
+      | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.IdentityDisabled))
+      | Bool.true => (match (recoveryBytesEqual (project (project state binding) scope) (project (project request binding) scope))
+        | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.WrongScope))
+        | Bool.true => (match (recoveryBytesEqual (project (project state binding) account) (project (project request binding) account))
+          | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.WrongAccount))
+          | Bool.true => (match ((project (project state binding) revision) =? (project (project request binding) revision))
+            | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.StaleRevision))
+            | Bool.true => (match ((project (project state binding) recoveryEpoch) =? (project (project request binding) recoveryEpoch))
+              | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.StaleEpoch))
+              | Bool.true => (match (recoveryBytesEqual (project (project state binding) credentialRef) (project (project request binding) credentialRef))
+                | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.CurrentCredentialMismatch))
+                | Bool.true => (match (recoveryBytesEqual (project (project state binding) authorizationRef) (project (project request binding) authorizationRef))
+                  | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.CurrentAuthorizationMismatch))
+                  | Bool.true => (match ((recoveryReferenceValid (project request codeRef)) && ((recoveryReferenceValid (project request replacementCredentialRef)) && ((not (recoveryBytesEqual (project request replacementCredentialRef) (project (project state binding) credentialRef))) && true)))
+                    | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.InvalidRequest))
+                    | Bool.true => (match (savedRecoveryRequestsEqual request (project admission request))
+                      | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.EvidenceMismatch))
+                      | Bool.true => (match (savedCodeFind (project state slots) (project request codeRef))
+                        | Option.none => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.UnknownCode))
+                        | Option.some found => (match (not (project found consumed))
+                          | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.ConsumedCode))
+                          | Bool.true => (match (recoveryBytesEqual (project found verifierCommitment) (project admission matchedCommitment))
+                            | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.VerifierMismatch))
+                            | Bool.true => (match ((recoveryReferenceValid (project (project admission replacementCode) codeRef)) && ((recoveryReferenceValid (project (project admission replacementCode) verifierCommitment)) && ((not (project (project admission replacementCode) consumed)) && true)))
+                              | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.InvalidReplacement))
+                              | Bool.true => (match (not (savedCodeConflicts (project state slots) (project admission replacementCode)))
+                                | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.ReusedCode))
+                                | Bool.true => (match ((savedCodeCount (project state slots)) <? (project state retentionCapacity))
+                                  | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.RetentionExhausted))
+                                  | Bool.true => (match (((project (project state binding) revision) <? 4294967295) && (((project (project state binding) recoveryEpoch) <? 4294967295) && true))
+                                    | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.CounterExhausted))
+                                    | Bool.true => (ctor SavedRecoveryTransition.Accepted (record SavedRecoveryState {binding := (record CredentialBinding {scope := (project (project state binding) scope), account := (project (project state binding) account), revision := ((project (project state binding) revision) + 1), recoveryEpoch := ((project (project state binding) recoveryEpoch) + 1), credentialRef := (project request replacementCredentialRef), authorizationRef := (project (project state binding) authorizationRef)}), enabled := (project state enabled), retentionCapacity := (project state retentionCapacity), slots := (project (appendSavedCodes (project (consumeSavedCode (project state slots) (project request codeRef)) slots) (cons (project admission replacementCode) (nil SavedCodeSlot))) slots)}) (record RecoveryNotificationIntent {scope := (project (project state binding) scope), account := (project (project state binding) account), previousRevision := (project (project state binding) revision), revision := ((project (project state binding) revision) + 1), previousEpoch := (project (project state binding) recoveryEpoch), recoveryEpoch := ((project (project state binding) recoveryEpoch) + 1), credentialRef := (project request replacementCredentialRef), credentialsRecovered := true}))))))))))))))))))),
+  axioms: [propext]
+}
+
+definition{
+  name: replaceSavedCodes,
+  parameters: [
+    state : SavedRecoveryState,
+    request : SavedCodeReplacement,
+    admission : AdmittedCodeReplacement
+  ],
+  result: SavedRecoveryTransition,
+  body: (match (savedRecoveryStateValid state)
+    | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.InvalidState))
+    | Bool.true => (match (project state enabled)
+      | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.IdentityDisabled))
+      | Bool.true => (match (recoveryBytesEqual (project (project state binding) scope) (project (project request binding) scope))
+        | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.WrongScope))
+        | Bool.true => (match (recoveryBytesEqual (project (project state binding) account) (project (project request binding) account))
+          | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.WrongAccount))
+          | Bool.true => (match ((project (project state binding) revision) =? (project (project request binding) revision))
+            | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.StaleRevision))
+            | Bool.true => (match ((project (project state binding) recoveryEpoch) =? (project (project request binding) recoveryEpoch))
+              | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.StaleEpoch))
+              | Bool.true => (match (recoveryBytesEqual (project (project state binding) credentialRef) (project (project request binding) credentialRef))
+                | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.CurrentCredentialMismatch))
+                | Bool.true => (match (recoveryBytesEqual (project (project state binding) authorizationRef) (project (project request binding) authorizationRef))
+                  | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.CurrentAuthorizationMismatch))
+                  | Bool.true => (match (savedCodeReplacementsEqual request (project admission request))
+                    | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.EvidenceMismatch))
+                    | Bool.true => (match ((0 <? (savedCodeCount (project request replacementCodes))) && ((savedCodesValid (project request replacementCodes)) && ((savedCodesActive (project request replacementCodes)) && true)))
+                      | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.InvalidReplacement))
+                      | Bool.true => (match (savedCodesFresh (project request replacementCodes) (project state slots))
+                        | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.ReusedCode))
+                        | Bool.true => (match (((savedCodeCount (project state slots)) + (savedCodeCount (project request replacementCodes))) <=? (project state retentionCapacity))
+                          | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.RetentionExhausted))
+                          | Bool.true => (match ((project (project state binding) recoveryEpoch) <? 4294967295)
+                            | Bool.false => (ctor SavedRecoveryTransition.Rejected (ctor SavedRecoveryError.CounterExhausted))
+                            | Bool.true => (ctor SavedRecoveryTransition.Accepted (record SavedRecoveryState {binding := (record CredentialBinding {scope := (project (project state binding) scope), account := (project (project state binding) account), revision := (project (project state binding) revision), recoveryEpoch := ((project (project state binding) recoveryEpoch) + 1), credentialRef := (project (project state binding) credentialRef), authorizationRef := (project (project state binding) authorizationRef)}), enabled := (project state enabled), retentionCapacity := (project state retentionCapacity), slots := (project (appendSavedCodes (project (retireSavedCodes (project state slots)) slots) (project request replacementCodes)) slots)}) (record RecoveryNotificationIntent {scope := (project (project state binding) scope), account := (project (project state binding) account), previousRevision := (project (project state binding) revision), revision := (project (project state binding) revision), previousEpoch := (project (project state binding) recoveryEpoch), recoveryEpoch := ((project (project state binding) recoveryEpoch) + 1), credentialRef := (project (project state binding) credentialRef), credentialsRecovered := false}))))))))))))))),
+  axioms: [propext]
+}
+\end{semanticmodule}
+\end{lexlean}

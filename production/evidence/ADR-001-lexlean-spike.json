@@ -1,0 +1,79 @@
+{
+  "spec": "prismpm/evidence-register/1",
+  "record_id": "ADR-001",
+  "local_adr": "ADR-0015",
+  "title": "LexLean conformance spike: three-artifact verification and reproducible attestation",
+  "status": "accepted",
+  "decision_basis": "All three required spike artifacts verify under the pinned toolchain and the attestation is identical across a repeat run and a clean rebuild.",
+  "attestation": {
+    "scheme": "lexlean/attestation/1",
+    "digest": "7998182e99ca10aa0a3cff41b2ebb90c846bf0f7fb8fe6a0b2f93efeea4aa8ca",
+    "verified_modules": 4,
+    "required_spike_artifacts": [
+      "src/Spike/RatOrder.lex.tex::rat_order_helper",
+      "src/Spike/DtCbf.lex.tex::dt_cbf_forward_invariant",
+      "src/Spike/SpectralBins.lex.tex::prime_bin_partition"
+    ],
+    "supporting_module": "src/Governance.lex.tex",
+    "semantic_id": "5646dca8e60dbe99a2d08b2b2bcd0f89f4a47b277d274da30d63f37efef0f024",
+    "source_digest": "8cb4613f31de2c734f6e549b85e57c35dbd3ac2130adf04a662497a9b4001b63"
+  },
+  "reproducibility": {
+    "identical": true,
+    "runs": [
+      {
+        "kind": "repeat",
+        "command": "lexlean --project lexlean.toml verify",
+        "stdout": "evidence/lexlean-verify-1.stdout",
+        "attestation": "7998182e99ca10aa0a3cff41b2ebb90c846bf0f7fb8fe6a0b2f93efeea4aa8ca"
+      },
+      {
+        "kind": "clean-rebuild",
+        "command": "lexlean clean && lexlean --project lexlean.toml verify",
+        "stdout": "evidence/lexlean-verify-2-clean.stdout",
+        "attestation": "7998182e99ca10aa0a3cff41b2ebb90c846bf0f7fb8fe6a0b2f93efeea4aa8ca"
+      }
+    ]
+  },
+  "prismpm": {
+    "project_config": "prismpm.toml",
+    "project_name": "Recursive Cognition",
+    "build_root": "production",
+    "governance_check": {
+      "tool": "prismpm 0.4.0 (PRIME toolchain build)",
+      "command": "prismpm check",
+      "result": "check passed (semantic ID: 5646dca8e60dbe99a2d08b2b2bcd0f89f4a47b277d274da30d63f37efef0f024)",
+      "stdout": "evidence/prismpm-040-check.stdout"
+    },
+    "blocked_full_verify": {
+      "tool": "prismpm 0.5.0 (installed default)",
+      "check_result": "PP2001 / LLC0101: lean_toolchain must be exactly leanprover/lean4:v4.32.2",
+      "stderr": "evidence/prismpm-050-check.stderr",
+      "impact": "Full prismpm verify and OCI release paths cannot be run without silently violating ADR-002. Static governance check is recorded with the compatible 0.4.0 build instead."
+    }
+  },
+  "toolchain": {
+    "pin": "leanprover/lean4:v4.32.1",
+    "pin_source": "lean-toolchain",
+    "lexlean": "0.4.0",
+    "tools_lock": "tools.lock",
+    "format_check": "lexlean fmt --check --all: 4 modules are canonical"
+  },
+  "source_digests": {
+    "lexlean.toml": "a2c552881403092533a83d20695ee6242eb867ba1b0397ad4fd02f46069d0071",
+    "lexlean.lock": "4707eabbf3f73aadd9fb874ccdad75fc18d5731991018c4a25af0fb84dfd269a",
+    "src/Governance.lex.tex": "9be8d0d4dfd4b066c4fbfdbf7e9cb9ae5962b1cc6fd56cb16b70f2c9c616495e",
+    "src/Spike/DtCbf.lex.tex": "b87ad6b6a0ab375ee45eb7504831c23fe9680c946059211b9dd0ef18e102f758",
+    "src/Spike/RatOrder.lex.tex": "d567d97ae1020e35fe5124e0618846b0407a62529fe3563fd7dbf62d748e2e41",
+    "src/Spike/SpectralBins.lex.tex": "62b8b63ed0a473dc82f664b4506a79d08a5d9fdd23df5fb24ac0fd7f11b69825"
+  },
+  "links": {
+    "supersedes": [],
+    "superseded_by": [],
+    "related_adrs": ["ADR-001", "ADR-002", "ADR-014", "ADR-0015"],
+    "risks": ["RISK-LEXLEAN-IMMATURITY", "RISK-TOOLCHAIN-DRIFT", "RISK-EVIDENCE-FABRICATION"],
+    "phase_gate": "CDR",
+    "baseline_file": "Multiplicity-Recursive Cognition Engine.txt"
+  },
+  "scope_limit": "This record closes ADR-001 only. It does not close the five open v3.3 obligations, any Deferred ADR, or any Kani harness. No 'verified prototype' claim is made."
+}

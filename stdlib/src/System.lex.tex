@@ -1,0 +1,41 @@
+\begin{lexlean}{System}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\useglossary{prism.qual@1.0.0}
+\useglossary{prism.sec@1.0.0}
+\importmodule{Foundation.Arch}
+\importmodule{Foundation.Holo}
+\importmodule{Foundation.Qual}
+\importmodule{Foundation.Sec}
+\title{Standard library system model}
+\begin{semanticmodule}
+definition{
+  name: stdlibModel,
+  parameters: [],
+  result: Foundation.Holo::NormalizedHolo,
+  body: (record Foundation.Holo::NormalizedHolo {componentIndexes := (cons 0 (cons 1 (nil Nat))), edgeEndpoints := (cons 0 (cons 1 (cons 1 (cons 0 (nil Nat))))), riskLinks := (cons 0 (cons 0 (nil Nat))), controlLinks := (cons 0 (nil Nat)), viewpointLinks := (cons 0 (cons 0 (cons 0 (nil Nat)))), qualityLinks := (cons 0 (cons 0 (nil Nat))), flattenedIndexes := (cons 0 (cons 1 (nil Nat)))})
+}
+
+definition{
+  name: stdlibValidated,
+  parameters: [],
+  result: Bool,
+  body: ((Foundation.Holo::validateComponentIndexes (project (stdlibModel) componentIndexes)) && ((Foundation.Holo::validateEdgeEndpoints 2 (project (stdlibModel) edgeEndpoints)) && ((Foundation.Holo::validateRiskLinks 1 (project (stdlibModel) riskLinks)) && ((Foundation.Holo::validateControlLinks 1 (project (stdlibModel) controlLinks)) && ((Foundation.Holo::validateViewpointLinks 1 (project (stdlibModel) viewpointLinks)) && ((Foundation.Holo::validateQualityLinks 1 (project (stdlibModel) qualityLinks)) && (Foundation.Holo::validateFlattenedBounds 2 (project (stdlibModel) flattenedIndexes))))))))
+}
+
+theorem{
+  name: stdlibNoDanglingReferences,
+  parameters: [],
+  statement: ((stdlibValidated) = true),
+  proof: decide{}
+}
+
+theorem{
+  name: stdlibCrossFacetConsistency,
+  parameters: [],
+  statement: ((stdlibValidated) = true),
+  proof: decide{}
+}
+\end{semanticmodule}
+\end{lexlean}

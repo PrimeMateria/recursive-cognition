@@ -1,0 +1,784 @@
+\begin{lexlean}{Foundation.Holo.V1.Wire}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Holo.V1.Format}
+\title{Hologram wire encoding}
+\begin{semanticmodule}
+definition{
+  name: wireSlice,
+  parameters: [value : Bytes, start : Nat, count : Nat],
+  result: Bytes,
+  body: (match (prim slice value start count : (Option Bytes))
+    | Option.none => 0x
+    | Option.some part => part),
+  axioms: []
+}
+
+definition{
+  name: wireBytesEqual,
+  parameters: [left : Bytes, right : Bytes],
+  result: Bool,
+  body: (prim equal (prim compare_bytes left right : Ordering) (prim compare_bytes 0x00 0x00 : Ordering) : Bool),
+  axioms: [propext]
+}
+
+definition{
+  name: wireBytesLess,
+  parameters: [left : Bytes, right : Bytes],
+  result: Bool,
+  body: (prim equal (prim compare_bytes left right : Ordering) (prim compare_bytes 0x00 0x01 : Ordering) : Bool),
+  axioms: [propext]
+}
+
+definition{
+  name: wireWindowEquals,
+  parameters: [value : Bytes, start : Nat, count : Nat, expected : Bytes],
+  result: Bool,
+  body: (match (prim slice value start count : (Option Bytes))
+    | Option.none => false
+    | Option.some part => (wireBytesEqual part expected)),
+  axioms: [propext]
+}
+
+definition{
+  name: wireEncodeOctet,
+  parameters: [value : Nat],
+  result: Bytes,
+  body: (if (value <? 256) then (if (value <? 128) then (if (value <? 64) then (if (value <? 32) then (if (value <? 16) then (wireSlice 0x000102030405060708090a0b0c0d0e0f (prim subtract value 0 : Nat) 1) else (wireSlice 0x101112131415161718191a1b1c1d1e1f (prim subtract value 16 : Nat) 1)) else (if (value <? 48) then (wireSlice 0x202122232425262728292a2b2c2d2e2f (prim subtract value 32 : Nat) 1) else (wireSlice 0x303132333435363738393a3b3c3d3e3f (prim subtract value 48 : Nat) 1))) else (if (value <? 96) then (if (value <? 80) then (wireSlice 0x404142434445464748494a4b4c4d4e4f (prim subtract value 64 : Nat) 1) else (wireSlice 0x505152535455565758595a5b5c5d5e5f (prim subtract value 80 : Nat) 1)) else (if (value <? 112) then (wireSlice 0x606162636465666768696a6b6c6d6e6f (prim subtract value 96 : Nat) 1) else (wireSlice 0x707172737475767778797a7b7c7d7e7f (prim subtract value 112 : Nat) 1)))) else (if (value <? 192) then (if (value <? 160) then (if (value <? 144) then (wireSlice 0x808182838485868788898a8b8c8d8e8f (prim subtract value 128 : Nat) 1) else (wireSlice 0x909192939495969798999a9b9c9d9e9f (prim subtract value 144 : Nat) 1)) else (if (value <? 176) then (wireSlice 0xa0a1a2a3a4a5a6a7a8a9aaabacadaeaf (prim subtract value 160 : Nat) 1) else (wireSlice 0xb0b1b2b3b4b5b6b7b8b9babbbcbdbebf (prim subtract value 176 : Nat) 1))) else (if (value <? 224) then (if (value <? 208) then (wireSlice 0xc0c1c2c3c4c5c6c7c8c9cacbcccdcecf (prim subtract value 192 : Nat) 1) else (wireSlice 0xd0d1d2d3d4d5d6d7d8d9dadbdcdddedf (prim subtract value 208 : Nat) 1)) else (if (value <? 240) then (wireSlice 0xe0e1e2e3e4e5e6e7e8e9eaebecedeeef (prim subtract value 224 : Nat) 1) else (wireSlice 0xf0f1f2f3f4f5f6f7f8f9fafbfcfdfeff (prim subtract value 240 : Nat) 1))))) else 0x),
+  axioms: []
+}
+
+definition{
+  name: wireDecodeOctetSearch,
+  parameters: [value : Bytes, count : Nat],
+  result: Nat,
+  body: (match count
+    | Nat.zero => 0
+    | Nat.succ rest => (if (wireBytesEqual value (wireEncodeOctet rest)) then rest else (wireDecodeOctetSearch value rest))),
+  axioms: [propext],
+  recursive_argument: count
+}
+
+definition{
+  name: wireDecodeOctet,
+  parameters: [value : Bytes],
+  result: Nat,
+  body: (wireDecodeOctetSearch value 256),
+  axioms: [propext]
+}
+
+definition{
+  name: wireEncodeLe16,
+  parameters: [value : Nat],
+  result: Bytes,
+  body: (if (value <=? 65535) then (prim append (prim append 0x (wireEncodeOctet (prim remainder (prim quotient value 1 0 : Nat) 256 0 : Nat)) : Bytes) (wireEncodeOctet (prim remainder (prim quotient value 256 0 : Nat) 256 0 : Nat)) : Bytes) else 0x),
+  axioms: []
+}
+
+definition{
+  name: wireDecodeLe16,
+  parameters: [value : Bytes],
+  result: Nat,
+  body: ((0 + (prim multiply (wireDecodeOctet (wireSlice value 0 1)) 1 : Nat)) + (prim multiply (wireDecodeOctet (wireSlice value 1 1)) 256 : Nat)),
+  axioms: [propext]
+}
+
+definition{
+  name: wireEncodeLe32,
+  parameters: [value : Nat],
+  result: Bytes,
+  body: (if (value <=? 4294967295) then (prim append (prim append (prim append (prim append 0x (wireEncodeOctet (prim remainder (prim quotient value 1 0 : Nat) 256 0 : Nat)) : Bytes) (wireEncodeOctet (prim remainder (prim quotient value 256 0 : Nat) 256 0 : Nat)) : Bytes) (wireEncodeOctet (prim remainder (prim quotient value 65536 0 : Nat) 256 0 : Nat)) : Bytes) (wireEncodeOctet (prim remainder (prim quotient value 16777216 0 : Nat) 256 0 : Nat)) : Bytes) else 0x),
+  axioms: []
+}
+
+definition{
+  name: wireDecodeLe32,
+  parameters: [value : Bytes],
+  result: Nat,
+  body: ((((0 + (prim multiply (wireDecodeOctet (wireSlice value 0 1)) 1 : Nat)) + (prim multiply (wireDecodeOctet (wireSlice value 1 1)) 256 : Nat)) + (prim multiply (wireDecodeOctet (wireSlice value 2 1)) 65536 : Nat)) + (prim multiply (wireDecodeOctet (wireSlice value 3 1)) 16777216 : Nat)),
+  axioms: [propext]
+}
+
+definition{
+  name: wireEncodeLe64,
+  parameters: [value : Nat],
+  result: Bytes,
+  body: (if (value <=? 18446744073709551615) then (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append 0x (wireEncodeOctet (prim remainder (prim quotient value 1 0 : Nat) 256 0 : Nat)) : Bytes) (wireEncodeOctet (prim remainder (prim quotient value 256 0 : Nat) 256 0 : Nat)) : Bytes) (wireEncodeOctet (prim remainder (prim quotient value 65536 0 : Nat) 256 0 : Nat)) : Bytes) (wireEncodeOctet (prim remainder (prim quotient value 16777216 0 : Nat) 256 0 : Nat)) : Bytes) (wireEncodeOctet (prim remainder (prim quotient value 4294967296 0 : Nat) 256 0 : Nat)) : Bytes) (wireEncodeOctet (prim remainder (prim quotient value 1099511627776 0 : Nat) 256 0 : Nat)) : Bytes) (wireEncodeOctet (prim remainder (prim quotient value 281474976710656 0 : Nat) 256 0 : Nat)) : Bytes) (wireEncodeOctet (prim remainder (prim quotient value 72057594037927936 0 : Nat) 256 0 : Nat)) : Bytes) else 0x),
+  axioms: []
+}
+
+definition{
+  name: wireDecodeLe64,
+  parameters: [value : Bytes],
+  result: Nat,
+  body: ((((((((0 + (prim multiply (wireDecodeOctet (wireSlice value 0 1)) 1 : Nat)) + (prim multiply (wireDecodeOctet (wireSlice value 1 1)) 256 : Nat)) + (prim multiply (wireDecodeOctet (wireSlice value 2 1)) 65536 : Nat)) + (prim multiply (wireDecodeOctet (wireSlice value 3 1)) 16777216 : Nat)) + (prim multiply (wireDecodeOctet (wireSlice value 4 1)) 4294967296 : Nat)) + (prim multiply (wireDecodeOctet (wireSlice value 5 1)) 1099511627776 : Nat)) + (prim multiply (wireDecodeOctet (wireSlice value 6 1)) 281474976710656 : Nat)) + (prim multiply (wireDecodeOctet (wireSlice value 7 1)) 72057594037927936 : Nat)),
+  axioms: [propext]
+}
+
+definition{
+  name: wireHexOctetValid,
+  parameters: [value : Bytes],
+  result: Bool,
+  body: ((wireBytesEqual value 0x30) || ((wireBytesEqual value 0x31) || ((wireBytesEqual value 0x32) || ((wireBytesEqual value 0x33) || ((wireBytesEqual value 0x34) || ((wireBytesEqual value 0x35) || ((wireBytesEqual value 0x36) || ((wireBytesEqual value 0x37) || ((wireBytesEqual value 0x38) || ((wireBytesEqual value 0x39) || ((wireBytesEqual value 0x61) || ((wireBytesEqual value 0x62) || ((wireBytesEqual value 0x63) || ((wireBytesEqual value 0x64) || ((wireBytesEqual value 0x65) || ((wireBytesEqual value 0x66) || false)))))))))))))))),
+  axioms: [propext]
+}
+
+definition{
+  name: wireHexBytesValid,
+  parameters: [value : Bytes, count : Nat],
+  result: Bool,
+  body: (match count
+    | Nat.zero => true
+    | Nat.succ rest => ((wireHexOctetValid (wireSlice value rest 1)) && ((wireHexBytesValid value rest) && true))),
+  axioms: [propext],
+  recursive_argument: count
+}
+
+definition{
+  name: wireKappaLabelValid,
+  parameters: [value : Bytes],
+  result: Bool,
+  body: (((prim length value : Nat) =? 71) && ((wireWindowEquals value 0 7 0x626c616b65333a) && ((wireHexBytesValid (wireSlice value 7 64) 64) && true))),
+  axioms: [propext]
+}
+
+definition{
+  name: emptyCapabilities,
+  parameters: [],
+  result: Bytes,
+  body: (prim append (prim append (prim append (prim append 0x 0x68747470733a2f2f686f6c6f6772616d2e666f756e646174696f6e2f7265616c697a6174696f6e2f6361706162696c6974792d736574 : Bytes) 0x00 : Bytes) 0x0000000029000000 : Bytes) 0x0000000000000000000000000000000000000000000000000000000000000000000000000000000000 : Bytes),
+  axioms: []
+}
+
+definition{
+  name: wireManifestPrefix,
+  parameters: [],
+  result: Bytes,
+  body: (prim append (prim append (prim append 0x 0x68747470733a2f2f686f6c6f6772616d2e666f756e646174696f6e2f7265616c697a6174696f6e2f6170702d6d616e6966657374 : Bytes) 0x00 : Bytes) 0x03000000 : Bytes),
+  axioms: []
+}
+
+definition{
+  name: wireManifestSuffix,
+  parameters: [],
+  result: Bytes,
+  body: (prim append (prim append 0x 0x52000000 : Bytes) (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append 0x 0x00000000020000000008000000 : Bytes) 0x686f6c6f5f72756e : Bytes) 0x1a000000 : Bytes) 0x686f6c6f6772616d3a67756573742f636f72652d7761736d4031 : Bytes) 0x030a000000 : Bytes) 0x696e6465782e68746d6c : Bytes) 0x08000000 : Bytes) 0x706f727461626c65 : Bytes) 0x00000000 : Bytes) : Bytes),
+  axioms: []
+}
+
+definition{
+  name: appManifest,
+  parameters: [requires : Bytes, guest : Bytes, view : Bytes],
+  result: (Option Bytes),
+  body: (if ((wireKappaLabelValid requires) && ((wireKappaLabelValid guest) && ((wireKappaLabelValid view) && true))) then (ctor Option.some [Bytes] (prim append (prim append (prim append (prim append (prim append 0x (wireManifestPrefix) : Bytes) requires : Bytes) guest : Bytes) view : Bytes) (wireManifestSuffix) : Bytes)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: validAppManifest,
+  parameters: [value : Bytes],
+  result: Bool,
+  body: (((prim length value : Nat) =? 356) && ((wireWindowEquals value 0 57 (wireManifestPrefix)) && ((wireWindowEquals value 270 86 (wireManifestSuffix)) && ((wireKappaLabelValid (wireSlice value 57 71)) && ((wireKappaLabelValid (wireSlice value 128 71)) && ((wireKappaLabelValid (wireSlice value 199 71)) && true)))))),
+  axioms: [propext]
+}
+
+definition{
+  name: manifestReference,
+  parameters: [value : Bytes, index : Nat],
+  result: (Option Bytes),
+  body: (if ((validAppManifest value) && ((index <? 3) && true)) then (ctor Option.some [Bytes] (wireSlice value (57 + (prim multiply index 71 : Nat)) 71)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: wireDirectoryPrefix,
+  parameters: [],
+  result: Bytes,
+  body: (prim append (prim append 0x (wireEncodeLe16 62) : Bytes) 0x68747470733a2f2f686f6c6f6772616d2e666f756e646174696f6e2f657874656e73696f6e2f6170706c69636174696f6e2d6469726563746f72792f7631 : Bytes),
+  axioms: []
+}
+
+definition{
+  name: wireProvenancePrefix,
+  parameters: [],
+  result: Bytes,
+  body: (prim append (prim append 0x (wireEncodeLe16 49) : Bytes) 0x68747470733a2f2f756f722e666f756e646174696f6e2f657874656e73696f6e2f707269736d706d2d6d6f64656c2f7631 : Bytes),
+  axioms: []
+}
+
+definition{
+  name: wireAttestationPrefix,
+  parameters: [],
+  result: Bytes,
+  body: (prim append (prim append 0x (wireEncodeLe16 54) : Bytes) 0x68747470733a2f2f756f722e666f756e646174696f6e2f657874656e73696f6e2f6174746573746174696f6e2d62756e646c652f7631 : Bytes),
+  axioms: []
+}
+
+definition{
+  name: wireSectionKind,
+  parameters: [index : Nat],
+  result: Bytes,
+  body: (if (index <? 9) then (if (index =? 0) then 0x0f else (if (index =? 1) then 0x08 else (if (index <? 4) then 0x0e else (if (index <? 8) then 0x10 else 0x0e)))) else 0x),
+  axioms: []
+}
+
+definition{
+  name: wireTableRow,
+  parameters: [index : Nat, offset : Nat, length : Nat],
+  result: Bytes,
+  body: (prim append (prim append (prim append (prim append 0x (wireSectionKind index) : Bytes) 0x00000000000000 : Bytes) (wireEncodeLe64 offset) : Bytes) (wireEncodeLe64 length) : Bytes),
+  axioms: []
+}
+
+definition{
+  name: wireRowOffset,
+  parameters: [body : Bytes, index : Nat],
+  result: Nat,
+  body: (match (prim slice body (18 + (prim multiply index 24 : Nat)) 8 : (Option Bytes))
+    | Option.none => 0
+    | Option.some part => (wireDecodeLe64 part)),
+  axioms: [propext]
+}
+
+definition{
+  name: wireRowLength,
+  parameters: [body : Bytes, index : Nat],
+  result: Nat,
+  body: (match (prim slice body (26 + (prim multiply index 24 : Nat)) 8 : (Option Bytes))
+    | Option.none => 0
+    | Option.some part => (wireDecodeLe64 part)),
+  axioms: [propext]
+}
+
+definition{
+  name: wireSectionBytesUnchecked,
+  parameters: [body : Bytes, index : Nat],
+  result: Bytes,
+  body: (wireSlice body (wireRowOffset body index) (wireRowLength body index)),
+  axioms: [propext]
+}
+
+definition{
+  name: wireRowsValid,
+  parameters: [body : Bytes, index : Nat, offset : Nat, remaining : Nat],
+  result: Bool,
+  body: (match remaining
+    | Nat.zero => (offset =? (prim length body : Nat))
+    | Nat.succ rest => (if ((index <? 9) && ((offset <=? (prim length body : Nat)) && true)) then (if ((wireWindowEquals body (10 + (prim multiply index 24 : Nat)) 1 (wireSectionKind index)) && ((wireWindowEquals body (11 + (prim multiply index 24 : Nat)) 7 0x00000000000000) && (((wireRowOffset body index) =? offset) && (((wireRowLength body index) <=? (prim subtract (prim length body : Nat) offset : Nat)) && true)))) then (wireRowsValid body (index + 1) (offset + (wireRowLength body index)) rest) else false) else false)),
+  axioms: [propext],
+  recursive_argument: remaining
+}
+
+definition{
+  name: wireBlobLabel,
+  parameters: [value : Bytes],
+  result: Bytes,
+  body: (wireSlice value 0 71),
+  axioms: []
+}
+
+definition{
+  name: wireBlobContent,
+  parameters: [value : Bytes],
+  result: Bytes,
+  body: (wireSlice value 71 (prim subtract (prim length value : Nat) 71 : Nat)),
+  axioms: []
+}
+
+definition{
+  name: wireBlobValid,
+  parameters: [value : Bytes],
+  result: Bool,
+  body: ((71 <=? (prim length value : Nat)) && ((wireKappaLabelValid (wireBlobLabel value)) && true)),
+  axioms: [propext]
+}
+
+definition{
+  name: wireBlobsValid,
+  parameters: [blob0 : Bytes, blob1 : Bytes, blob2 : Bytes, blob3 : Bytes],
+  result: Bool,
+  body: ((wireBlobValid blob0) && ((wireBlobValid blob1) && ((wireBlobValid blob2) && ((wireBlobValid blob3) && ((wireBytesLess (wireBlobLabel blob0) (wireBlobLabel blob1)) && ((wireBytesLess (wireBlobLabel blob1) (wireBlobLabel blob2)) && ((wireBytesLess (wireBlobLabel blob2) (wireBlobLabel blob3)) && true))))))),
+  axioms: [propext]
+}
+
+definition{
+  name: wireReferencePresent,
+  parameters: [label : Bytes, blob0 : Bytes, blob1 : Bytes, blob2 : Bytes, blob3 : Bytes],
+  result: Bool,
+  body: ((wireBytesEqual label (wireBlobLabel blob0)) || ((wireBytesEqual label (wireBlobLabel blob1)) || ((wireBytesEqual label (wireBlobLabel blob2)) || ((wireBytesEqual label (wireBlobLabel blob3)) || false)))),
+  axioms: [propext]
+}
+
+definition{
+  name: wireCapabilitiesPresent,
+  parameters: [label : Bytes, blob0 : Bytes, blob1 : Bytes, blob2 : Bytes, blob3 : Bytes],
+  result: Bool,
+  body: (((wireBytesEqual label (wireBlobLabel blob0)) && ((wireBytesEqual (wireBlobContent blob0) (emptyCapabilities)) && true)) || (((wireBytesEqual label (wireBlobLabel blob1)) && ((wireBytesEqual (wireBlobContent blob1) (emptyCapabilities)) && true)) || (((wireBytesEqual label (wireBlobLabel blob2)) && ((wireBytesEqual (wireBlobContent blob2) (emptyCapabilities)) && true)) || (((wireBytesEqual label (wireBlobLabel blob3)) && ((wireBytesEqual (wireBlobContent blob3) (emptyCapabilities)) && true)) || false)))),
+  axioms: [propext]
+}
+
+definition{
+  name: wirePayloadsValid,
+  parameters: [manifest : Bytes, blob0 : Bytes, blob1 : Bytes, blob2 : Bytes, blob3 : Bytes],
+  result: Bool,
+  body: ((validAppManifest manifest) && ((wireBlobsValid blob0 blob1 blob2 blob3) && ((wireCapabilitiesPresent (wireSlice manifest 57 71) blob0 blob1 blob2 blob3) && ((wireReferencePresent (wireSlice manifest 128 71) blob0 blob1 blob2 blob3) && ((wireReferencePresent (wireSlice manifest 199 71) blob0 blob1 blob2 blob3) && true))))),
+  axioms: [propext]
+}
+
+structure{
+  name: CanonicalSection,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: kind, type: Foundation.Holo.V1.Format::SectionKind}, {name: payload, type: Bytes}]
+}
+
+definition{
+  name: wireUtf8Octet,
+  parameters: [value : Bytes, index : Nat],
+  result: Nat,
+  body: (wireDecodeOctet (wireSlice value index 1)),
+  axioms: [propext]
+}
+
+definition{
+  name: wireUtf8Range,
+  parameters: [value : Bytes, index : Nat, low : Nat, high : Nat],
+  result: Bool,
+  body: ((low <=? (wireUtf8Octet value index)) && (((wireUtf8Octet value index) <? high) && true)),
+  axioms: [propext]
+}
+
+definition{
+  name: wireUtf8Valid,
+  parameters: [value : Bytes, index : Nat, fuel : Nat],
+  result: Bool,
+  body: (match fuel
+    | Nat.zero => ((prim length value : Nat) <=? index)
+    | Nat.succ rest => (if ((prim length value : Nat) <=? index) then true else (if ((wireUtf8Octet value index) <? 128) then (wireUtf8Valid value (index + 1) rest) else (if (wireUtf8Range value index 194 224) then ((wireUtf8Range value (index + 1) 128 192) && (wireUtf8Valid value (index + 2) rest)) else (if (wireUtf8Range value index 224 225) then ((wireUtf8Range value (index + 1) 160 192) && ((wireUtf8Range value (index + 2) 128 192) && (wireUtf8Valid value (index + 3) rest))) else (if ((wireUtf8Range value index 225 237) || (wireUtf8Range value index 238 240)) then ((wireUtf8Range value (index + 1) 128 192) && ((wireUtf8Range value (index + 2) 128 192) && (wireUtf8Valid value (index + 3) rest))) else (if (wireUtf8Range value index 237 238) then ((wireUtf8Range value (index + 1) 128 160) && ((wireUtf8Range value (index + 2) 128 192) && (wireUtf8Valid value (index + 3) rest))) else (if (wireUtf8Range value index 240 241) then ((wireUtf8Range value (index + 1) 144 192) && ((wireUtf8Range value (index + 2) 128 192) && ((wireUtf8Range value (index + 3) 128 192) && (wireUtf8Valid value (index + 4) rest)))) else (if (wireUtf8Range value index 241 244) then ((wireUtf8Range value (index + 1) 128 192) && ((wireUtf8Range value (index + 2) 128 192) && ((wireUtf8Range value (index + 3) 128 192) && (wireUtf8Valid value (index + 4) rest)))) else (if (wireUtf8Range value index 244 245) then ((wireUtf8Range value (index + 1) 128 144) && ((wireUtf8Range value (index + 2) 128 192) && ((wireUtf8Range value (index + 3) 128 192) && (wireUtf8Valid value (index + 4) rest)))) else false)))))))))),
+  axioms: [propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: wireExtensionKey,
+  parameters: [payload : Bytes],
+  result: (Option Bytes),
+  body: (if ((2 <=? (prim length payload : Nat)) && (((2 + (wireDecodeLe16 (wireSlice payload 0 2))) <=? (prim length payload : Nat)) && true)) then (if (wireUtf8Valid (wireSlice payload 2 (wireDecodeLe16 (wireSlice payload 0 2))) 0 (wireDecodeLe16 (wireSlice payload 0 2))) then (ctor Option.some [Bytes] (wireSlice payload 2 (wireDecodeLe16 (wireSlice payload 0 2)))) else (ctor Option.none [Bytes])) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: wireSectionOrderKey,
+  parameters: [kind : Foundation.Holo.V1.Format::SectionKind, payload : Bytes],
+  result: (Option Bytes),
+  body: (if ((Foundation.Holo.V1.Format::sectionKindCode kind) =? 14) then (wireExtensionKey payload) else (if ((Foundation.Holo.V1.Format::sectionKindCode kind) =? 16) then (if (wireBlobValid payload) then (ctor Option.some [Bytes] (wireBlobLabel payload)) else (ctor Option.none [Bytes])) else (ctor Option.some [Bytes] 0x))),
+  axioms: [propext]
+}
+
+definition{
+  name: wireCanonicalOrderValid,
+  parameters: [
+    previousRank : Nat,
+    previousKey : Bytes,
+    kind : Foundation.Holo.V1.Format::SectionKind,
+    key : Bytes
+  ],
+  result: Bool,
+  body: ((previousRank <? (Foundation.Holo.V1.Format::sectionKindRank kind)) || ((previousRank =? (Foundation.Holo.V1.Format::sectionKindRank kind)) && ((Foundation.Holo.V1.Format::sectionKindRepeatable kind) && ((wireBytesLess previousKey key) && true)))),
+  axioms: [propext]
+}
+
+definition{
+  name: wireCanonicalRowKind,
+  parameters: [body : Bytes, index : Nat],
+  result: (Option Foundation.Holo.V1.Format::SectionKind),
+  body: (Foundation.Holo.V1.Format::sectionKindOfCode (wireDecodeOctet (wireSlice body (10 + (prim multiply index 24 : Nat)) 1))),
+  axioms: [propext]
+}
+
+definition{
+  name: wireCanonicalRowsValid,
+  parameters: [
+    body : Bytes,
+    index : Nat,
+    offset : Nat,
+    previousRank : Nat,
+    previousKey : Bytes,
+    remaining : Nat
+  ],
+  result: Bool,
+  body: (match remaining
+    | Nat.zero => (offset =? (prim length body : Nat))
+    | Nat.succ rest => (match (wireCanonicalRowKind body index)
+      | Option.none => false
+      | Option.some kind => (match (wireSectionOrderKey kind (wireSectionBytesUnchecked body index))
+        | Option.none => false
+        | Option.some key => (if ((wireWindowEquals body (11 + (prim multiply index 24 : Nat)) 7 0x00000000000000) && (((wireRowOffset body index) =? offset) && ((1 <=? (wireRowLength body index)) && (((wireRowLength body index) <=? (prim subtract (prim length body : Nat) offset : Nat)) && ((wireCanonicalOrderValid previousRank previousKey kind key) && true))))) then (wireCanonicalRowsValid body (index + 1) (offset + (wireRowLength body index)) (Foundation.Holo.V1.Format::sectionKindRank kind) key rest) else false)))),
+  axioms: [propext],
+  recursive_argument: remaining
+}
+
+definition{
+  name: wireCanonicalSectionCount,
+  parameters: [body : Bytes],
+  result: Nat,
+  body: (wireDecodeLe16 (wireSlice body 8 2)),
+  axioms: [propext]
+}
+
+definition{
+  name: validCanonicalArchiveBody,
+  parameters: [body : Bytes],
+  result: Bool,
+  body: (if ((10 <=? (prim length body : Nat)) && ((wireWindowEquals body 0 8 0x484f4c4f04000000) && (((10 + (prim multiply (wireCanonicalSectionCount body) 24 : Nat)) <=? (prim length body : Nat)) && true))) then (wireCanonicalRowsValid body 0 (10 + (prim multiply (wireCanonicalSectionCount body) 24 : Nat)) 0 0x (wireCanonicalSectionCount body)) else false),
+  axioms: [propext]
+}
+
+definition{
+  name: validCanonicalArchiveFrame,
+  parameters: [value : Bytes],
+  result: Bool,
+  body: (if (42 <=? (prim length value : Nat)) then (validCanonicalArchiveBody (wireSlice value 0 (prim subtract (prim length value : Nat) 32 : Nat))) else false),
+  axioms: [propext]
+}
+
+definition{
+  name: canonicalFrameArchive,
+  parameters: [body : Bytes, footer : Bytes],
+  result: (Option Bytes),
+  body: (if ((validCanonicalArchiveBody body) && (((prim length footer : Nat) =? 32) && true)) then (ctor Option.some [Bytes] (prim append (prim append 0x body : Bytes) footer : Bytes)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: canonicalArchiveBodyBytes,
+  parameters: [value : Bytes],
+  result: (Option Bytes),
+  body: (if (validCanonicalArchiveFrame value) then (ctor Option.some [Bytes] (wireSlice value 0 (prim subtract (prim length value : Nat) 32 : Nat))) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: canonicalArchiveFooter,
+  parameters: [value : Bytes],
+  result: (Option Bytes),
+  body: (if (validCanonicalArchiveFrame value) then (ctor Option.some [Bytes] (wireSlice value (prim subtract (prim length value : Nat) 32 : Nat) 32)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: canonicalArchiveSectionKind,
+  parameters: [value : Bytes, index : Nat],
+  result: (Option Bytes),
+  body: (if ((validCanonicalArchiveFrame value) && ((index <? (wireCanonicalSectionCount value)) && true)) then (ctor Option.some [Bytes] (wireSlice value (10 + (prim multiply index 24 : Nat)) 1)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: canonicalArchiveSection,
+  parameters: [value : Bytes, index : Nat],
+  result: (Option Bytes),
+  body: (if ((validCanonicalArchiveFrame value) && ((index <? (wireCanonicalSectionCount value)) && true)) then (ctor Option.some [Bytes] (wireSectionBytesUnchecked value index)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: wireSectionKeyOrEmpty,
+  parameters: [section : CanonicalSection],
+  result: Bytes,
+  body: (match (wireSectionOrderKey (project section kind) (project section payload))
+    | Option.none => 0x
+    | Option.some key => key),
+  axioms: [propext]
+}
+
+definition{
+  name: wireSectionBefore,
+  parameters: [left : CanonicalSection, right : CanonicalSection],
+  result: Bool,
+  body: (((Foundation.Holo.V1.Format::sectionKindRank (project left kind)) <? (Foundation.Holo.V1.Format::sectionKindRank (project right kind))) || (((Foundation.Holo.V1.Format::sectionKindRank (project left kind)) =? (Foundation.Holo.V1.Format::sectionKindRank (project right kind))) && ((wireBytesLess (wireSectionKeyOrEmpty left) (wireSectionKeyOrEmpty right)) && true))),
+  axioms: [propext]
+}
+
+definition{
+  name: wireSectionMinimumAfter,
+  parameters: [sections : (List CanonicalSection), previousRank : Nat, previousKey : Bytes],
+  result: (Option CanonicalSection),
+  body: (match sections
+    | List.nil => (ctor Option.none [CanonicalSection])
+    | List.cons head tail => (match (wireSectionMinimumAfter tail previousRank previousKey)
+      | Option.none => (if (wireCanonicalOrderValid previousRank previousKey (project head kind) (wireSectionKeyOrEmpty head)) then (ctor Option.some [CanonicalSection] head) else (ctor Option.none [CanonicalSection]))
+      | Option.some current => (if ((wireCanonicalOrderValid previousRank previousKey (project head kind) (wireSectionKeyOrEmpty head)) && ((wireSectionBefore head current) && true)) then (ctor Option.some [CanonicalSection] head) else (ctor Option.some [CanonicalSection] current)))),
+  axioms: [propext],
+  recursive_argument: sections
+}
+
+definition{
+  name: wireSectionListCount,
+  parameters: [sections : (List CanonicalSection)],
+  result: Nat,
+  body: (match sections | List.nil => 0 | List.cons head tail => (1 + (wireSectionListCount tail))),
+  axioms: [],
+  recursive_argument: sections
+}
+
+definition{
+  name: wireCanonicalTableRow,
+  parameters: [kind : Foundation.Holo.V1.Format::SectionKind, offset : Nat, length : Nat],
+  result: Bytes,
+  body: (prim append (prim append (prim append (prim append 0x (wireEncodeOctet (Foundation.Holo.V1.Format::sectionKindCode kind)) : Bytes) 0x00000000000000 : Bytes) (wireEncodeLe64 offset) : Bytes) (wireEncodeLe64 length) : Bytes),
+  axioms: []
+}
+
+definition{
+  name: wireComposeTableRows,
+  parameters: [
+    sections : (List CanonicalSection),
+    previousRank : Nat,
+    previousKey : Bytes,
+    offset : Nat,
+    fuel : Nat
+  ],
+  result: Bytes,
+  body: (match fuel
+    | Nat.zero => 0x
+    | Nat.succ rest => (match (wireSectionMinimumAfter sections previousRank previousKey)
+      | Option.none => 0x
+      | Option.some section => (prim append (prim append 0x (wireCanonicalTableRow (project section kind) offset (prim length (project section payload) : Nat)) : Bytes) (wireComposeTableRows sections (Foundation.Holo.V1.Format::sectionKindRank (project section kind)) (wireSectionKeyOrEmpty section) (offset + (prim length (project section payload) : Nat)) rest) : Bytes))),
+  axioms: [propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: wireComposePayloads,
+  parameters: [
+    sections : (List CanonicalSection),
+    previousRank : Nat,
+    previousKey : Bytes,
+    fuel : Nat
+  ],
+  result: Bytes,
+  body: (match fuel
+    | Nat.zero => 0x
+    | Nat.succ rest => (match (wireSectionMinimumAfter sections previousRank previousKey)
+      | Option.none => 0x
+      | Option.some section => (prim append (prim append 0x (project section payload) : Bytes) (wireComposePayloads sections (Foundation.Holo.V1.Format::sectionKindRank (project section kind)) (wireSectionKeyOrEmpty section) rest) : Bytes))),
+  axioms: [propext],
+  recursive_argument: fuel
+}
+
+definition{
+  name: wireComposeCanonicalUnchecked,
+  parameters: [sections : (List CanonicalSection)],
+  result: Bytes,
+  body: (prim append (prim append (prim append (prim append 0x 0x484f4c4f04000000 : Bytes) (wireEncodeLe16 (wireSectionListCount sections)) : Bytes) (wireComposeTableRows sections 0 0x (10 + (prim multiply (wireSectionListCount sections) 24 : Nat)) (wireSectionListCount sections)) : Bytes) (wireComposePayloads sections 0 0x (wireSectionListCount sections)) : Bytes),
+  axioms: [propext]
+}
+
+definition{
+  name: wireCheckedCanonicalBody,
+  parameters: [body : Bytes],
+  result: (Option Bytes),
+  body: (if (validCanonicalArchiveBody body) then (ctor Option.some [Bytes] body) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: canonicalArchiveBody,
+  parameters: [sections : (List CanonicalSection)],
+  result: (Option Bytes),
+  body: (if ((prim length (wireComposeTableRows sections 0 0x (10 + (prim multiply (wireSectionListCount sections) 24 : Nat)) (wireSectionListCount sections)) : Nat) =? (prim multiply (wireSectionListCount sections) 24 : Nat)) then (wireCheckedCanonicalBody (wireComposeCanonicalUnchecked sections)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: wireBodyPayloadsValid,
+  parameters: [body : Bytes],
+  result: Bool,
+  body: ((wireWindowEquals (wireSectionBytesUnchecked body 2) 0 (prim length (wireDirectoryPrefix) : Nat) (wireDirectoryPrefix)) && ((wireWindowEquals (wireSectionBytesUnchecked body 3) 0 (prim length (wireProvenancePrefix) : Nat) (wireProvenancePrefix)) && ((wirePayloadsValid (wireSectionBytesUnchecked body 0) (wireSectionBytesUnchecked body 4) (wireSectionBytesUnchecked body 5) (wireSectionBytesUnchecked body 6) (wireSectionBytesUnchecked body 7)) && true))),
+  axioms: [propext]
+}
+
+definition{
+  name: wireNoBlankLines,
+  parameters: [value : Bytes, count : Nat],
+  result: Bool,
+  body: (match count
+    | Nat.zero => true
+    | Nat.succ rest => (if (wireWindowEquals value rest 2 0x0a0a) then false else (wireNoBlankLines value rest))),
+  axioms: [propext],
+  recursive_argument: count
+}
+
+definition{
+  name: wireAttestationRowValid,
+  parameters: [row : Bytes],
+  result: Bool,
+  body: ((((prim length (wireAttestationPrefix) : Nat) + 2) <=? (prim length row : Nat)) && ((wireWindowEquals row 0 (prim length (wireAttestationPrefix) : Nat) (wireAttestationPrefix)) && ((wireWindowEquals row (prim subtract (prim length row : Nat) 1 : Nat) 1 0x0a) && ((if (wireWindowEquals row (prim length (wireAttestationPrefix) : Nat) 1 0x0a) then false else true) && ((wireNoBlankLines row (prim length row : Nat)) && true))))),
+  axioms: [propext]
+}
+
+definition{
+  name: validArchiveBody,
+  parameters: [body : Bytes],
+  result: Bool,
+  body: (if ((202 <=? (prim length body : Nat)) && ((wireWindowEquals body 0 10 0x484f4c4f040000000800) && true)) then (if (validCanonicalArchiveBody body) then (if (wireRowsValid body 0 202 8) then (wireBodyPayloadsValid body) else false) else false) else (if ((226 <=? (prim length body : Nat)) && ((wireWindowEquals body 0 10 0x484f4c4f040000000900) && true)) then (if (wireRowsValid body 0 226 9) then ((wireBodyPayloadsValid body) && ((1 <=? (wireRowLength body 1)) && ((wireAttestationRowValid (wireSectionBytesUnchecked body 8)) && true))) else false) else false)),
+  axioms: [propext]
+}
+
+definition{
+  name: wireRowCount,
+  parameters: [body : Bytes],
+  result: Nat,
+  body: (wireDecodeLe16 (wireSlice body 8 2)),
+  axioms: [propext]
+}
+
+definition{
+  name: wireComposeBodyUnchecked,
+  parameters: [
+    manifest : Bytes,
+    metadata : Bytes,
+    directory : Bytes,
+    provenance : Bytes,
+    blob0 : Bytes,
+    blob1 : Bytes,
+    blob2 : Bytes,
+    blob3 : Bytes
+  ],
+  result: Bytes,
+  body: (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append 0x 0x484f4c4f040000000800 : Bytes) (wireTableRow 0 202 (prim length manifest : Nat)) : Bytes) (wireTableRow 1 (202 + (prim length manifest : Nat)) (prim length metadata : Nat)) : Bytes) (wireTableRow 2 ((202 + (prim length manifest : Nat)) + (prim length metadata : Nat)) (prim length directory : Nat)) : Bytes) (wireTableRow 3 (((202 + (prim length manifest : Nat)) + (prim length metadata : Nat)) + (prim length directory : Nat)) (prim length provenance : Nat)) : Bytes) (wireTableRow 4 ((((202 + (prim length manifest : Nat)) + (prim length metadata : Nat)) + (prim length directory : Nat)) + (prim length provenance : Nat)) (prim length blob0 : Nat)) : Bytes) (wireTableRow 5 (((((202 + (prim length manifest : Nat)) + (prim length metadata : Nat)) + (prim length directory : Nat)) + (prim length provenance : Nat)) + (prim length blob0 : Nat)) (prim length blob1 : Nat)) : Bytes) (wireTableRow 6 ((((((202 + (prim length manifest : Nat)) + (prim length metadata : Nat)) + (prim length directory : Nat)) + (prim length provenance : Nat)) + (prim length blob0 : Nat)) + (prim length blob1 : Nat)) (prim length blob2 : Nat)) : Bytes) (wireTableRow 7 (((((((202 + (prim length manifest : Nat)) + (prim length metadata : Nat)) + (prim length directory : Nat)) + (prim length provenance : Nat)) + (prim length blob0 : Nat)) + (prim length blob1 : Nat)) + (prim length blob2 : Nat)) (prim length blob3 : Nat)) : Bytes) manifest : Bytes) metadata : Bytes) directory : Bytes) provenance : Bytes) blob0 : Bytes) blob1 : Bytes) blob2 : Bytes) blob3 : Bytes),
+  axioms: []
+}
+
+definition{
+  name: archiveBody,
+  parameters: [
+    manifest : Bytes,
+    metadata : Bytes,
+    directory : Bytes,
+    provenance : Bytes,
+    blob0 : Bytes,
+    blob1 : Bytes,
+    blob2 : Bytes,
+    blob3 : Bytes
+  ],
+  result: (Option Bytes),
+  body: (if (wirePayloadsValid manifest blob0 blob1 blob2 blob3) then (wireCheckedCanonicalBody (wireComposeBodyUnchecked manifest metadata (prim append (prim append 0x (wireDirectoryPrefix) : Bytes) directory : Bytes) (prim append (prim append 0x (wireProvenancePrefix) : Bytes) provenance : Bytes) blob0 blob1 blob2 blob3)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: wireTableRowShifted,
+  parameters: [body : Bytes, index : Nat, shift : Nat],
+  result: Bytes,
+  body: (wireTableRow index ((wireRowOffset body index) + shift) (wireRowLength body index)),
+  axioms: [propext]
+}
+
+definition{
+  name: wireTableRowUnshifted,
+  parameters: [body : Bytes, index : Nat, shift : Nat],
+  result: Bytes,
+  body: (wireTableRow index (prim subtract (wireRowOffset body index) shift : Nat) (wireRowLength body index)),
+  axioms: [propext]
+}
+
+definition{
+  name: archiveBodyWithAttestation,
+  parameters: [body : Bytes, attestation : Bytes],
+  result: (Option Bytes),
+  body: (if ((validArchiveBody body) && (((wireRowCount body) =? 8) && ((wireAttestationRowValid (prim append (prim append 0x (wireAttestationPrefix) : Bytes) attestation : Bytes)) && true))) then (ctor Option.some [Bytes] (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append 0x 0x484f4c4f040000000900 : Bytes) (wireTableRowShifted body 0 24) : Bytes) (wireTableRowShifted body 1 24) : Bytes) (wireTableRowShifted body 2 24) : Bytes) (wireTableRowShifted body 3 24) : Bytes) (wireTableRowShifted body 4 24) : Bytes) (wireTableRowShifted body 5 24) : Bytes) (wireTableRowShifted body 6 24) : Bytes) (wireTableRowShifted body 7 24) : Bytes) (wireTableRow 8 ((prim length body : Nat) + 24) ((prim length (wireAttestationPrefix) : Nat) + (prim length attestation : Nat))) : Bytes) (wireSlice body 202 (prim subtract (prim length body : Nat) 202 : Nat)) : Bytes) (prim append (prim append 0x (wireAttestationPrefix) : Bytes) attestation : Bytes) : Bytes)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: frameArchive,
+  parameters: [body : Bytes, footer : Bytes],
+  result: (Option Bytes),
+  body: (if ((validArchiveBody body) && (((prim length footer : Nat) =? 32) && true)) then (ctor Option.some [Bytes] (prim append (prim append 0x body : Bytes) footer : Bytes)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: validArchiveFrame,
+  parameters: [value : Bytes],
+  result: Bool,
+  body: (if (234 <=? (prim length value : Nat)) then (validArchiveBody (wireSlice value 0 (prim subtract (prim length value : Nat) 32 : Nat))) else false),
+  axioms: [propext]
+}
+
+definition{
+  name: archiveBodyBytes,
+  parameters: [value : Bytes],
+  result: (Option Bytes),
+  body: (if (validArchiveFrame value) then (ctor Option.some [Bytes] (wireSlice value 0 (prim subtract (prim length value : Nat) 32 : Nat))) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: archiveFooter,
+  parameters: [value : Bytes],
+  result: (Option Bytes),
+  body: (if (validArchiveFrame value) then (ctor Option.some [Bytes] (wireSlice value (prim subtract (prim length value : Nat) 32 : Nat) 32)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: archiveSection,
+  parameters: [value : Bytes, index : Nat],
+  result: (Option Bytes),
+  body: (if ((validArchiveFrame value) && ((index <? (wireRowCount value)) && true)) then (ctor Option.some [Bytes] (wireSectionBytesUnchecked value index)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: archiveExtension,
+  parameters: [value : Bytes, index : Nat],
+  result: (Option Bytes),
+  body: (if ((validArchiveFrame value) && ((index <? 2) && true)) then (if (index =? 0) then (ctor Option.some [Bytes] (wireSlice (wireSectionBytesUnchecked value (index + 2)) (prim length (wireDirectoryPrefix) : Nat) (prim subtract (prim length (wireSectionBytesUnchecked value (index + 2)) : Nat) (prim length (wireDirectoryPrefix) : Nat) : Nat))) else (ctor Option.some [Bytes] (wireSlice (wireSectionBytesUnchecked value (index + 2)) (prim length (wireProvenancePrefix) : Nat) (prim subtract (prim length (wireSectionBytesUnchecked value (index + 2)) : Nat) (prim length (wireProvenancePrefix) : Nat) : Nat)))) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: archiveAttestation,
+  parameters: [value : Bytes],
+  result: (Option Bytes),
+  body: (if ((validArchiveFrame value) && (((wireRowCount value) =? 9) && true)) then (ctor Option.some [Bytes] (wireSlice (wireSectionBytesUnchecked value 8) (prim length (wireAttestationPrefix) : Nat) (prim subtract (prim length (wireSectionBytesUnchecked value 8) : Nat) (prim length (wireAttestationPrefix) : Nat) : Nat))) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: archiveStripAttestation,
+  parameters: [value : Bytes],
+  result: (Option Bytes),
+  body: (if ((validArchiveFrame value) && (((wireRowCount value) =? 9) && true)) then (ctor Option.some [Bytes] (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append (prim append 0x 0x484f4c4f040000000800 : Bytes) (wireTableRowUnshifted value 0 24) : Bytes) (wireTableRowUnshifted value 1 24) : Bytes) (wireTableRowUnshifted value 2 24) : Bytes) (wireTableRowUnshifted value 3 24) : Bytes) (wireTableRowUnshifted value 4 24) : Bytes) (wireTableRowUnshifted value 5 24) : Bytes) (wireTableRowUnshifted value 6 24) : Bytes) (wireTableRowUnshifted value 7 24) : Bytes) (wireSlice value 226 (prim subtract (wireRowOffset value 8) 226 : Nat)) : Bytes)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: contentBlob,
+  parameters: [label : Bytes, content : Bytes],
+  result: (Option Bytes),
+  body: (if (wireKappaLabelValid label) then (ctor Option.some [Bytes] (prim append (prim append 0x label : Bytes) content : Bytes)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: contentBlobLabel,
+  parameters: [value : Bytes],
+  result: (Option Bytes),
+  body: (if (wireBlobValid value) then (ctor Option.some [Bytes] (wireBlobLabel value)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+
+definition{
+  name: contentBlobBytes,
+  parameters: [value : Bytes],
+  result: (Option Bytes),
+  body: (if (wireBlobValid value) then (ctor Option.some [Bytes] (wireBlobContent value)) else (ctor Option.none [Bytes])),
+  axioms: [propext]
+}
+\end{semanticmodule}
+\end{lexlean}

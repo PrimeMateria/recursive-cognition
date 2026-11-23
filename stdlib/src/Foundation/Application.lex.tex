@@ -1,0 +1,75 @@
+\begin{lexlean}{Foundation.Application}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\title{Application layer model}
+\begin{semanticmodule}
+inductive{
+  name: ApplicationLayerKind,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: Wasm, fields: []}, {name: View, fields: []}]
+}
+
+inductive{
+  name: PackagingIntent,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: Fat, fields: []}, {name: Thin, fields: []}]
+}
+
+inductive{
+  name: PresentationTarget,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: HologramPortable, fields: []}, {name: GithubPages, fields: []}]
+}
+
+structure{
+  name: Layer,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: kind, type: ApplicationLayerKind},
+    {name: entry, type: String},
+    {name: contract, type: String},
+    {name: primary, type: Bool}
+  ]
+}
+
+structure{
+  name: CargoPackage,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: name, type: String},
+    {name: version, type: String},
+    {name: description, type: String},
+    {name: repository, type: String},
+    {name: homepage, type: String},
+    {name: stdlibVersion, type: String},
+    {name: stdFeature, type: Bool}
+  ]
+}
+
+structure{
+  name: Application,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: name, type: String},
+    {name: entryRoot, type: String},
+    {name: requestCodec, type: String},
+    {name: responseCodec, type: String},
+    {name: requestMaximum, type: UInt32},
+    {name: responseMaximum, type: UInt32},
+    {name: guestAllocationMaximum, type: UInt32},
+    {name: capabilitiesEmpty, type: Bool},
+    {name: packaging, type: PackagingIntent},
+    {name: layers, type: (List Layer)},
+    {name: targets, type: (List PresentationTarget)},
+    {name: cargoPackage, type: CargoPackage}
+  ]
+}
+\end{semanticmodule}
+\end{lexlean}

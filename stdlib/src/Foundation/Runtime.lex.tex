@@ -1,0 +1,53 @@
+\begin{lexlean}{Foundation.Runtime}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\title{Guest runtime primitive}
+\begin{semanticmodule}
+inductive{
+  name: CryptoPrimitive,
+  type_parameters: [],
+  parameters: [],
+  constructors: [{name: Blake3, fields: []}, {name: Sha256, fields: []}]
+}
+
+structure{
+  name: GuestMemory,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: maximumBytes, type: UInt32},
+    {name: maximumPages, type: UInt32},
+    {name: alignment, type: UInt8},
+    {name: monotonic, type: Bool},
+    {name: freshInstance, type: Bool}
+  ]
+}
+
+structure{
+  name: HashRequest,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: primitive, type: CryptoPrimitive},
+    {name: role, type: String},
+    {name: preimage, type: Bytes},
+    {name: expectedBytes, type: UInt8}
+  ]
+}
+
+structure{
+  name: HashResult,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: role, type: String}, {name: digest, type: Bytes}]
+}
+
+definition{
+  name: coreWasmMemory,
+  parameters: [],
+  result: GuestMemory,
+  body: (record GuestMemory {maximumBytes := (65536 : UInt32), maximumPages := (4 : UInt32), alignment := (8 : UInt8), monotonic := true, freshInstance := true})
+}
+\end{semanticmodule}
+\end{lexlean}

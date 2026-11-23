@@ -1,0 +1,163 @@
+{
+  "spec": "prismpm/evidence-register/1",
+  "record_id": "ADR-0016",
+  "local_adr": "ADR-0016",
+  "superseded_by": [
+    {
+      "adr": "ADR-0017",
+      "scope": "D7 only: the model-content blocker in prismpm verify; all toolchain decisions and historical attestations remain in force",
+      "evidence_record": "production/evidence/ADR-0017-prismpm-verification.json"
+    }
+  ],
+  "title": "LexLean 0.4.3 / Lean v4.32.2 toolchain supersession with reproducible attestation",
+  "status": "accepted",
+  "decision_basis": "The security-patched Lean v4.32.2 pin verifies all four spike modules under LexLean 0.4.3, the attestation is identical across a repeat run and a clean rebuild, and PrismPM 0.5.0 check passes against the same project configuration.",
+  "supersedes": {
+    "adr": "ADR-002",
+    "scope": "Lean toolchain pin only; the Tier-1 Mathlib exclusion remains in force",
+    "previous_pin": "leanprover/lean4:v4.32.1",
+    "new_pin": "leanprover/lean4:v4.32.2",
+    "upstream_fix": "leanprover/lean4#14576 nested-inductive kernel soundness issue"
+  },
+  "canonical_toolchain": {
+    "lean_pin": "leanprover/lean4:v4.32.2",
+    "lexlean": "0.4.3",
+    "lexlean_path": "/run/media/multiplic/AGI/prismagi/mount/PRIME/toolchain/lexlean-0.4.3/bin/lexlean",
+    "lexlean_sha256": "214b06761073c65eeaaa6294a973c24066a20ce170ddb369748d9c487116ce92",
+    "prismpm": "0.5.0",
+    "prismpm_path": "/home/multiplic/.local/bin/prismpm",
+    "lexlean_project_schema": "lexlean/project/1",
+    "lexlean_lock_schema": "lexlean/lock/2",
+    "tools_lock": "tools.lock"
+  },
+  "attestation": {
+    "scheme": "lexlean/attestation/2",
+    "digest": "e2ea04e5e9c899c49fb341ecf555e205208d2e32489e0bf86e2fb57851069bb7",
+    "build_id": "dcc0b0237df70c02bf0f77b05d8fe4d749d69d9ca227ccfb1aacb366ea3beb34",
+    "source_id": "700c5932916c3e7c8bc58b4d134fcb4d8fad79f85b3b4be20c7659c6e38bcac4",
+    "semantic_id": "e3ca15a8cc6700d45fbd6d8a6548ea43070e3b7e63655749f827f9ab95ab11f1",
+    "verified_modules": 4,
+    "required_spike_artifacts": [
+      "src/Spike/RatOrder.lex.tex::rat_order_helper",
+      "src/Spike/DtCbf.lex.tex::dt_cbf_forward_invariant",
+      "src/Spike/SpectralBins.lex.tex::prime_bin_partition"
+    ],
+    "supporting_module": "src/Governance.lex.tex",
+    "project_declaration_count": 20,
+    "project_declarations_axiom_free": true,
+    "axiom_audit_result": "all 20 RecursiveCognition.* declarations: result ok, observed axioms []",
+    "lean_version_output": "Lean (version 4.32.2, x86_64-unknown-linux-gnu, commit f3b06c705e6c85f5314019d5d3baab0fec5b580c, Release)"
+  },
+  "historical_attestation": {
+    "scheme": "lexlean/attestation/1",
+    "digest": "7998182e99ca10aa0a3cff41b2ebb90c846bf0f7fb8fe6a0b2f93efeea4aa8ca",
+    "lexlean": "0.4.0",
+    "lean_pin": "leanprover/lean4:v4.32.1",
+    "status": "historical",
+    "evidence_record": "production/evidence/ADR-001-lexlean-spike.json",
+    "note": "Retained under the no-delete-evidence rule. Not the current production attestation."
+  },
+  "reproducibility": {
+    "identical": true,
+    "runs": [
+      {
+        "kind": "first",
+        "command": "lexlean-0.4.3 --project lexlean.toml verify",
+        "stdout": "evidence/lexlean-043-verify-1.stdout",
+        "stderr": "evidence/lexlean-043-verify-1.stderr",
+        "attestation": "e2ea04e5e9c899c49fb341ecf555e205208d2e32489e0bf86e2fb57851069bb7"
+      },
+      {
+        "kind": "repeat",
+        "command": "lexlean-0.4.3 --project lexlean.toml verify",
+        "stdout": "evidence/lexlean-043-verify-1.stdout",
+        "attestation": "e2ea04e5e9c899c49fb341ecf555e205208d2e32489e0bf86e2fb57851069bb7"
+      },
+      {
+        "kind": "clean-rebuild",
+        "command": "lexlean-0.4.3 clean && lexlean-0.4.3 --project lexlean.toml verify",
+        "stdout": "evidence/lexlean-043-verify-2-clean.stdout",
+        "stderr": "evidence/lexlean-043-verify-2-clean.stderr",
+        "attestation": "e2ea04e5e9c899c49fb341ecf555e205208d2e32489e0bf86e2fb57851069bb7"
+      }
+    ]
+  },
+  "supporting_checks": {
+    "version": {
+      "stdout": "evidence/lexlean-043-version.stdout",
+      "result": "lexlean 0.4.3; lean-toolchain leanprover/lean4:v4.32.2"
+    },
+    "lock": {
+      "stdout": "evidence/lexlean-043-lock.stdout",
+      "stderr": "evidence/lexlean-043-lock.stderr",
+      "result": "wrote lexlean.lock; spec lexlean/lock/2"
+    },
+    "check": {
+      "stdout": "evidence/lexlean-043-check.stdout",
+      "stderr": "evidence/lexlean-043-check.stderr",
+      "result": "checked 4 modules (source 700c5932916c3e7c8bc58b4d134fcb4d8fad79f85b3b4be20c7659c6e38bcac4, semantic e3ca15a8cc6700d45fbd6d8a6548ea43070e3b7e63655749f827f9ab95ab11f1)"
+    },
+    "format": {
+      "stdout": "evidence/lexlean-043-fmt.stdout",
+      "stderr": "evidence/lexlean-043-fmt.stderr",
+      "result": "4 modules are canonical"
+    },
+    "prismpm_check": {
+      "tool": "prismpm 0.5.0",
+      "command": "prismpm check",
+      "stdout": "evidence/prismpm-050-check-043.stdout",
+      "stderr": "evidence/prismpm-050-check-043.stderr",
+      "result": "check passed (semantic ID: e3ca15a8cc6700d45fbd6d8a6548ea43070e3b7e63655749f827f9ab95ab11f1)"
+    }
+  },
+  "rejected_alternative": {
+    "lexlean": "0.4.5",
+    "reason": "Verifies with BLAKE3 attestation blake3:bb55f87a264bd43dcd42411b6b5e497cc2c50b598f787cd54ec78542e046dfb4 but requires lexlean/project/2, which PrismPM 0.5.0 refuses.",
+    "scratch_verify": "evidence/adoption-study/lexlean-045-scratch-verify.stdout",
+    "prismpm_failure": "evidence/adoption-study/prismpm-050-check-045-scratch.stderr",
+    "failure_code": "LLC0103",
+    "failure_message": "unsupported project schema `lexlean/project/2`",
+    "scope": "Decision input only; not a production attestation for this root."
+  },
+  "remaining_blocker": {
+    "command": "prismpm verify",
+    "status": "historical_blocked_by_model_content; superseded_by_ADR-0017",
+    "code": "PP5003",
+    "message": "LexLean snapshot contains no Prism declarations",
+    "stderr": "evidence/prismpm-050-verify-043.stderr",
+    "pinned_rust_stderr": "evidence/prismpm-050-verify-043-rust1971.stderr",
+    "current_result": {
+      "status": "passed_under_ADR-0017",
+      "code": null,
+      "attestation": "7963a1eb1ee4462fd5c87a7c1b2bc430dbbb2f8d0774b5dc606e43a0b2a66c71",
+      "stdout": "evidence/adr-0017-prismpm-verify-json.stdout"
+    },
+    "impact": "The model-content blocker is closed by ADR-0017 for the governed verify path only. OCI release, TRR-2, Kani, and nine-suite claims remain unclaimed."
+  },
+  "source_digests": {
+    "lexlean.toml": "05052645e58da884074e8768d0b721b6aff3e55bf440e0e859566f5c76ba51e9",
+    "lexlean.lock": "5e94f156e889b5e34cd5a9d603a55e2e8a01c165a03339de0d5e16816f492c76",
+    "lean-toolchain": "2bdc48adfa58d0017e538a0ad117c5d73d35deec879978f909406a80c8037273",
+    "prismpm.toml": "0d0e58f221f61dc8bea0c68fd42609d0a458e26f6424fa067e24c3e3184b695d",
+    "tools.lock": "811c3fe0102b79ea789b3a8a37a6a8b68cf7e2d493bfdf3fcfa2fff54f930666",
+    "src/Governance.lex.tex": "9be8d0d4dfd4b066c4fbfdbf7e9cb9ae5962b1cc6fd56cb16b70f2c9c616495e",
+    "src/Spike/DtCbf.lex.tex": "b87ad6b6a0ab375ee45eb7504831c23fe9680c946059211b9dd0ef18e102f758",
+    "src/Spike/RatOrder.lex.tex": "d567d97ae1020e35fe5124e0618846b0407a62529fe3563fd7dbf62d748e2e41",
+    "src/Spike/SpectralBins.lex.tex": "62b8b63ed0a473dc82f664b4506a79d08a5d9fdd23df5fb24ac0fd7f11b69825"
+  },
+  "links": {
+    "supersedes": ["ADR-002 (lean pin only)"],
+    "superseded_by": ["ADR-0017 (D7 only)"],
+    "amends": ["ADR-0015 D4"],
+    "related_adrs": ["ADR-001", "ADR-0015", "ADR-0016", "ADR-0017", "ADR-014"],
+    "risks": [
+      "RISK-TOOLCHAIN-DRIFT",
+      "RISK-LEXLEAN-IMMATURITY",
+      "RISK-LEXLEAN-GOVERNANCE-LAG",
+      "RISK-PRISM-MODEL-GAP"
+    ],
+    "phase_gate": "CDR",
+    "baseline_file": "Multiplicity-Recursive Cognition Engine.txt"
+  },
+  "scope_limit": "This record closes the ADR-002 toolchain-pin supersession only and retains its historical attestation. ADR-0017 subsequently supersedes D7's model-content blocker; it does not close the five v3.3 open obligations, any Deferred ADR, any Kani harness, or any release gate. No 'verified prototype' claim is made."
+}

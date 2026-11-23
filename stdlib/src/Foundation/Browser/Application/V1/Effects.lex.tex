@@ -1,0 +1,987 @@
+\begin{lexlean}{Foundation.Browser.Application.V1.Effects}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\title{Browser effect host model}
+\begin{semanticmodule}
+structure{
+  name: EffectHostLimits,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: inputMaximum, type: Nat},
+    {name: outputMaximum, type: Nat},
+    {name: memoryPages, type: Nat}
+  ]
+}
+
+structure{
+  name: EffectGuest,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: artifact, type: Bytes},
+    {name: entry, type: String},
+    {name: protocol, type: String},
+    {name: inputMaximum, type: Nat},
+    {name: outputMaximum, type: Nat},
+    {name: memoryPages, type: Nat}
+  ]
+}
+
+structure{
+  name: EffectSigningGrant,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: publicKey, type: Bytes}, {name: context, type: String}]
+}
+
+structure{
+  name: EffectStorageGrant,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: storeNamespace, type: String},
+    {name: maxObjectBytes, type: Nat},
+    {name: maxObjects, type: Nat},
+    {name: maxHeads, type: Nat}
+  ]
+}
+
+inductive{
+  name: EffectAdapter,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: Guest, fields: [EffectGuest]},
+    {name: Random, fields: []},
+    {name: Digest, fields: []},
+    {name: Signer, fields: [EffectSigningGrant]},
+    {name: Verifier, fields: [EffectSigningGrant]},
+    {name: Store, fields: [EffectStorageGrant]}
+  ]
+}
+
+structure{
+  name: EffectGrant,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: resource, type: String}, {name: adapter, type: EffectAdapter}]
+}
+
+structure{
+  name: EffectManifest,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: application, type: Bytes},
+    {name: manifest, type: Bytes},
+    {name: limits, type: EffectHostLimits},
+    {name: grants, type: (List EffectGrant)}
+  ]
+}
+
+structure{
+  name: EffectGuestInvocation,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: artifact, type: Bytes},
+    {name: entry, type: String},
+    {name: protocol, type: String},
+    {name: input, type: Bytes}
+  ]
+}
+
+structure{
+  name: EffectVerification,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: value, type: Bytes}, {name: signature, type: Bytes}]
+}
+
+structure{
+  name: EffectCommit,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: head, type: String},
+    {name: expected, type: (Option String)},
+    {name: next, type: String},
+    {name: objects, type: (List Bytes)}
+  ]
+}
+
+structure{
+  name: EffectHead,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: id, type: String}, {name: bytes, type: Bytes}]
+}
+
+inductive{
+  name: EffectOperation,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: InvokeGuest, fields: [EffectGuestInvocation]},
+    {name: RandomBytes, fields: [Nat]},
+    {name: DigestBytes, fields: [Bytes]},
+    {name: SignBytes, fields: [Bytes]},
+    {name: VerifyBytes, fields: [EffectVerification]},
+    {name: ReadObject, fields: [String]},
+    {name: ReadHead, fields: [String]},
+    {name: Commit, fields: [EffectCommit]}
+  ]
+}
+
+structure{
+  name: EffectRequest,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: application, type: Bytes},
+    {name: manifest, type: Bytes},
+    {name: session, type: Bytes},
+    {name: operation, type: Nat},
+    {name: resource, type: String},
+    {name: effect, type: EffectOperation}
+  ]
+}
+
+inductive{
+  name: EffectFailure,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: InvalidInput, fields: []},
+    {name: IdentityCorrupt, fields: []},
+    {name: CryptoUnavailable, fields: []},
+    {name: HeadConflict, fields: []},
+    {name: MissingObject, fields: []},
+    {name: ObjectCorrupt, fields: []},
+    {name: StoreLimit, fields: []},
+    {name: StoreClosed, fields: []},
+    {name: StorageQuota, fields: []},
+    {name: StorageUnavailable, fields: []},
+    {name: InvalidGeneratedModule, fields: []},
+    {name: GeneratedExecutionFailed, fields: []},
+    {name: InvalidGeneratedOutput, fields: []}
+  ]
+}
+
+inductive{
+  name: EffectResult,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: GuestBytes, fields: [Bytes]},
+    {name: RandomBytes, fields: [Bytes]},
+    {name: Digest, fields: [String]},
+    {name: Signature, fields: [Bytes]},
+    {name: Verification, fields: [Bool]},
+    {name: Object, fields: [(Option Bytes)]},
+    {name: Head, fields: [(Option EffectHead)]},
+    {name: Committed, fields: [String]},
+    {name: Rejected, fields: [EffectFailure]},
+    {name: Unknown, fields: []}
+  ]
+}
+
+structure{
+  name: EffectCompletion,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: request, type: EffectRequest}, {name: result, type: EffectResult}]
+}
+
+structure{
+  name: EffectSession,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: manifest, type: EffectManifest},
+    {name: session, type: Bytes},
+    {name: nextOperation, type: Nat},
+    {name: closed, type: Bool},
+    {name: uncertain, type: Bool},
+    {name: active, type: (Option EffectRequest)},
+    {name: waiter, type: (Option EffectRequest)}
+  ]
+}
+
+inductive{
+  name: EffectProtocolError,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: BadManifest, fields: []},
+    {name: BadSession, fields: []},
+    {name: Closed, fields: []},
+    {name: OutcomeUnknown, fields: []},
+    {name: Busy, fields: []},
+    {name: OperationExhausted, fields: []},
+    {name: WrongApplication, fields: []},
+    {name: WrongManifest, fields: []},
+    {name: WrongSession, fields: []},
+    {name: WrongOperation, fields: []},
+    {name: UnknownResource, fields: []},
+    {name: InvalidEffect, fields: []},
+    {name: NoActiveOperation, fields: []},
+    {name: CompletionMismatch, fields: []},
+    {name: InvalidResult, fields: []}
+  ]
+}
+
+definition{
+  name: effectContainsOctet,
+  parameters: [alphabet : Bytes, value : UInt8, offset : Nat, remaining : Nat],
+  result: Bool,
+  body: (match remaining
+    | Nat.zero => false
+    | Nat.succ rest => (match (prim index alphabet offset : (Option UInt8))
+      | Option.none => false
+      | Option.some octet => ((prim equal octet value : Bool) || ((effectContainsOctet alphabet value (offset + 1) rest) || false)))),
+  axioms: [],
+  recursive_argument: remaining
+}
+
+definition{
+  name: effectOctetAllowed,
+  parameters: [value : UInt8, grammar : Nat],
+  result: Bool,
+  body: (match (grammar =? 2)
+    | Bool.false => (match (grammar =? 3)
+      | Bool.false => (match (grammar =? 1)
+        | Bool.false => (effectContainsOctet 0x4142434445464748494a4b4c4d4e4f505152535455565758595a6162636465666768696a6b6c6d6e6f707172737475767778797a303132333435363738392e5f2d value 0 65)
+        | Bool.true => (effectContainsOctet 0x4142434445464748494a4b4c4d4e4f505152535455565758595a6162636465666768696a6b6c6d6e6f707172737475767778797a303132333435363738392e5f2d2f value 0 66))
+      | Bool.true => (effectContainsOctet 0x4142434445464748494a4b4c4d4e4f505152535455565758595a6162636465666768696a6b6c6d6e6f707172737475767778797a30313233343536373839 value 0 62))
+    | Bool.true => (effectContainsOctet 0x30313233343536373839616263646566 value 0 16)),
+  axioms: []
+}
+
+definition{
+  name: effectAsciiTail,
+  parameters: [value : Bytes, offset : Nat, remaining : Nat, grammar : Nat, previousDot : Bool],
+  result: Bool,
+  body: (match remaining
+    | Nat.zero => true
+    | Nat.succ rest => (match (prim index value offset : (Option UInt8))
+      | Option.none => false
+      | Option.some octet => ((effectOctetAllowed octet grammar) && ((not ((grammar =? 1) && (previousDot && ((prim equal octet (46 : UInt8) : Bool) && true)))) && ((effectAsciiTail value (offset + 1) rest grammar (prim equal octet (46 : UInt8) : Bool)) && true))))),
+  axioms: [],
+  recursive_argument: remaining
+}
+
+definition{
+  name: effectNameValid,
+  parameters: [value : String, grammar : Nat],
+  result: Bool,
+  body: (((0 <? (prim length (prim utf8_encode value : Bytes) : Nat)) && (((prim length (prim utf8_encode value : Bytes) : Nat) <=? 128) && true)) && ((match (prim index (prim utf8_encode value : Bytes) 0 : (Option UInt8))
+    | Option.none => false
+    | Option.some firstByte => (effectOctetAllowed firstByte 3)) && ((effectAsciiTail (prim utf8_encode value : Bytes) 0 (prim length (prim utf8_encode value : Bytes) : Nat) grammar false) && true))),
+  axioms: []
+}
+
+definition{
+  name: effectDigestValid,
+  parameters: [value : String],
+  result: Bool,
+  body: (((prim length (prim utf8_encode value : Bytes) : Nat) =? 71) && ((match (prim slice (prim utf8_encode value : Bytes) 0 7 : (Option Bytes))
+    | Option.none => false
+    | Option.some hashPrefix => (prim equal hashPrefix 0x7368613235363a : Bool)) && ((effectAsciiTail (prim utf8_encode value : Bytes) 7 64 2 false) && true))),
+  axioms: []
+}
+
+definition{
+  name: effectOptionalDigestValid,
+  parameters: [value : (Option String)],
+  result: Bool,
+  body: (match value | Option.none => true | Option.some digest => (effectDigestValid digest)),
+  axioms: []
+}
+
+definition{
+  name: effectEntryHeadValid,
+  parameters: [value : UInt8],
+  result: Bool,
+  body: (effectContainsOctet 0x4142434445464748494a4b4c4d4e4f505152535455565758595a6162636465666768696a6b6c6d6e6f707172737475767778797a5f value 0 53),
+  axioms: []
+}
+
+definition{
+  name: effectEntryTail,
+  parameters: [value : Bytes, offset : Nat, remaining : Nat, start : Bool, qualified : Bool],
+  result: Bool,
+  body: (match remaining
+    | Nat.zero => ((not start) && (qualified && true))
+    | Nat.succ rest => (match (prim index value offset : (Option UInt8))
+      | Option.none => false
+      | Option.some octet => (match (prim equal octet (46 : UInt8) : Bool)
+        | Bool.false => ((match start
+          | Bool.false => ((effectEntryHeadValid octet) || ((effectOctetAllowed octet 3) || false))
+          | Bool.true => (effectEntryHeadValid octet)) && ((effectEntryTail value (offset + 1) rest false qualified) && true))
+        | Bool.true => ((not start) && ((effectEntryTail value (offset + 1) rest true true) && true))))),
+  axioms: [],
+  recursive_argument: remaining
+}
+
+definition{
+  name: effectEntryValid,
+  parameters: [value : String],
+  result: Bool,
+  body: (((0 <? (prim length (prim utf8_encode value : Bytes) : Nat)) && (((prim length (prim utf8_encode value : Bytes) : Nat) <=? 512) && true)) && ((effectEntryTail (prim utf8_encode value : Bytes) 0 (prim length (prim utf8_encode value : Bytes) : Nat) true false) && true)),
+  axioms: []
+}
+
+definition{
+  name: effectHostLimitsValid,
+  parameters: [limits : EffectHostLimits],
+  result: Bool,
+  body: (((0 <? (project limits inputMaximum)) && (((project limits inputMaximum) <=? 4294967295) && true)) && (((0 <? (project limits outputMaximum)) && (((project limits outputMaximum) <=? 4294967295) && true)) && (((0 <? (project limits memoryPages)) && (((project limits memoryPages) <=? 65536) && true)) && ((((project limits inputMaximum) + (project limits outputMaximum)) <=? (prim multiply (project limits memoryPages) 65536 : Nat)) && true)))),
+  axioms: []
+}
+
+definition{
+  name: effectGuestValid,
+  parameters: [guest : EffectGuest, limits : EffectHostLimits],
+  result: Bool,
+  body: (((prim length (project guest artifact) : Nat) =? 32) && ((effectEntryValid (project guest entry)) && (((0 <? (prim length (prim utf8_encode (project guest protocol) : Bytes) : Nat)) && (((prim length (prim utf8_encode (project guest protocol) : Bytes) : Nat) <=? 128) && true)) && (((0 <? (project guest inputMaximum)) && (((project guest inputMaximum) <=? (project limits inputMaximum)) && true)) && (((0 <? (project guest outputMaximum)) && (((project guest outputMaximum) <=? (project limits outputMaximum)) && true)) && (((0 <? (project guest memoryPages)) && (((project guest memoryPages) <=? (project limits memoryPages)) && true)) && ((((project guest inputMaximum) + (project guest outputMaximum)) <=? (prim multiply (project guest memoryPages) 65536 : Nat)) && true))))))),
+  axioms: []
+}
+
+definition{
+  name: effectSigningGrantValid,
+  parameters: [grant : EffectSigningGrant],
+  result: Bool,
+  body: (((prim length (project grant publicKey) : Nat) =? 65) && ((match (prim index (project grant publicKey) 0 : (Option UInt8))
+    | Option.none => false
+    | Option.some firstByte => (prim equal firstByte (4 : UInt8) : Bool)) && ((effectNameValid (project grant context) 1) && true))),
+  axioms: []
+}
+
+definition{
+  name: effectStorageGrantValid,
+  parameters: [grant : EffectStorageGrant],
+  result: Bool,
+  body: ((effectNameValid (project grant storeNamespace) 0) && (((0 <? (project grant maxObjectBytes)) && (((project grant maxObjectBytes) <=? 1048576) && true)) && (((0 <? (project grant maxObjects)) && (((project grant maxObjects) <=? 4096) && true)) && (((0 <? (project grant maxHeads)) && (((project grant maxHeads) <=? 64) && true)) && true)))),
+  axioms: []
+}
+
+definition{
+  name: effectAdapterValid,
+  parameters: [adapter : EffectAdapter, limits : EffectHostLimits],
+  result: Bool,
+  body: (match adapter
+    | EffectAdapter.Guest guest => (effectGuestValid guest limits)
+    | EffectAdapter.Random => true
+    | EffectAdapter.Digest => true
+    | EffectAdapter.Signer grant => (effectSigningGrantValid grant)
+    | EffectAdapter.Verifier grant => (effectSigningGrantValid grant)
+    | EffectAdapter.Store grant => (effectStorageGrantValid grant)),
+  axioms: []
+}
+
+definition{
+  name: effectHasResource,
+  parameters: [grants : (List EffectGrant), resource : String],
+  result: Bool,
+  body: (match grants
+    | List.nil => false
+    | List.cons head tail => ((prim equal (project head resource) resource : Bool) || ((effectHasResource tail resource) || false))),
+  axioms: [],
+  recursive_argument: grants
+}
+
+definition{
+  name: effectGrantCount,
+  parameters: [grants : (List EffectGrant)],
+  result: Nat,
+  body: (match grants | List.nil => 0 | List.cons head tail => (1 + (effectGrantCount tail))),
+  axioms: [],
+  recursive_argument: grants
+}
+
+definition{
+  name: effectGrantsValid,
+  parameters: [grants : (List EffectGrant), limits : EffectHostLimits],
+  result: Bool,
+  body: (match grants
+    | List.nil => true
+    | List.cons head tail => (((0 <? (prim length (prim utf8_encode (project head resource) : Bytes) : Nat)) && (((prim length (prim utf8_encode (project head resource) : Bytes) : Nat) <=? 128) && true)) && ((not (effectHasResource tail (project head resource))) && ((effectAdapterValid (project head adapter) limits) && ((effectGrantsValid tail limits) && true))))),
+  axioms: [],
+  recursive_argument: grants
+}
+
+definition{
+  name: effectManifestValid,
+  parameters: [manifest : EffectManifest],
+  result: Bool,
+  body: (((prim length (project manifest application) : Nat) =? 32) && (((prim length (project manifest manifest) : Nat) =? 32) && ((effectHostLimitsValid (project manifest limits)) && (((0 <? (effectGrantCount (project manifest grants))) && (((effectGrantCount (project manifest grants)) <=? 64) && true)) && ((effectGrantsValid (project manifest grants) (project manifest limits)) && true))))),
+  axioms: []
+}
+
+definition{
+  name: effectFindAdapter,
+  parameters: [grants : (List EffectGrant), resource : String],
+  result: (Option EffectAdapter),
+  body: (match grants
+    | List.nil => (ctor Option.none [EffectAdapter])
+    | List.cons head tail => (match (prim equal (project head resource) resource : Bool)
+      | Bool.false => (effectFindAdapter tail resource)
+      | Bool.true => (ctor Option.some [EffectAdapter] (project head adapter)))),
+  axioms: [],
+  recursive_argument: grants
+}
+
+definition{
+  name: effectObjectsCount,
+  parameters: [objects : (List Bytes)],
+  result: Nat,
+  body: (match objects | List.nil => 0 | List.cons head tail => (1 + (effectObjectsCount tail))),
+  axioms: [],
+  recursive_argument: objects
+}
+
+definition{
+  name: effectHasBytes,
+  parameters: [objects : (List Bytes), value : Bytes],
+  result: Bool,
+  body: (match objects
+    | List.nil => false
+    | List.cons head tail => ((prim equal head value : Bool) || ((effectHasBytes tail value) || false))),
+  axioms: [],
+  recursive_argument: objects
+}
+
+definition{
+  name: effectObjectsValid,
+  parameters: [objects : (List Bytes), maximum : Nat],
+  result: Bool,
+  body: (match objects
+    | List.nil => true
+    | List.cons head tail => (((prim length head : Nat) <=? maximum) && ((not (effectHasBytes tail head)) && ((effectObjectsValid tail maximum) && true)))),
+  axioms: [],
+  recursive_argument: objects
+}
+
+definition{
+  name: effectObjectsEqual,
+  parameters: [left : (List Bytes), right : (List Bytes)],
+  result: Bool,
+  body: (match left
+    | List.nil => (match right | List.nil => true | List.cons head tail => false)
+    | List.cons head tail => (match right
+      | List.nil => false
+      | List.cons rightHead rightTail => ((prim equal head rightHead : Bool) && ((effectObjectsEqual tail rightTail) && true)))),
+  axioms: [],
+  recursive_argument: left
+}
+
+definition{
+  name: effectOptionalDigestEqual,
+  parameters: [left : (Option String), right : (Option String)],
+  result: Bool,
+  body: (match left
+    | Option.none => (match right | Option.none => true | Option.some unused => false)
+    | Option.some leftValue => (match right
+      | Option.none => false
+      | Option.some rightValue => (prim equal leftValue rightValue : Bool))),
+  axioms: []
+}
+
+definition{
+  name: effectCommitValid,
+  parameters: [commit : EffectCommit, grant : EffectStorageGrant],
+  result: Bool,
+  body: ((effectNameValid (project commit head) 0) && ((effectOptionalDigestValid (project commit expected)) && ((effectDigestValid (project commit next)) && (((0 <? (effectObjectsCount (project commit objects))) && (((effectObjectsCount (project commit objects)) <=? 16) && true)) && ((effectObjectsValid (project commit objects) (project grant maxObjectBytes)) && true))))),
+  axioms: []
+}
+
+definition{
+  name: effectOperationValid,
+  parameters: [effect : EffectOperation, adapter : EffectAdapter],
+  result: Bool,
+  body: (match adapter
+    | EffectAdapter.Guest guest => (match effect
+      | EffectOperation.InvokeGuest invocation => ((prim equal (project invocation artifact) (project guest artifact) : Bool) && ((prim equal (project invocation entry) (project guest entry) : Bool) && ((prim equal (project invocation protocol) (project guest protocol) : Bool) && (((prim length (project invocation input) : Nat) <=? (project guest inputMaximum)) && true))))
+      | EffectOperation.RandomBytes length => false
+      | EffectOperation.DigestBytes value => false
+      | EffectOperation.SignBytes value => false
+      | EffectOperation.VerifyBytes verification => false
+      | EffectOperation.ReadObject objectId => false
+      | EffectOperation.ReadHead headName => false
+      | EffectOperation.Commit commit => false)
+    | EffectAdapter.Random => (match effect
+      | EffectOperation.InvokeGuest invocation => false
+      | EffectOperation.RandomBytes length => ((0 <? length) && ((length <=? 65536) && true))
+      | EffectOperation.DigestBytes value => false
+      | EffectOperation.SignBytes value => false
+      | EffectOperation.VerifyBytes verification => false
+      | EffectOperation.ReadObject objectId => false
+      | EffectOperation.ReadHead headName => false
+      | EffectOperation.Commit commit => false)
+    | EffectAdapter.Digest => (match effect
+      | EffectOperation.InvokeGuest invocation => false
+      | EffectOperation.RandomBytes length => false
+      | EffectOperation.DigestBytes value => ((prim length value : Nat) <=? 1048576)
+      | EffectOperation.SignBytes value => false
+      | EffectOperation.VerifyBytes verification => false
+      | EffectOperation.ReadObject objectId => false
+      | EffectOperation.ReadHead headName => false
+      | EffectOperation.Commit commit => false)
+    | EffectAdapter.Signer grant => (match effect
+      | EffectOperation.InvokeGuest invocation => false
+      | EffectOperation.RandomBytes length => false
+      | EffectOperation.DigestBytes value => false
+      | EffectOperation.SignBytes value => ((prim length value : Nat) <=? 1048576)
+      | EffectOperation.VerifyBytes verification => false
+      | EffectOperation.ReadObject objectId => false
+      | EffectOperation.ReadHead headName => false
+      | EffectOperation.Commit commit => false)
+    | EffectAdapter.Verifier grant => (match effect
+      | EffectOperation.InvokeGuest invocation => false
+      | EffectOperation.RandomBytes length => false
+      | EffectOperation.DigestBytes value => false
+      | EffectOperation.SignBytes value => false
+      | EffectOperation.VerifyBytes verification => (((prim length (project verification value) : Nat) <=? 1048576) && (((prim length (project verification signature) : Nat) =? 64) && true))
+      | EffectOperation.ReadObject objectId => false
+      | EffectOperation.ReadHead headName => false
+      | EffectOperation.Commit commit => false)
+    | EffectAdapter.Store grant => (match effect
+      | EffectOperation.InvokeGuest invocation => false
+      | EffectOperation.RandomBytes length => false
+      | EffectOperation.DigestBytes value => false
+      | EffectOperation.SignBytes value => false
+      | EffectOperation.VerifyBytes verification => false
+      | EffectOperation.ReadObject objectId => (effectDigestValid objectId)
+      | EffectOperation.ReadHead headName => (effectNameValid headName 0)
+      | EffectOperation.Commit commit => (effectCommitValid commit grant))),
+  axioms: []
+}
+
+definition{
+  name: effectOperationEqual,
+  parameters: [left : EffectOperation, right : EffectOperation],
+  result: Bool,
+  body: (match left
+    | EffectOperation.InvokeGuest invocation => (match right
+      | EffectOperation.InvokeGuest other => ((prim equal (project invocation artifact) (project other artifact) : Bool) && ((prim equal (project invocation entry) (project other entry) : Bool) && ((prim equal (project invocation protocol) (project other protocol) : Bool) && ((prim equal (project invocation input) (project other input) : Bool) && true))))
+      | EffectOperation.RandomBytes other => false
+      | EffectOperation.DigestBytes other => false
+      | EffectOperation.SignBytes other => false
+      | EffectOperation.VerifyBytes other => false
+      | EffectOperation.ReadObject other => false
+      | EffectOperation.ReadHead other => false
+      | EffectOperation.Commit other => false)
+    | EffectOperation.RandomBytes length => (match right
+      | EffectOperation.InvokeGuest other => false
+      | EffectOperation.RandomBytes other => (length =? other)
+      | EffectOperation.DigestBytes other => false
+      | EffectOperation.SignBytes other => false
+      | EffectOperation.VerifyBytes other => false
+      | EffectOperation.ReadObject other => false
+      | EffectOperation.ReadHead other => false
+      | EffectOperation.Commit other => false)
+    | EffectOperation.DigestBytes value => (match right
+      | EffectOperation.InvokeGuest other => false
+      | EffectOperation.RandomBytes other => false
+      | EffectOperation.DigestBytes other => (prim equal value other : Bool)
+      | EffectOperation.SignBytes other => false
+      | EffectOperation.VerifyBytes other => false
+      | EffectOperation.ReadObject other => false
+      | EffectOperation.ReadHead other => false
+      | EffectOperation.Commit other => false)
+    | EffectOperation.SignBytes value => (match right
+      | EffectOperation.InvokeGuest other => false
+      | EffectOperation.RandomBytes other => false
+      | EffectOperation.DigestBytes other => false
+      | EffectOperation.SignBytes other => (prim equal value other : Bool)
+      | EffectOperation.VerifyBytes other => false
+      | EffectOperation.ReadObject other => false
+      | EffectOperation.ReadHead other => false
+      | EffectOperation.Commit other => false)
+    | EffectOperation.VerifyBytes verification => (match right
+      | EffectOperation.InvokeGuest other => false
+      | EffectOperation.RandomBytes other => false
+      | EffectOperation.DigestBytes other => false
+      | EffectOperation.SignBytes other => false
+      | EffectOperation.VerifyBytes other => ((prim equal (project verification value) (project other value) : Bool) && ((prim equal (project verification signature) (project other signature) : Bool) && true))
+      | EffectOperation.ReadObject other => false
+      | EffectOperation.ReadHead other => false
+      | EffectOperation.Commit other => false)
+    | EffectOperation.ReadObject objectId => (match right
+      | EffectOperation.InvokeGuest other => false
+      | EffectOperation.RandomBytes other => false
+      | EffectOperation.DigestBytes other => false
+      | EffectOperation.SignBytes other => false
+      | EffectOperation.VerifyBytes other => false
+      | EffectOperation.ReadObject other => (prim equal objectId other : Bool)
+      | EffectOperation.ReadHead other => false
+      | EffectOperation.Commit other => false)
+    | EffectOperation.ReadHead headName => (match right
+      | EffectOperation.InvokeGuest other => false
+      | EffectOperation.RandomBytes other => false
+      | EffectOperation.DigestBytes other => false
+      | EffectOperation.SignBytes other => false
+      | EffectOperation.VerifyBytes other => false
+      | EffectOperation.ReadObject other => false
+      | EffectOperation.ReadHead other => (prim equal headName other : Bool)
+      | EffectOperation.Commit other => false)
+    | EffectOperation.Commit commit => (match right
+      | EffectOperation.InvokeGuest other => false
+      | EffectOperation.RandomBytes other => false
+      | EffectOperation.DigestBytes other => false
+      | EffectOperation.SignBytes other => false
+      | EffectOperation.VerifyBytes other => false
+      | EffectOperation.ReadObject other => false
+      | EffectOperation.ReadHead other => false
+      | EffectOperation.Commit other => ((prim equal (project commit head) (project other head) : Bool) && ((effectOptionalDigestEqual (project commit expected) (project other expected)) && ((prim equal (project commit next) (project other next) : Bool) && ((effectObjectsEqual (project commit objects) (project other objects)) && true)))))),
+  axioms: []
+}
+
+definition{
+  name: effectRequestEqual,
+  parameters: [left : EffectRequest, right : EffectRequest],
+  result: Bool,
+  body: ((prim equal (project left application) (project right application) : Bool) && ((prim equal (project left manifest) (project right manifest) : Bool) && ((prim equal (project left session) (project right session) : Bool) && (((project left operation) =? (project right operation)) && ((prim equal (project left resource) (project right resource) : Bool) && ((effectOperationEqual (project left effect) (project right effect)) && true)))))),
+  axioms: []
+}
+
+definition{
+  name: effectRequestValid,
+  parameters: [request : EffectRequest, manifest : EffectManifest, session : Bytes],
+  result: Bool,
+  body: ((prim equal (project request application) (project manifest application) : Bool) && ((prim equal (project request manifest) (project manifest manifest) : Bool) && ((prim equal (project request session) session : Bool) && (((project request operation) <? 4294967295) && ((match (effectFindAdapter (project manifest grants) (project request resource))
+    | Option.none => false
+    | Option.some adapter => (effectOperationValid (project request effect) adapter)) && true))))),
+  axioms: []
+}
+
+definition{
+  name: effectSessionValid,
+  parameters: [state : EffectSession],
+  result: Bool,
+  body: ((effectManifestValid (project state manifest)) && (((prim length (project state session) : Nat) =? 32) && (((project state nextOperation) <=? 4294967295) && ((match (project state active)
+    | Option.none => ((not (project state uncertain)) && ((match (project state waiter)
+      | Option.none => true
+      | Option.some waiter => false) && true))
+    | Option.some active => ((effectRequestValid active (project state manifest) (project state session)) && ((match (project state waiter)
+      | Option.none => (((project active operation) + 1) =? (project state nextOperation))
+      | Option.some waiter => ((effectRequestValid waiter (project state manifest) (project state session)) && ((((project active operation) + 1) =? (project waiter operation)) && ((((project waiter operation) + 1) =? (project state nextOperation)) && true)))) && true))) && true)))),
+  axioms: []
+}
+
+definition{
+  name: effectFailureValid,
+  parameters: [failure : EffectFailure, effect : EffectOperation],
+  result: Bool,
+  body: (match effect
+    | EffectOperation.InvokeGuest invocation => (match failure
+      | EffectFailure.InvalidInput => false
+      | EffectFailure.IdentityCorrupt => false
+      | EffectFailure.CryptoUnavailable => false
+      | EffectFailure.HeadConflict => false
+      | EffectFailure.MissingObject => false
+      | EffectFailure.ObjectCorrupt => false
+      | EffectFailure.StoreLimit => false
+      | EffectFailure.StoreClosed => false
+      | EffectFailure.StorageQuota => false
+      | EffectFailure.StorageUnavailable => false
+      | EffectFailure.InvalidGeneratedModule => true
+      | EffectFailure.GeneratedExecutionFailed => true
+      | EffectFailure.InvalidGeneratedOutput => true)
+    | EffectOperation.RandomBytes length => (match failure
+      | EffectFailure.InvalidInput => true
+      | EffectFailure.IdentityCorrupt => false
+      | EffectFailure.CryptoUnavailable => true
+      | EffectFailure.HeadConflict => false
+      | EffectFailure.MissingObject => false
+      | EffectFailure.ObjectCorrupt => false
+      | EffectFailure.StoreLimit => false
+      | EffectFailure.StoreClosed => false
+      | EffectFailure.StorageQuota => false
+      | EffectFailure.StorageUnavailable => false
+      | EffectFailure.InvalidGeneratedModule => false
+      | EffectFailure.GeneratedExecutionFailed => false
+      | EffectFailure.InvalidGeneratedOutput => false)
+    | EffectOperation.DigestBytes value => (match failure
+      | EffectFailure.InvalidInput => true
+      | EffectFailure.IdentityCorrupt => false
+      | EffectFailure.CryptoUnavailable => true
+      | EffectFailure.HeadConflict => false
+      | EffectFailure.MissingObject => false
+      | EffectFailure.ObjectCorrupt => false
+      | EffectFailure.StoreLimit => false
+      | EffectFailure.StoreClosed => false
+      | EffectFailure.StorageQuota => false
+      | EffectFailure.StorageUnavailable => false
+      | EffectFailure.InvalidGeneratedModule => false
+      | EffectFailure.GeneratedExecutionFailed => false
+      | EffectFailure.InvalidGeneratedOutput => false)
+    | EffectOperation.SignBytes value => (match failure
+      | EffectFailure.InvalidInput => true
+      | EffectFailure.IdentityCorrupt => true
+      | EffectFailure.CryptoUnavailable => true
+      | EffectFailure.HeadConflict => false
+      | EffectFailure.MissingObject => false
+      | EffectFailure.ObjectCorrupt => false
+      | EffectFailure.StoreLimit => false
+      | EffectFailure.StoreClosed => false
+      | EffectFailure.StorageQuota => false
+      | EffectFailure.StorageUnavailable => false
+      | EffectFailure.InvalidGeneratedModule => false
+      | EffectFailure.GeneratedExecutionFailed => false
+      | EffectFailure.InvalidGeneratedOutput => false)
+    | EffectOperation.VerifyBytes verification => (match failure
+      | EffectFailure.InvalidInput => true
+      | EffectFailure.IdentityCorrupt => false
+      | EffectFailure.CryptoUnavailable => true
+      | EffectFailure.HeadConflict => false
+      | EffectFailure.MissingObject => false
+      | EffectFailure.ObjectCorrupt => false
+      | EffectFailure.StoreLimit => false
+      | EffectFailure.StoreClosed => false
+      | EffectFailure.StorageQuota => false
+      | EffectFailure.StorageUnavailable => false
+      | EffectFailure.InvalidGeneratedModule => false
+      | EffectFailure.GeneratedExecutionFailed => false
+      | EffectFailure.InvalidGeneratedOutput => false)
+    | EffectOperation.ReadObject objectId => (match failure
+      | EffectFailure.InvalidInput => true
+      | EffectFailure.IdentityCorrupt => false
+      | EffectFailure.CryptoUnavailable => true
+      | EffectFailure.HeadConflict => false
+      | EffectFailure.MissingObject => false
+      | EffectFailure.ObjectCorrupt => true
+      | EffectFailure.StoreLimit => false
+      | EffectFailure.StoreClosed => true
+      | EffectFailure.StorageQuota => true
+      | EffectFailure.StorageUnavailable => true
+      | EffectFailure.InvalidGeneratedModule => false
+      | EffectFailure.GeneratedExecutionFailed => false
+      | EffectFailure.InvalidGeneratedOutput => false)
+    | EffectOperation.ReadHead headName => (match failure
+      | EffectFailure.InvalidInput => true
+      | EffectFailure.IdentityCorrupt => false
+      | EffectFailure.CryptoUnavailable => true
+      | EffectFailure.HeadConflict => false
+      | EffectFailure.MissingObject => false
+      | EffectFailure.ObjectCorrupt => true
+      | EffectFailure.StoreLimit => false
+      | EffectFailure.StoreClosed => true
+      | EffectFailure.StorageQuota => true
+      | EffectFailure.StorageUnavailable => true
+      | EffectFailure.InvalidGeneratedModule => false
+      | EffectFailure.GeneratedExecutionFailed => false
+      | EffectFailure.InvalidGeneratedOutput => false)
+    | EffectOperation.Commit commit => (match failure
+      | EffectFailure.InvalidInput => true
+      | EffectFailure.IdentityCorrupt => false
+      | EffectFailure.CryptoUnavailable => true
+      | EffectFailure.HeadConflict => true
+      | EffectFailure.MissingObject => true
+      | EffectFailure.ObjectCorrupt => true
+      | EffectFailure.StoreLimit => true
+      | EffectFailure.StoreClosed => true
+      | EffectFailure.StorageQuota => true
+      | EffectFailure.StorageUnavailable => false
+      | EffectFailure.InvalidGeneratedModule => false
+      | EffectFailure.GeneratedExecutionFailed => false
+      | EffectFailure.InvalidGeneratedOutput => false)),
+  axioms: []
+}
+
+definition{
+  name: effectResultValid,
+  parameters: [result : EffectResult, request : EffectRequest, adapter : EffectAdapter],
+  result: Bool,
+  body: (match result
+    | EffectResult.GuestBytes bytes => (match adapter
+      | EffectAdapter.Guest guest => (match (project request effect)
+        | EffectOperation.InvokeGuest invocation => ((prim length bytes : Nat) <=? (project guest outputMaximum))
+        | EffectOperation.RandomBytes length => false
+        | EffectOperation.DigestBytes value => false
+        | EffectOperation.SignBytes value => false
+        | EffectOperation.VerifyBytes verification => false
+        | EffectOperation.ReadObject objectId => false
+        | EffectOperation.ReadHead headName => false
+        | EffectOperation.Commit commit => false)
+      | EffectAdapter.Random => false
+      | EffectAdapter.Digest => false
+      | EffectAdapter.Signer unused => false
+      | EffectAdapter.Verifier unused => false
+      | EffectAdapter.Store unused => false)
+    | EffectResult.RandomBytes bytes => (match (project request effect)
+      | EffectOperation.InvokeGuest invocation => false
+      | EffectOperation.RandomBytes length => ((prim length bytes : Nat) =? length)
+      | EffectOperation.DigestBytes value => false
+      | EffectOperation.SignBytes value => false
+      | EffectOperation.VerifyBytes verification => false
+      | EffectOperation.ReadObject objectId => false
+      | EffectOperation.ReadHead headName => false
+      | EffectOperation.Commit commit => false)
+    | EffectResult.Digest digest => (match (project request effect)
+      | EffectOperation.InvokeGuest invocation => false
+      | EffectOperation.RandomBytes length => false
+      | EffectOperation.DigestBytes value => (effectDigestValid digest)
+      | EffectOperation.SignBytes value => false
+      | EffectOperation.VerifyBytes verification => false
+      | EffectOperation.ReadObject objectId => false
+      | EffectOperation.ReadHead headName => false
+      | EffectOperation.Commit commit => false)
+    | EffectResult.Signature signature => (match (project request effect)
+      | EffectOperation.InvokeGuest invocation => false
+      | EffectOperation.RandomBytes length => false
+      | EffectOperation.DigestBytes value => false
+      | EffectOperation.SignBytes value => ((prim length signature : Nat) =? 64)
+      | EffectOperation.VerifyBytes verification => false
+      | EffectOperation.ReadObject objectId => false
+      | EffectOperation.ReadHead headName => false
+      | EffectOperation.Commit commit => false)
+    | EffectResult.Verification valid => (match (project request effect)
+      | EffectOperation.InvokeGuest invocation => false
+      | EffectOperation.RandomBytes length => false
+      | EffectOperation.DigestBytes value => false
+      | EffectOperation.SignBytes value => false
+      | EffectOperation.VerifyBytes verification => true
+      | EffectOperation.ReadObject objectId => false
+      | EffectOperation.ReadHead headName => false
+      | EffectOperation.Commit commit => false)
+    | EffectResult.Object object => (match adapter
+      | EffectAdapter.Guest unused => false
+      | EffectAdapter.Random => false
+      | EffectAdapter.Digest => false
+      | EffectAdapter.Signer unused => false
+      | EffectAdapter.Verifier unused => false
+      | EffectAdapter.Store grant => (match (project request effect)
+        | EffectOperation.InvokeGuest invocation => false
+        | EffectOperation.RandomBytes length => false
+        | EffectOperation.DigestBytes value => false
+        | EffectOperation.SignBytes value => false
+        | EffectOperation.VerifyBytes verification => false
+        | EffectOperation.ReadObject objectId => (match object
+          | Option.none => true
+          | Option.some bytes => ((prim length bytes : Nat) <=? (project grant maxObjectBytes)))
+        | EffectOperation.ReadHead headName => false
+        | EffectOperation.Commit commit => false))
+    | EffectResult.Head head => (match adapter
+      | EffectAdapter.Guest unused => false
+      | EffectAdapter.Random => false
+      | EffectAdapter.Digest => false
+      | EffectAdapter.Signer unused => false
+      | EffectAdapter.Verifier unused => false
+      | EffectAdapter.Store grant => (match (project request effect)
+        | EffectOperation.InvokeGuest invocation => false
+        | EffectOperation.RandomBytes length => false
+        | EffectOperation.DigestBytes value => false
+        | EffectOperation.SignBytes value => false
+        | EffectOperation.VerifyBytes verification => false
+        | EffectOperation.ReadObject objectId => false
+        | EffectOperation.ReadHead headName => (match head
+          | Option.none => true
+          | Option.some actualHead => ((effectDigestValid (project actualHead id)) && (((prim length (project actualHead bytes) : Nat) <=? (project grant maxObjectBytes)) && true)))
+        | EffectOperation.Commit commit => false))
+    | EffectResult.Committed digest => (match (project request effect)
+      | EffectOperation.InvokeGuest invocation => false
+      | EffectOperation.RandomBytes length => false
+      | EffectOperation.DigestBytes value => false
+      | EffectOperation.SignBytes value => false
+      | EffectOperation.VerifyBytes verification => false
+      | EffectOperation.ReadObject objectId => false
+      | EffectOperation.ReadHead headName => false
+      | EffectOperation.Commit commit => (prim equal digest (project commit next) : Bool))
+    | EffectResult.Rejected failure => (effectFailureValid failure (project request effect))
+    | EffectResult.Unknown => true),
+  axioms: []
+}
+
+definition{
+  name: beginEffectSession,
+  parameters: [manifest : EffectManifest, session : Bytes],
+  result: (Result EffectSession EffectProtocolError),
+  body: (match (effectManifestValid manifest)
+    | Bool.false => (ctor Result.error [EffectSession, EffectProtocolError] (ctor EffectProtocolError.BadManifest))
+    | Bool.true => (match ((prim length session : Nat) =? 32)
+      | Bool.false => (ctor Result.error [EffectSession, EffectProtocolError] (ctor EffectProtocolError.BadSession))
+      | Bool.true => (ctor Result.ok [EffectSession, EffectProtocolError] (record EffectSession {manifest := manifest, session := session, nextOperation := 0, closed := false, uncertain := false, active := (ctor Option.none [EffectRequest]), waiter := (ctor Option.none [EffectRequest])})))),
+  axioms: []
+}
+
+definition{
+  name: admitEffect,
+  parameters: [state : EffectSession, request : EffectRequest],
+  result: (Result EffectSession EffectProtocolError),
+  body: (match (effectSessionValid state)
+    | Bool.false => (ctor Result.error [EffectSession, EffectProtocolError] (ctor EffectProtocolError.BadSession))
+    | Bool.true => (match (not (project state closed))
+      | Bool.false => (ctor Result.error [EffectSession, EffectProtocolError] (ctor EffectProtocolError.Closed))
+      | Bool.true => (match (not (project state uncertain))
+        | Bool.false => (ctor Result.error [EffectSession, EffectProtocolError] (ctor EffectProtocolError.OutcomeUnknown))
+        | Bool.true => (match (match (project state waiter)
+            | Option.none => true
+            | Option.some waiter => false)
+          | Bool.false => (ctor Result.error [EffectSession, EffectProtocolError] (ctor EffectProtocolError.Busy))
+          | Bool.true => (match ((project state nextOperation) <? 4294967295)
+            | Bool.false => (ctor Result.error [EffectSession, EffectProtocolError] (ctor EffectProtocolError.OperationExhausted))
+            | Bool.true => (match (prim equal (project request application) (project (project state manifest) application) : Bool)
+              | Bool.false => (ctor Result.error [EffectSession, EffectProtocolError] (ctor EffectProtocolError.WrongApplication))
+              | Bool.true => (match (prim equal (project request manifest) (project (project state manifest) manifest) : Bool)
+                | Bool.false => (ctor Result.error [EffectSession, EffectProtocolError] (ctor EffectProtocolError.WrongManifest))
+                | Bool.true => (match (prim equal (project request session) (project state session) : Bool)
+                  | Bool.false => (ctor Result.error [EffectSession, EffectProtocolError] (ctor EffectProtocolError.WrongSession))
+                  | Bool.true => (match ((project request operation) =? (project state nextOperation))
+                    | Bool.false => (ctor Result.error [EffectSession, EffectProtocolError] (ctor EffectProtocolError.WrongOperation))
+                    | Bool.true => (match (effectFindAdapter (project (project state manifest) grants) (project request resource))
+                      | Option.none => (ctor Result.error [EffectSession, EffectProtocolError] (ctor EffectProtocolError.UnknownResource))
+                      | Option.some adapter => (match (effectOperationValid (project request effect) adapter)
+                        | Bool.false => (ctor Result.error [EffectSession, EffectProtocolError] (ctor EffectProtocolError.InvalidEffect))
+                        | Bool.true => (match (project state active)
+                          | Option.none => (ctor Result.ok [EffectSession, EffectProtocolError] (record EffectSession {manifest := (project state manifest), session := (project state session), nextOperation := ((project state nextOperation) + 1), closed := (project state closed), uncertain := (project state uncertain), active := (ctor Option.some [EffectRequest] request), waiter := (project state waiter)}))
+                          | Option.some active => (ctor Result.ok [EffectSession, EffectProtocolError] (record EffectSession {manifest := (project state manifest), session := (project state session), nextOperation := ((project state nextOperation) + 1), closed := (project state closed), uncertain := (project state uncertain), active := (project state active), waiter := (ctor Option.some [EffectRequest] request)})))))))))))))),
+  axioms: []
+}
+
+definition{
+  name: completeEffect,
+  parameters: [state : EffectSession, completion : EffectCompletion],
+  result: (Result EffectSession EffectProtocolError),
+  body: (match (effectSessionValid state)
+    | Bool.false => (ctor Result.error [EffectSession, EffectProtocolError] (ctor EffectProtocolError.BadSession))
+    | Bool.true => (match (not (project state closed))
+      | Bool.false => (ctor Result.error [EffectSession, EffectProtocolError] (ctor EffectProtocolError.Closed))
+      | Bool.true => (match (not (project state uncertain))
+        | Bool.false => (ctor Result.error [EffectSession, EffectProtocolError] (ctor EffectProtocolError.OutcomeUnknown))
+        | Bool.true => (match (project state active)
+          | Option.none => (ctor Result.error [EffectSession, EffectProtocolError] (ctor EffectProtocolError.NoActiveOperation))
+          | Option.some active => (match (effectRequestEqual active (project completion request))
+            | Bool.false => (ctor Result.error [EffectSession, EffectProtocolError] (ctor EffectProtocolError.CompletionMismatch))
+            | Bool.true => (match (effectFindAdapter (project (project state manifest) grants) (project active resource))
+              | Option.none => (ctor Result.error [EffectSession, EffectProtocolError] (ctor EffectProtocolError.UnknownResource))
+              | Option.some adapter => (match (effectResultValid (project completion result) active adapter)
+                | Bool.false => (ctor Result.error [EffectSession, EffectProtocolError] (ctor EffectProtocolError.InvalidResult))
+                | Bool.true => (match (project completion result)
+                  | EffectResult.GuestBytes bytes => (ctor Result.ok [EffectSession, EffectProtocolError] (record EffectSession {manifest := (project state manifest), session := (project state session), nextOperation := (project state nextOperation), closed := (project state closed), uncertain := (project state uncertain), active := (project state waiter), waiter := (ctor Option.none [EffectRequest])}))
+                  | EffectResult.RandomBytes bytes => (ctor Result.ok [EffectSession, EffectProtocolError] (record EffectSession {manifest := (project state manifest), session := (project state session), nextOperation := (project state nextOperation), closed := (project state closed), uncertain := (project state uncertain), active := (project state waiter), waiter := (ctor Option.none [EffectRequest])}))
+                  | EffectResult.Digest digest => (ctor Result.ok [EffectSession, EffectProtocolError] (record EffectSession {manifest := (project state manifest), session := (project state session), nextOperation := (project state nextOperation), closed := (project state closed), uncertain := (project state uncertain), active := (project state waiter), waiter := (ctor Option.none [EffectRequest])}))
+                  | EffectResult.Signature signature => (ctor Result.ok [EffectSession, EffectProtocolError] (record EffectSession {manifest := (project state manifest), session := (project state session), nextOperation := (project state nextOperation), closed := (project state closed), uncertain := (project state uncertain), active := (project state waiter), waiter := (ctor Option.none [EffectRequest])}))
+                  | EffectResult.Verification valid => (ctor Result.ok [EffectSession, EffectProtocolError] (record EffectSession {manifest := (project state manifest), session := (project state session), nextOperation := (project state nextOperation), closed := (project state closed), uncertain := (project state uncertain), active := (project state waiter), waiter := (ctor Option.none [EffectRequest])}))
+                  | EffectResult.Object object => (ctor Result.ok [EffectSession, EffectProtocolError] (record EffectSession {manifest := (project state manifest), session := (project state session), nextOperation := (project state nextOperation), closed := (project state closed), uncertain := (project state uncertain), active := (project state waiter), waiter := (ctor Option.none [EffectRequest])}))
+                  | EffectResult.Head head => (ctor Result.ok [EffectSession, EffectProtocolError] (record EffectSession {manifest := (project state manifest), session := (project state session), nextOperation := (project state nextOperation), closed := (project state closed), uncertain := (project state uncertain), active := (project state waiter), waiter := (ctor Option.none [EffectRequest])}))
+                  | EffectResult.Committed digest => (ctor Result.ok [EffectSession, EffectProtocolError] (record EffectSession {manifest := (project state manifest), session := (project state session), nextOperation := (project state nextOperation), closed := (project state closed), uncertain := (project state uncertain), active := (project state waiter), waiter := (ctor Option.none [EffectRequest])}))
+                  | EffectResult.Rejected failure => (ctor Result.ok [EffectSession, EffectProtocolError] (record EffectSession {manifest := (project state manifest), session := (project state session), nextOperation := (project state nextOperation), closed := (project state closed), uncertain := (project state uncertain), active := (project state waiter), waiter := (ctor Option.none [EffectRequest])}))
+                  | EffectResult.Unknown => (ctor Result.ok [EffectSession, EffectProtocolError] (record EffectSession {manifest := (project state manifest), session := (project state session), nextOperation := (project state nextOperation), closed := (project state closed), uncertain := true, active := (project state active), waiter := (project state waiter)})))))))))),
+  axioms: []
+}
+
+definition{
+  name: closeEffectSession,
+  parameters: [state : EffectSession],
+  result: (Result EffectSession EffectProtocolError),
+  body: (match (effectSessionValid state)
+    | Bool.false => (ctor Result.error [EffectSession, EffectProtocolError] (ctor EffectProtocolError.BadSession))
+    | Bool.true => (ctor Result.ok [EffectSession, EffectProtocolError] (record EffectSession {manifest := (project state manifest), session := (project state session), nextOperation := (project state nextOperation), closed := true, uncertain := (project state uncertain), active := (project state active), waiter := (project state waiter)}))),
+  axioms: []
+}
+\end{semanticmodule}
+\end{lexlean}

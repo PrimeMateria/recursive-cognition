@@ -1,0 +1,1645 @@
+\begin{lexlean}{Foundation.Browser.Application.V1.EffectsWire}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\importmodule{Foundation.Codec}
+\importmodule{Foundation.Browser.Application.V1.Effects}
+\importmodule{Foundation.Codec.Cbor.V1.Primitive}
+\title{Browser effect wire format}
+\begin{semanticmodule}
+definition{
+  name: effectWireLimits,
+  parameters: [],
+  result: Foundation.Codec.Cbor.V1.Primitive::CborLimits,
+  body: (record Foundation.Codec.Cbor.V1.Primitive::CborLimits {maximumInput := 67108864, maximumOutput := 67108864, maximumBytes := 2097152, maximumText := 512, maximumArrayItems := 64}),
+  axioms: []
+}
+
+structure{
+  name: EffectWireOutput,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Bytes},
+    {name: cause, type: (Option Foundation.Codec.Cbor.V1.Primitive::CborError)}
+  ]
+}
+
+definition{
+  name: effectWireOutput,
+  parameters: [value : (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError)],
+  result: EffectWireOutput,
+  body: (match value
+    | Result.error cause => (record EffectWireOutput {value := 0x, cause := (ctor Option.some [Foundation.Codec.Cbor.V1.Primitive::CborError] cause)})
+    | Result.ok bytes => (record EffectWireOutput {value := bytes, cause := (ctor Option.none [Foundation.Codec.Cbor.V1.Primitive::CborError])})),
+  axioms: []
+}
+
+definition{
+  name: effectWireAppend,
+  parameters: [left : Bytes, right : Bytes],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match ((prim length left : Nat) <=? 67108864)
+    | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+    | Bool.true => (match ((prim length right : Nat) <=? 67108864)
+      | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+      | Bool.true => (match (((prim length left : Nat) + (prim length right : Nat)) <=? 67108864)
+        | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+        | Bool.true => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (prim append left right : Bytes))))),
+  axioms: []
+}
+
+definition{
+  name: effectWireJoin,
+  parameters: [
+    left : (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+    right : (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError)
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireOutput left)
+    | EffectWireOutput.mk prefix leftCause => (match leftCause
+      | Option.some cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+      | Option.none => (match (effectWireOutput right)
+        | EffectWireOutput.mk suffix rightCause => (match rightCause
+          | Option.some cause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+          | Option.none => (effectWireAppend prefix suffix))))),
+  axioms: []
+}
+
+structure{
+  name: EffectWireInput,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: bytes, type: Bytes}]
+}
+
+structure{
+  name: EffectWireHeader,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: count, type: Nat}, {name: cursor, type: Nat}]
+}
+
+structure{
+  name: EffectWirePrimitive,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Codec.Cbor.V1.Primitive::CborValue},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: effectWireWindow,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (cursor <=? (prim length (project input bytes) : Nat))
+    | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.BadCursor))
+    | Bool.true => (match (prim slice (project input bytes) cursor (match ((prim subtract (prim length (project input bytes) : Nat) cursor : Nat) <=? 5)
+        | Bool.false => 5
+        | Bool.true => (prim subtract (prim length (project input bytes) : Nat) cursor : Nat)) : (Option Bytes))
+      | Option.none => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.Truncated))
+      | Option.some window => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] window))),
+  axioms: []
+}
+
+definition{
+  name: effectWireReadHeader,
+  parameters: [input : EffectWireInput, cursor : Nat, major : Nat],
+  result: (Result EffectWireHeader Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireWindow input cursor)
+    | Result.error wireCause => (ctor Result.error [EffectWireHeader, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok window => (match (Foundation.Codec.Cbor.V1.Primitive::cborReadHead (record Foundation.Codec::BoundedCursor {bytes := window, offset := 0, limit := (prim length window : Nat)}) (effectWireLimits) major)
+      | Result.error wireCause => (ctor Result.error [EffectWireHeader, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok header => (ctor Result.ok [EffectWireHeader, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireHeader {count := (project header argument), cursor := (cursor + (project (project header cursor) offset))})))),
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: effectWireReadArray,
+  parameters: [input : EffectWireInput, cursor : Nat, maximum : Nat],
+  result: (Result EffectWireHeader Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadHeader input cursor 4)
+    | Result.error wireCause => (ctor Result.error [EffectWireHeader, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match ((project header count) <=? maximum)
+      | Bool.false => (ctor Result.error [EffectWireHeader, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+      | Bool.true => (ctor Result.ok [EffectWireHeader, Foundation.Codec.Cbor.V1.Primitive::CborError] header))),
+  axioms: [Quot.sound, propext]
+}
+
+definition{
+  name: effectWireReadAtom,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWirePrimitive Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireWindow input cursor)
+    | Result.error wireCause => (ctor Result.error [EffectWirePrimitive, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok window => (match (Foundation.Codec.Cbor.V1.Primitive::readCborPrimitive (record Foundation.Codec::BoundedCursor {bytes := window, offset := 0, limit := (prim length window : Nat)}) (record Foundation.Codec.Cbor.V1.Primitive::CborLimits {maximumInput := 67108864, maximumOutput := 67108864, maximumBytes := 0, maximumText := 512, maximumArrayItems := 64}))
+      | Result.error wireCause => (ctor Result.error [EffectWirePrimitive, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok decoded => (ctor Result.ok [EffectWirePrimitive, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWirePrimitive {value := (project decoded value), cursor := (cursor + (project (project decoded cursor) offset))})))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: effectWireReadString,
+  parameters: [input : EffectWireInput, cursor : Nat, maximum : Nat, textMode : Bool],
+  result: (Result EffectWirePrimitive Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadHeader input cursor (match textMode
+      | Bool.false => 2
+      | Bool.true => 3))
+    | Result.error wireCause => (ctor Result.error [EffectWirePrimitive, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok header => (match ((project header count) <=? maximum)
+      | Bool.false => (ctor Result.error [EffectWirePrimitive, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+      | Bool.true => (match (prim slice (project input bytes) (project header cursor) (project header count) : (Option Bytes))
+        | Option.none => (ctor Result.error [EffectWirePrimitive, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.Truncated))
+        | Option.some payload => (match textMode
+          | Bool.false => (ctor Result.ok [EffectWirePrimitive, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWirePrimitive {value := (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.ByteString payload), cursor := ((project header cursor) + (project header count))}))
+          | Bool.true => (match (prim utf8_decode payload : (Option String))
+            | Option.none => (ctor Result.error [EffectWirePrimitive, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.InvalidUtf8))
+            | Option.some text => (ctor Result.ok [EffectWirePrimitive, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWirePrimitive {value := (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.TextString text), cursor := ((project header cursor) + (project header count))}))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadNat,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: value, type: Nat}, {name: cursor, type: Nat}]
+}
+
+definition{
+  name: readEffectWireNat,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadNat Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadAtom input cursor)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadNat, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok decoded => (match (project decoded value)
+      | Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned scalar => (ctor Result.ok [EffectWireReadNat, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadNat {value := scalar, cursor := (project decoded cursor)}))
+      | Foundation.Codec.Cbor.V1.Primitive::CborValue.ByteString scalar => (ctor Result.error [EffectWireReadNat, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Foundation.Codec.Cbor.V1.Primitive::CborValue.TextString scalar => (ctor Result.error [EffectWireReadNat, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Foundation.Codec.Cbor.V1.Primitive::CborValue.Boolean scalar => (ctor Result.error [EffectWireReadNat, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Foundation.Codec.Cbor.V1.Primitive::CborValue.Null => (ctor Result.error [EffectWireReadNat, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireNat,
+  parameters: [value : Nat],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned value) (effectWireLimits)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadBool,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: value, type: Bool}, {name: cursor, type: Nat}]
+}
+
+definition{
+  name: readEffectWireBool,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadBool Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadAtom input cursor)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadBool, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok decoded => (match (project decoded value)
+      | Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned scalar => (ctor Result.error [EffectWireReadBool, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Foundation.Codec.Cbor.V1.Primitive::CborValue.ByteString scalar => (ctor Result.error [EffectWireReadBool, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Foundation.Codec.Cbor.V1.Primitive::CborValue.TextString scalar => (ctor Result.error [EffectWireReadBool, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Foundation.Codec.Cbor.V1.Primitive::CborValue.Boolean scalar => (ctor Result.ok [EffectWireReadBool, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadBool {value := scalar, cursor := (project decoded cursor)}))
+      | Foundation.Codec.Cbor.V1.Primitive::CborValue.Null => (ctor Result.error [EffectWireReadBool, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireBool,
+  parameters: [value : Bool],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Boolean value) (effectWireLimits)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadText,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: value, type: String}, {name: cursor, type: Nat}]
+}
+
+definition{
+  name: readEffectWireText,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadText Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadString input cursor 512 true)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadText, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok decoded => (match (project decoded value)
+      | Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned scalar => (ctor Result.error [EffectWireReadText, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Foundation.Codec.Cbor.V1.Primitive::CborValue.ByteString scalar => (ctor Result.error [EffectWireReadText, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Foundation.Codec.Cbor.V1.Primitive::CborValue.TextString scalar => (ctor Result.ok [EffectWireReadText, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadText {value := scalar, cursor := (project decoded cursor)}))
+      | Foundation.Codec.Cbor.V1.Primitive::CborValue.Boolean scalar => (ctor Result.error [EffectWireReadText, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Foundation.Codec.Cbor.V1.Primitive::CborValue.Null => (ctor Result.error [EffectWireReadText, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireText,
+  parameters: [value : String],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.TextString value) (effectWireLimits)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadBytes,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: value, type: Bytes}, {name: cursor, type: Nat}]
+}
+
+definition{
+  name: readEffectWireBytes,
+  parameters: [input : EffectWireInput, cursor : Nat, maximum : Nat],
+  result: (Result EffectWireReadBytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadString input cursor maximum false)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok decoded => (match (project decoded value)
+      | Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned scalar => (ctor Result.error [EffectWireReadBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Foundation.Codec.Cbor.V1.Primitive::CborValue.ByteString scalar => (ctor Result.ok [EffectWireReadBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadBytes {value := scalar, cursor := (project decoded cursor)}))
+      | Foundation.Codec.Cbor.V1.Primitive::CborValue.TextString scalar => (ctor Result.error [EffectWireReadBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Foundation.Codec.Cbor.V1.Primitive::CborValue.Boolean scalar => (ctor Result.error [EffectWireReadBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Foundation.Codec.Cbor.V1.Primitive::CborValue.Null => (ctor Result.error [EffectWireReadBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireBytes,
+  parameters: [value : Bytes],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.ByteString value) (effectWireLimits)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadEffectHostLimits,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.Effects::EffectHostLimits},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readEffectWireEffectHostLimits,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadEffectHostLimits Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 64)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectHostLimits, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match ((project array count) =? 3)
+      | Bool.false => (ctor Result.error [EffectWireReadEffectHostLimits, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readEffectWireNat input (project array cursor))
+        | Result.error wireCause => (ctor Result.error [EffectWireReadEffectHostLimits, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok wireField0 => (match (readEffectWireNat input (project wireField0 cursor))
+          | Result.error wireCause => (ctor Result.error [EffectWireReadEffectHostLimits, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok wireField1 => (match (readEffectWireNat input (project wireField1 cursor))
+            | Result.error wireCause => (ctor Result.error [EffectWireReadEffectHostLimits, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok wireField2 => (ctor Result.ok [EffectWireReadEffectHostLimits, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectHostLimits {value := (record Foundation.Browser.Application.V1.Effects::EffectHostLimits {inputMaximum := (project wireField0 value), outputMaximum := (project wireField1 value), memoryPages := (project wireField2 value)}), cursor := (project wireField2 cursor)}))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireEffectHostLimits,
+  parameters: [value : Foundation.Browser.Application.V1.Effects::EffectHostLimits],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 3 (effectWireLimits))) (writeEffectWireNat (project value inputMaximum))) (writeEffectWireNat (project value outputMaximum))) (writeEffectWireNat (project value memoryPages))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadEffectGuest,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.Effects::EffectGuest},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readEffectWireEffectGuest,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadEffectGuest Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 64)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectGuest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match ((project array count) =? 6)
+      | Bool.false => (ctor Result.error [EffectWireReadEffectGuest, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readEffectWireBytes input (project array cursor) 32)
+        | Result.error wireCause => (ctor Result.error [EffectWireReadEffectGuest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok wireField0 => (match (readEffectWireText input (project wireField0 cursor))
+          | Result.error wireCause => (ctor Result.error [EffectWireReadEffectGuest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok wireField1 => (match (readEffectWireText input (project wireField1 cursor))
+            | Result.error wireCause => (ctor Result.error [EffectWireReadEffectGuest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok wireField2 => (match (readEffectWireNat input (project wireField2 cursor))
+              | Result.error wireCause => (ctor Result.error [EffectWireReadEffectGuest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok wireField3 => (match (readEffectWireNat input (project wireField3 cursor))
+                | Result.error wireCause => (ctor Result.error [EffectWireReadEffectGuest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok wireField4 => (match (readEffectWireNat input (project wireField4 cursor))
+                  | Result.error wireCause => (ctor Result.error [EffectWireReadEffectGuest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                  | Result.ok wireField5 => (match (((project wireField3 value) <=? 2097152) && (((project wireField4 value) <=? 2097152) && true))
+                    | Bool.false => (ctor Result.error [EffectWireReadEffectGuest, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit))
+                    | Bool.true => (ctor Result.ok [EffectWireReadEffectGuest, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectGuest {value := (record Foundation.Browser.Application.V1.Effects::EffectGuest {artifact := (project wireField0 value), entry := (project wireField1 value), protocol := (project wireField2 value), inputMaximum := (project wireField3 value), outputMaximum := (project wireField4 value), memoryPages := (project wireField5 value)}), cursor := (project wireField5 cursor)}))))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireEffectGuest,
+  parameters: [value : Foundation.Browser.Application.V1.Effects::EffectGuest],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 6 (effectWireLimits))) (writeEffectWireBytes (project value artifact))) (writeEffectWireText (project value entry))) (writeEffectWireText (project value protocol))) (writeEffectWireNat (project value inputMaximum))) (writeEffectWireNat (project value outputMaximum))) (writeEffectWireNat (project value memoryPages))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadEffectSigningGrant,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.Effects::EffectSigningGrant},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readEffectWireEffectSigningGrant,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadEffectSigningGrant Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 64)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectSigningGrant, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match ((project array count) =? 2)
+      | Bool.false => (ctor Result.error [EffectWireReadEffectSigningGrant, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readEffectWireBytes input (project array cursor) 65)
+        | Result.error wireCause => (ctor Result.error [EffectWireReadEffectSigningGrant, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok wireField0 => (match (readEffectWireText input (project wireField0 cursor))
+          | Result.error wireCause => (ctor Result.error [EffectWireReadEffectSigningGrant, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok wireField1 => (ctor Result.ok [EffectWireReadEffectSigningGrant, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectSigningGrant {value := (record Foundation.Browser.Application.V1.Effects::EffectSigningGrant {publicKey := (project wireField0 value), context := (project wireField1 value)}), cursor := (project wireField1 cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireEffectSigningGrant,
+  parameters: [value : Foundation.Browser.Application.V1.Effects::EffectSigningGrant],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (writeEffectWireBytes (project value publicKey))) (writeEffectWireText (project value context))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadEffectStorageGrant,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.Effects::EffectStorageGrant},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readEffectWireEffectStorageGrant,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadEffectStorageGrant Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 64)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectStorageGrant, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match ((project array count) =? 4)
+      | Bool.false => (ctor Result.error [EffectWireReadEffectStorageGrant, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readEffectWireText input (project array cursor))
+        | Result.error wireCause => (ctor Result.error [EffectWireReadEffectStorageGrant, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok wireField0 => (match (readEffectWireNat input (project wireField0 cursor))
+          | Result.error wireCause => (ctor Result.error [EffectWireReadEffectStorageGrant, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok wireField1 => (match (readEffectWireNat input (project wireField1 cursor))
+            | Result.error wireCause => (ctor Result.error [EffectWireReadEffectStorageGrant, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok wireField2 => (match (readEffectWireNat input (project wireField2 cursor))
+              | Result.error wireCause => (ctor Result.error [EffectWireReadEffectStorageGrant, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok wireField3 => (ctor Result.ok [EffectWireReadEffectStorageGrant, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectStorageGrant {value := (record Foundation.Browser.Application.V1.Effects::EffectStorageGrant {storeNamespace := (project wireField0 value), maxObjectBytes := (project wireField1 value), maxObjects := (project wireField2 value), maxHeads := (project wireField3 value)}), cursor := (project wireField3 cursor)})))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireEffectStorageGrant,
+  parameters: [value : Foundation.Browser.Application.V1.Effects::EffectStorageGrant],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 4 (effectWireLimits))) (writeEffectWireText (project value storeNamespace))) (writeEffectWireNat (project value maxObjectBytes))) (writeEffectWireNat (project value maxObjects))) (writeEffectWireNat (project value maxHeads))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadEffectAdapter,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.Effects::EffectAdapter},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readEffectWireEffectAdapter,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadEffectAdapter Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 64)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectAdapter, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match (readEffectWireNat input (project array cursor))
+      | Result.error wireCause => (ctor Result.error [EffectWireReadEffectAdapter, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok tag => (match ((project tag value) =? 0)
+        | Bool.false => (match ((project tag value) =? 1)
+          | Bool.false => (match ((project tag value) =? 2)
+            | Bool.false => (match ((project tag value) =? 3)
+              | Bool.false => (match ((project tag value) =? 4)
+                | Bool.false => (match ((project tag value) =? 5)
+                  | Bool.false => (ctor Result.error [EffectWireReadEffectAdapter, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                  | Bool.true => (match ((project array count) =? 2)
+                    | Bool.false => (ctor Result.error [EffectWireReadEffectAdapter, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                    | Bool.true => (match (readEffectWireEffectStorageGrant input (project tag cursor))
+                      | Result.error wireCause => (ctor Result.error [EffectWireReadEffectAdapter, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                      | Result.ok wireField0 => (ctor Result.ok [EffectWireReadEffectAdapter, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectAdapter {value := (ctor Foundation.Browser.Application.V1.Effects::EffectAdapter.Store (project wireField0 value)), cursor := (project wireField0 cursor)})))))
+                | Bool.true => (match ((project array count) =? 2)
+                  | Bool.false => (ctor Result.error [EffectWireReadEffectAdapter, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                  | Bool.true => (match (readEffectWireEffectSigningGrant input (project tag cursor))
+                    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectAdapter, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                    | Result.ok wireField0 => (ctor Result.ok [EffectWireReadEffectAdapter, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectAdapter {value := (ctor Foundation.Browser.Application.V1.Effects::EffectAdapter.Verifier (project wireField0 value)), cursor := (project wireField0 cursor)})))))
+              | Bool.true => (match ((project array count) =? 2)
+                | Bool.false => (ctor Result.error [EffectWireReadEffectAdapter, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                | Bool.true => (match (readEffectWireEffectSigningGrant input (project tag cursor))
+                  | Result.error wireCause => (ctor Result.error [EffectWireReadEffectAdapter, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                  | Result.ok wireField0 => (ctor Result.ok [EffectWireReadEffectAdapter, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectAdapter {value := (ctor Foundation.Browser.Application.V1.Effects::EffectAdapter.Signer (project wireField0 value)), cursor := (project wireField0 cursor)})))))
+            | Bool.true => (match ((project array count) =? 1)
+              | Bool.false => (ctor Result.error [EffectWireReadEffectAdapter, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+              | Bool.true => (ctor Result.ok [EffectWireReadEffectAdapter, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectAdapter {value := (ctor Foundation.Browser.Application.V1.Effects::EffectAdapter.Digest), cursor := (project tag cursor)}))))
+          | Bool.true => (match ((project array count) =? 1)
+            | Bool.false => (ctor Result.error [EffectWireReadEffectAdapter, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+            | Bool.true => (ctor Result.ok [EffectWireReadEffectAdapter, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectAdapter {value := (ctor Foundation.Browser.Application.V1.Effects::EffectAdapter.Random), cursor := (project tag cursor)}))))
+        | Bool.true => (match ((project array count) =? 2)
+          | Bool.false => (ctor Result.error [EffectWireReadEffectAdapter, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (match (readEffectWireEffectGuest input (project tag cursor))
+            | Result.error wireCause => (ctor Result.error [EffectWireReadEffectAdapter, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok wireField0 => (ctor Result.ok [EffectWireReadEffectAdapter, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectAdapter {value := (ctor Foundation.Browser.Application.V1.Effects::EffectAdapter.Guest (project wireField0 value)), cursor := (project wireField0 cursor)}))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireEffectAdapter,
+  parameters: [value : Foundation.Browser.Application.V1.Effects::EffectAdapter],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Foundation.Browser.Application.V1.Effects::EffectAdapter.Guest item0 => (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 0) (effectWireLimits))) (writeEffectWireEffectGuest item0))
+    | Foundation.Browser.Application.V1.Effects::EffectAdapter.Random => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 1) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectAdapter.Digest => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 2) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectAdapter.Signer item0 => (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 3) (effectWireLimits))) (writeEffectWireEffectSigningGrant item0))
+    | Foundation.Browser.Application.V1.Effects::EffectAdapter.Verifier item0 => (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 4) (effectWireLimits))) (writeEffectWireEffectSigningGrant item0))
+    | Foundation.Browser.Application.V1.Effects::EffectAdapter.Store item0 => (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 5) (effectWireLimits))) (writeEffectWireEffectStorageGrant item0))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadEffectGrant,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.Effects::EffectGrant},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readEffectWireEffectGrant,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadEffectGrant Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 64)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectGrant, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match ((project array count) =? 2)
+      | Bool.false => (ctor Result.error [EffectWireReadEffectGrant, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readEffectWireText input (project array cursor))
+        | Result.error wireCause => (ctor Result.error [EffectWireReadEffectGrant, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok wireField0 => (match (readEffectWireEffectAdapter input (project wireField0 cursor))
+          | Result.error wireCause => (ctor Result.error [EffectWireReadEffectGrant, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok wireField1 => (ctor Result.ok [EffectWireReadEffectGrant, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectGrant {value := (record Foundation.Browser.Application.V1.Effects::EffectGrant {resource := (project wireField0 value), adapter := (project wireField1 value)}), cursor := (project wireField1 cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireEffectGrant,
+  parameters: [value : Foundation.Browser.Application.V1.Effects::EffectGrant],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (writeEffectWireText (project value resource))) (writeEffectWireEffectAdapter (project value adapter))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadEffectManifest,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.Effects::EffectManifest},
+    {name: cursor, type: Nat}
+  ]
+}
+
+structure{
+  name: EffectWireReadListEffectGrant,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: (List Foundation.Browser.Application.V1.Effects::EffectGrant)},
+    {name: cursor, type: Nat}
+  ]
+}
+
+structure{
+  name: EffectWireListOutcomeListEffectGrant,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: (List Foundation.Browser.Application.V1.Effects::EffectGrant)},
+    {name: cursor, type: Nat},
+    {name: cause, type: (Option Foundation.Codec.Cbor.V1.Primitive::CborError)}
+  ]
+}
+
+definition{
+  name: readEffectWireListEffectGrantItems,
+  parameters: [input : EffectWireInput, cursor : Nat, remaining : Nat],
+  result: EffectWireListOutcomeListEffectGrant,
+  body: (match remaining
+    | Nat.zero => (record EffectWireListOutcomeListEffectGrant {value := (nil Foundation.Browser.Application.V1.Effects::EffectGrant), cursor := cursor, cause := (ctor Option.none [Foundation.Codec.Cbor.V1.Primitive::CborError])})
+    | Nat.succ rest => (match (readEffectWireEffectGrant input cursor)
+      | Result.error cause => (record EffectWireListOutcomeListEffectGrant {value := (nil Foundation.Browser.Application.V1.Effects::EffectGrant), cursor := cursor, cause := (ctor Option.some [Foundation.Codec.Cbor.V1.Primitive::CborError] cause)})
+      | Result.ok item => (match (readEffectWireListEffectGrantItems input (project item cursor) rest)
+        | EffectWireListOutcomeListEffectGrant.mk tailValue tailCursor tailCause => (match tailCause
+          | Option.some cause => (record EffectWireListOutcomeListEffectGrant {value := (nil Foundation.Browser.Application.V1.Effects::EffectGrant), cursor := tailCursor, cause := (ctor Option.some [Foundation.Codec.Cbor.V1.Primitive::CborError] cause)})
+          | Option.none => (record EffectWireListOutcomeListEffectGrant {value := (cons (project item value) tailValue), cursor := tailCursor, cause := (ctor Option.none [Foundation.Codec.Cbor.V1.Primitive::CborError])}))))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: remaining
+}
+
+definition{
+  name: readEffectWireListEffectGrant,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadListEffectGrant Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 64)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadListEffectGrant, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match (readEffectWireListEffectGrantItems input (project array cursor) (project array count))
+      | EffectWireListOutcomeListEffectGrant.mk value endCursor endCause => (match endCause
+        | Option.some cause => (ctor Result.error [EffectWireReadListEffectGrant, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+        | Option.none => (ctor Result.ok [EffectWireReadListEffectGrant, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadListEffectGrant {value := value, cursor := endCursor}))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireListEffectGrantCount,
+  parameters: [value : (List Foundation.Browser.Application.V1.Effects::EffectGrant), fuel : Nat],
+  result: (Result Nat Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match fuel
+    | Nat.zero => (match value
+      | List.nil => (ctor Result.ok [Nat, Foundation.Codec.Cbor.V1.Primitive::CborError] 0)
+      | List.cons unusedHead unusedTail => (ctor Result.error [Nat, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit)))
+    | Nat.succ rest => (match value
+      | List.nil => (ctor Result.ok [Nat, Foundation.Codec.Cbor.V1.Primitive::CborError] 0)
+      | List.cons unusedHead tail => (match (writeEffectWireListEffectGrantCount tail rest)
+        | Result.error wireCause => (ctor Result.error [Nat, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok count => (ctor Result.ok [Nat, Foundation.Codec.Cbor.V1.Primitive::CborError] (count + 1))))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: writeEffectWireListEffectGrantItems,
+  parameters: [value : (List Foundation.Browser.Application.V1.Effects::EffectGrant)],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | List.nil => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x)
+    | List.cons item tail => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (writeEffectWireEffectGrant item)) (writeEffectWireListEffectGrantItems tail))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: value
+}
+
+definition{
+  name: writeEffectWireListEffectGrant,
+  parameters: [value : (List Foundation.Browser.Application.V1.Effects::EffectGrant)],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (writeEffectWireListEffectGrantCount value 64)
+    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok count => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead count (effectWireLimits))) (writeEffectWireListEffectGrantItems value))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readEffectWireEffectManifest,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadEffectManifest Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 64)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectManifest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match ((project array count) =? 4)
+      | Bool.false => (ctor Result.error [EffectWireReadEffectManifest, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readEffectWireBytes input (project array cursor) 32)
+        | Result.error wireCause => (ctor Result.error [EffectWireReadEffectManifest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok wireField0 => (match (readEffectWireBytes input (project wireField0 cursor) 32)
+          | Result.error wireCause => (ctor Result.error [EffectWireReadEffectManifest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok wireField1 => (match (readEffectWireEffectHostLimits input (project wireField1 cursor))
+            | Result.error wireCause => (ctor Result.error [EffectWireReadEffectManifest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok wireField2 => (match (readEffectWireListEffectGrant input (project wireField2 cursor))
+              | Result.error wireCause => (ctor Result.error [EffectWireReadEffectManifest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok wireField3 => (ctor Result.ok [EffectWireReadEffectManifest, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectManifest {value := (record Foundation.Browser.Application.V1.Effects::EffectManifest {application := (project wireField0 value), manifest := (project wireField1 value), limits := (project wireField2 value), grants := (project wireField3 value)}), cursor := (project wireField3 cursor)})))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireEffectManifest,
+  parameters: [value : Foundation.Browser.Application.V1.Effects::EffectManifest],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 4 (effectWireLimits))) (writeEffectWireBytes (project value application))) (writeEffectWireBytes (project value manifest))) (writeEffectWireEffectHostLimits (project value limits))) (writeEffectWireListEffectGrant (project value grants))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadEffectGuestInvocation,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.Effects::EffectGuestInvocation},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readEffectWireEffectGuestInvocation,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadEffectGuestInvocation Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 64)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectGuestInvocation, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match ((project array count) =? 4)
+      | Bool.false => (ctor Result.error [EffectWireReadEffectGuestInvocation, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readEffectWireBytes input (project array cursor) 32)
+        | Result.error wireCause => (ctor Result.error [EffectWireReadEffectGuestInvocation, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok wireField0 => (match (readEffectWireText input (project wireField0 cursor))
+          | Result.error wireCause => (ctor Result.error [EffectWireReadEffectGuestInvocation, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok wireField1 => (match (readEffectWireText input (project wireField1 cursor))
+            | Result.error wireCause => (ctor Result.error [EffectWireReadEffectGuestInvocation, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok wireField2 => (match (readEffectWireBytes input (project wireField2 cursor) 2097152)
+              | Result.error wireCause => (ctor Result.error [EffectWireReadEffectGuestInvocation, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok wireField3 => (ctor Result.ok [EffectWireReadEffectGuestInvocation, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectGuestInvocation {value := (record Foundation.Browser.Application.V1.Effects::EffectGuestInvocation {artifact := (project wireField0 value), entry := (project wireField1 value), protocol := (project wireField2 value), input := (project wireField3 value)}), cursor := (project wireField3 cursor)})))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireEffectGuestInvocation,
+  parameters: [value : Foundation.Browser.Application.V1.Effects::EffectGuestInvocation],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 4 (effectWireLimits))) (writeEffectWireBytes (project value artifact))) (writeEffectWireText (project value entry))) (writeEffectWireText (project value protocol))) (writeEffectWireBytes (project value input))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadEffectVerification,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.Effects::EffectVerification},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readEffectWireEffectVerification,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadEffectVerification Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 64)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectVerification, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match ((project array count) =? 2)
+      | Bool.false => (ctor Result.error [EffectWireReadEffectVerification, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readEffectWireBytes input (project array cursor) 1048576)
+        | Result.error wireCause => (ctor Result.error [EffectWireReadEffectVerification, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok wireField0 => (match (readEffectWireBytes input (project wireField0 cursor) 64)
+          | Result.error wireCause => (ctor Result.error [EffectWireReadEffectVerification, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok wireField1 => (ctor Result.ok [EffectWireReadEffectVerification, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectVerification {value := (record Foundation.Browser.Application.V1.Effects::EffectVerification {value := (project wireField0 value), signature := (project wireField1 value)}), cursor := (project wireField1 cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireEffectVerification,
+  parameters: [value : Foundation.Browser.Application.V1.Effects::EffectVerification],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (writeEffectWireBytes (project value value))) (writeEffectWireBytes (project value signature))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadEffectCommit,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.Effects::EffectCommit},
+    {name: cursor, type: Nat}
+  ]
+}
+
+structure{
+  name: EffectWireReadOptionText,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: value, type: (Option String)}, {name: cursor, type: Nat}]
+}
+
+definition{
+  name: readEffectWireOptionText,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadOptionText Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 2)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadOptionText, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match (readEffectWireNat input (project array cursor))
+      | Result.error wireCause => (ctor Result.error [EffectWireReadOptionText, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok tag => (match (((project array count) =? 1) && (((project tag value) =? 0) && true))
+        | Bool.false => (match (((project array count) =? 2) && (((project tag value) =? 1) && true))
+          | Bool.false => (ctor Result.error [EffectWireReadOptionText, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (match (readEffectWireText input (project tag cursor))
+            | Result.error wireCause => (ctor Result.error [EffectWireReadOptionText, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok item => (ctor Result.ok [EffectWireReadOptionText, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadOptionText {value := (ctor Option.some [String] (project item value)), cursor := (project item cursor)}))))
+        | Bool.true => (ctor Result.ok [EffectWireReadOptionText, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadOptionText {value := (ctor Option.none [String]), cursor := (project tag cursor)}))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireOptionText,
+  parameters: [value : (Option String)],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Option.none => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x8100)
+    | Option.some item => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x8201)) (writeEffectWireText item))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadListBytes,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: value, type: (List Bytes)}, {name: cursor, type: Nat}]
+}
+
+structure{
+  name: EffectWireListOutcomeListBytes,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: (List Bytes)},
+    {name: cursor, type: Nat},
+    {name: cause, type: (Option Foundation.Codec.Cbor.V1.Primitive::CborError)}
+  ]
+}
+
+definition{
+  name: readEffectWireListBytesItems,
+  parameters: [input : EffectWireInput, cursor : Nat, remaining : Nat],
+  result: EffectWireListOutcomeListBytes,
+  body: (match remaining
+    | Nat.zero => (record EffectWireListOutcomeListBytes {value := (nil Bytes), cursor := cursor, cause := (ctor Option.none [Foundation.Codec.Cbor.V1.Primitive::CborError])})
+    | Nat.succ rest => (match (readEffectWireBytes input cursor 1048576)
+      | Result.error cause => (record EffectWireListOutcomeListBytes {value := (nil Bytes), cursor := cursor, cause := (ctor Option.some [Foundation.Codec.Cbor.V1.Primitive::CborError] cause)})
+      | Result.ok item => (match (readEffectWireListBytesItems input (project item cursor) rest)
+        | EffectWireListOutcomeListBytes.mk tailValue tailCursor tailCause => (match tailCause
+          | Option.some cause => (record EffectWireListOutcomeListBytes {value := (nil Bytes), cursor := tailCursor, cause := (ctor Option.some [Foundation.Codec.Cbor.V1.Primitive::CborError] cause)})
+          | Option.none => (record EffectWireListOutcomeListBytes {value := (cons (project item value) tailValue), cursor := tailCursor, cause := (ctor Option.none [Foundation.Codec.Cbor.V1.Primitive::CborError])}))))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: remaining
+}
+
+definition{
+  name: readEffectWireListBytes,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadListBytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 16)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadListBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match (readEffectWireListBytesItems input (project array cursor) (project array count))
+      | EffectWireListOutcomeListBytes.mk value endCursor endCause => (match endCause
+        | Option.some cause => (ctor Result.error [EffectWireReadListBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] cause)
+        | Option.none => (ctor Result.ok [EffectWireReadListBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadListBytes {value := value, cursor := endCursor}))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireListBytesCount,
+  parameters: [value : (List Bytes), fuel : Nat],
+  result: (Result Nat Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match fuel
+    | Nat.zero => (match value
+      | List.nil => (ctor Result.ok [Nat, Foundation.Codec.Cbor.V1.Primitive::CborError] 0)
+      | List.cons unusedHead unusedTail => (ctor Result.error [Nat, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit)))
+    | Nat.succ rest => (match value
+      | List.nil => (ctor Result.ok [Nat, Foundation.Codec.Cbor.V1.Primitive::CborError] 0)
+      | List.cons unusedHead tail => (match (writeEffectWireListBytesCount tail rest)
+        | Result.error wireCause => (ctor Result.error [Nat, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok count => (ctor Result.ok [Nat, Foundation.Codec.Cbor.V1.Primitive::CborError] (count + 1))))),
+  axioms: [],
+  recursive_argument: fuel
+}
+
+definition{
+  name: writeEffectWireListBytesItems,
+  parameters: [value : (List Bytes)],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | List.nil => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x)
+    | List.cons item tail => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (writeEffectWireBytes item)) (writeEffectWireListBytesItems tail))),
+  axioms: [Classical.choice, Quot.sound, propext],
+  recursive_argument: value
+}
+
+definition{
+  name: writeEffectWireListBytes,
+  parameters: [value : (List Bytes)],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (writeEffectWireListBytesCount value 16)
+    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok count => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead count (effectWireLimits))) (writeEffectWireListBytesItems value))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readEffectWireEffectCommit,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadEffectCommit Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 64)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectCommit, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match ((project array count) =? 4)
+      | Bool.false => (ctor Result.error [EffectWireReadEffectCommit, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readEffectWireText input (project array cursor))
+        | Result.error wireCause => (ctor Result.error [EffectWireReadEffectCommit, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok wireField0 => (match (readEffectWireOptionText input (project wireField0 cursor))
+          | Result.error wireCause => (ctor Result.error [EffectWireReadEffectCommit, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok wireField1 => (match (readEffectWireText input (project wireField1 cursor))
+            | Result.error wireCause => (ctor Result.error [EffectWireReadEffectCommit, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok wireField2 => (match (readEffectWireListBytes input (project wireField2 cursor))
+              | Result.error wireCause => (ctor Result.error [EffectWireReadEffectCommit, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok wireField3 => (ctor Result.ok [EffectWireReadEffectCommit, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectCommit {value := (record Foundation.Browser.Application.V1.Effects::EffectCommit {head := (project wireField0 value), expected := (project wireField1 value), next := (project wireField2 value), objects := (project wireField3 value)}), cursor := (project wireField3 cursor)})))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireEffectCommit,
+  parameters: [value : Foundation.Browser.Application.V1.Effects::EffectCommit],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 4 (effectWireLimits))) (writeEffectWireText (project value head))) (writeEffectWireOptionText (project value expected))) (writeEffectWireText (project value next))) (writeEffectWireListBytes (project value objects))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadEffectHead,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.Effects::EffectHead},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readEffectWireEffectHead,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadEffectHead Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 64)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectHead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match ((project array count) =? 2)
+      | Bool.false => (ctor Result.error [EffectWireReadEffectHead, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readEffectWireText input (project array cursor))
+        | Result.error wireCause => (ctor Result.error [EffectWireReadEffectHead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok wireField0 => (match (readEffectWireBytes input (project wireField0 cursor) 1048576)
+          | Result.error wireCause => (ctor Result.error [EffectWireReadEffectHead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok wireField1 => (ctor Result.ok [EffectWireReadEffectHead, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectHead {value := (record Foundation.Browser.Application.V1.Effects::EffectHead {id := (project wireField0 value), bytes := (project wireField1 value)}), cursor := (project wireField1 cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireEffectHead,
+  parameters: [value : Foundation.Browser.Application.V1.Effects::EffectHead],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (writeEffectWireText (project value id))) (writeEffectWireBytes (project value bytes))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadEffectOperation,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.Effects::EffectOperation},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readEffectWireEffectOperation,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadEffectOperation Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 64)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match (readEffectWireNat input (project array cursor))
+      | Result.error wireCause => (ctor Result.error [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok tag => (match ((project tag value) =? 0)
+        | Bool.false => (match ((project tag value) =? 1)
+          | Bool.false => (match ((project tag value) =? 2)
+            | Bool.false => (match ((project tag value) =? 3)
+              | Bool.false => (match ((project tag value) =? 4)
+                | Bool.false => (match ((project tag value) =? 5)
+                  | Bool.false => (match ((project tag value) =? 6)
+                    | Bool.false => (match ((project tag value) =? 7)
+                      | Bool.false => (ctor Result.error [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                      | Bool.true => (match ((project array count) =? 2)
+                        | Bool.false => (ctor Result.error [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                        | Bool.true => (match (readEffectWireEffectCommit input (project tag cursor))
+                          | Result.error wireCause => (ctor Result.error [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                          | Result.ok wireField0 => (ctor Result.ok [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectOperation {value := (ctor Foundation.Browser.Application.V1.Effects::EffectOperation.Commit (project wireField0 value)), cursor := (project wireField0 cursor)})))))
+                    | Bool.true => (match ((project array count) =? 2)
+                      | Bool.false => (ctor Result.error [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                      | Bool.true => (match (readEffectWireText input (project tag cursor))
+                        | Result.error wireCause => (ctor Result.error [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                        | Result.ok wireField0 => (ctor Result.ok [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectOperation {value := (ctor Foundation.Browser.Application.V1.Effects::EffectOperation.ReadHead (project wireField0 value)), cursor := (project wireField0 cursor)})))))
+                  | Bool.true => (match ((project array count) =? 2)
+                    | Bool.false => (ctor Result.error [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                    | Bool.true => (match (readEffectWireText input (project tag cursor))
+                      | Result.error wireCause => (ctor Result.error [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                      | Result.ok wireField0 => (ctor Result.ok [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectOperation {value := (ctor Foundation.Browser.Application.V1.Effects::EffectOperation.ReadObject (project wireField0 value)), cursor := (project wireField0 cursor)})))))
+                | Bool.true => (match ((project array count) =? 2)
+                  | Bool.false => (ctor Result.error [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                  | Bool.true => (match (readEffectWireEffectVerification input (project tag cursor))
+                    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                    | Result.ok wireField0 => (ctor Result.ok [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectOperation {value := (ctor Foundation.Browser.Application.V1.Effects::EffectOperation.VerifyBytes (project wireField0 value)), cursor := (project wireField0 cursor)})))))
+              | Bool.true => (match ((project array count) =? 2)
+                | Bool.false => (ctor Result.error [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                | Bool.true => (match (readEffectWireBytes input (project tag cursor) 1048576)
+                  | Result.error wireCause => (ctor Result.error [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                  | Result.ok wireField0 => (ctor Result.ok [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectOperation {value := (ctor Foundation.Browser.Application.V1.Effects::EffectOperation.SignBytes (project wireField0 value)), cursor := (project wireField0 cursor)})))))
+            | Bool.true => (match ((project array count) =? 2)
+              | Bool.false => (ctor Result.error [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+              | Bool.true => (match (readEffectWireBytes input (project tag cursor) 1048576)
+                | Result.error wireCause => (ctor Result.error [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok wireField0 => (ctor Result.ok [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectOperation {value := (ctor Foundation.Browser.Application.V1.Effects::EffectOperation.DigestBytes (project wireField0 value)), cursor := (project wireField0 cursor)})))))
+          | Bool.true => (match ((project array count) =? 2)
+            | Bool.false => (ctor Result.error [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+            | Bool.true => (match (readEffectWireNat input (project tag cursor))
+              | Result.error wireCause => (ctor Result.error [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok wireField0 => (ctor Result.ok [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectOperation {value := (ctor Foundation.Browser.Application.V1.Effects::EffectOperation.RandomBytes (project wireField0 value)), cursor := (project wireField0 cursor)})))))
+        | Bool.true => (match ((project array count) =? 2)
+          | Bool.false => (ctor Result.error [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (match (readEffectWireEffectGuestInvocation input (project tag cursor))
+            | Result.error wireCause => (ctor Result.error [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok wireField0 => (ctor Result.ok [EffectWireReadEffectOperation, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectOperation {value := (ctor Foundation.Browser.Application.V1.Effects::EffectOperation.InvokeGuest (project wireField0 value)), cursor := (project wireField0 cursor)}))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireEffectOperation,
+  parameters: [value : Foundation.Browser.Application.V1.Effects::EffectOperation],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.InvokeGuest item0 => (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 0) (effectWireLimits))) (writeEffectWireEffectGuestInvocation item0))
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.RandomBytes item0 => (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 1) (effectWireLimits))) (writeEffectWireNat item0))
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.DigestBytes item0 => (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 2) (effectWireLimits))) (writeEffectWireBytes item0))
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.SignBytes item0 => (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 3) (effectWireLimits))) (writeEffectWireBytes item0))
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.VerifyBytes item0 => (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 4) (effectWireLimits))) (writeEffectWireEffectVerification item0))
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.ReadObject item0 => (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 5) (effectWireLimits))) (writeEffectWireText item0))
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.ReadHead item0 => (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 6) (effectWireLimits))) (writeEffectWireText item0))
+    | Foundation.Browser.Application.V1.Effects::EffectOperation.Commit item0 => (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 7) (effectWireLimits))) (writeEffectWireEffectCommit item0))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadEffectRequest,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.Effects::EffectRequest},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readEffectWireEffectRequest,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadEffectRequest Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 64)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectRequest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match ((project array count) =? 6)
+      | Bool.false => (ctor Result.error [EffectWireReadEffectRequest, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readEffectWireBytes input (project array cursor) 32)
+        | Result.error wireCause => (ctor Result.error [EffectWireReadEffectRequest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok wireField0 => (match (readEffectWireBytes input (project wireField0 cursor) 32)
+          | Result.error wireCause => (ctor Result.error [EffectWireReadEffectRequest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok wireField1 => (match (readEffectWireBytes input (project wireField1 cursor) 32)
+            | Result.error wireCause => (ctor Result.error [EffectWireReadEffectRequest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok wireField2 => (match (readEffectWireNat input (project wireField2 cursor))
+              | Result.error wireCause => (ctor Result.error [EffectWireReadEffectRequest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok wireField3 => (match (readEffectWireText input (project wireField3 cursor))
+                | Result.error wireCause => (ctor Result.error [EffectWireReadEffectRequest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok wireField4 => (match (readEffectWireEffectOperation input (project wireField4 cursor))
+                  | Result.error wireCause => (ctor Result.error [EffectWireReadEffectRequest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                  | Result.ok wireField5 => (ctor Result.ok [EffectWireReadEffectRequest, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectRequest {value := (record Foundation.Browser.Application.V1.Effects::EffectRequest {application := (project wireField0 value), manifest := (project wireField1 value), session := (project wireField2 value), operation := (project wireField3 value), resource := (project wireField4 value), effect := (project wireField5 value)}), cursor := (project wireField5 cursor)})))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireEffectRequest,
+  parameters: [value : Foundation.Browser.Application.V1.Effects::EffectRequest],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 6 (effectWireLimits))) (writeEffectWireBytes (project value application))) (writeEffectWireBytes (project value manifest))) (writeEffectWireBytes (project value session))) (writeEffectWireNat (project value operation))) (writeEffectWireText (project value resource))) (writeEffectWireEffectOperation (project value effect))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadEffectFailure,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.Effects::EffectFailure},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readEffectWireEffectFailure,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadEffectFailure Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 64)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match (readEffectWireNat input (project array cursor))
+      | Result.error wireCause => (ctor Result.error [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok tag => (match ((project tag value) =? 0)
+        | Bool.false => (match ((project tag value) =? 1)
+          | Bool.false => (match ((project tag value) =? 2)
+            | Bool.false => (match ((project tag value) =? 3)
+              | Bool.false => (match ((project tag value) =? 4)
+                | Bool.false => (match ((project tag value) =? 5)
+                  | Bool.false => (match ((project tag value) =? 6)
+                    | Bool.false => (match ((project tag value) =? 7)
+                      | Bool.false => (match ((project tag value) =? 8)
+                        | Bool.false => (match ((project tag value) =? 9)
+                          | Bool.false => (match ((project tag value) =? 10)
+                            | Bool.false => (match ((project tag value) =? 11)
+                              | Bool.false => (match ((project tag value) =? 12)
+                                | Bool.false => (ctor Result.error [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                                | Bool.true => (match ((project array count) =? 1)
+                                  | Bool.false => (ctor Result.error [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                                  | Bool.true => (ctor Result.ok [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectFailure {value := (ctor Foundation.Browser.Application.V1.Effects::EffectFailure.InvalidGeneratedOutput), cursor := (project tag cursor)}))))
+                              | Bool.true => (match ((project array count) =? 1)
+                                | Bool.false => (ctor Result.error [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                                | Bool.true => (ctor Result.ok [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectFailure {value := (ctor Foundation.Browser.Application.V1.Effects::EffectFailure.GeneratedExecutionFailed), cursor := (project tag cursor)}))))
+                            | Bool.true => (match ((project array count) =? 1)
+                              | Bool.false => (ctor Result.error [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                              | Bool.true => (ctor Result.ok [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectFailure {value := (ctor Foundation.Browser.Application.V1.Effects::EffectFailure.InvalidGeneratedModule), cursor := (project tag cursor)}))))
+                          | Bool.true => (match ((project array count) =? 1)
+                            | Bool.false => (ctor Result.error [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                            | Bool.true => (ctor Result.ok [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectFailure {value := (ctor Foundation.Browser.Application.V1.Effects::EffectFailure.StorageUnavailable), cursor := (project tag cursor)}))))
+                        | Bool.true => (match ((project array count) =? 1)
+                          | Bool.false => (ctor Result.error [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                          | Bool.true => (ctor Result.ok [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectFailure {value := (ctor Foundation.Browser.Application.V1.Effects::EffectFailure.StorageQuota), cursor := (project tag cursor)}))))
+                      | Bool.true => (match ((project array count) =? 1)
+                        | Bool.false => (ctor Result.error [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                        | Bool.true => (ctor Result.ok [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectFailure {value := (ctor Foundation.Browser.Application.V1.Effects::EffectFailure.StoreClosed), cursor := (project tag cursor)}))))
+                    | Bool.true => (match ((project array count) =? 1)
+                      | Bool.false => (ctor Result.error [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                      | Bool.true => (ctor Result.ok [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectFailure {value := (ctor Foundation.Browser.Application.V1.Effects::EffectFailure.StoreLimit), cursor := (project tag cursor)}))))
+                  | Bool.true => (match ((project array count) =? 1)
+                    | Bool.false => (ctor Result.error [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                    | Bool.true => (ctor Result.ok [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectFailure {value := (ctor Foundation.Browser.Application.V1.Effects::EffectFailure.ObjectCorrupt), cursor := (project tag cursor)}))))
+                | Bool.true => (match ((project array count) =? 1)
+                  | Bool.false => (ctor Result.error [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                  | Bool.true => (ctor Result.ok [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectFailure {value := (ctor Foundation.Browser.Application.V1.Effects::EffectFailure.MissingObject), cursor := (project tag cursor)}))))
+              | Bool.true => (match ((project array count) =? 1)
+                | Bool.false => (ctor Result.error [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                | Bool.true => (ctor Result.ok [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectFailure {value := (ctor Foundation.Browser.Application.V1.Effects::EffectFailure.HeadConflict), cursor := (project tag cursor)}))))
+            | Bool.true => (match ((project array count) =? 1)
+              | Bool.false => (ctor Result.error [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+              | Bool.true => (ctor Result.ok [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectFailure {value := (ctor Foundation.Browser.Application.V1.Effects::EffectFailure.CryptoUnavailable), cursor := (project tag cursor)}))))
+          | Bool.true => (match ((project array count) =? 1)
+            | Bool.false => (ctor Result.error [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+            | Bool.true => (ctor Result.ok [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectFailure {value := (ctor Foundation.Browser.Application.V1.Effects::EffectFailure.IdentityCorrupt), cursor := (project tag cursor)}))))
+        | Bool.true => (match ((project array count) =? 1)
+          | Bool.false => (ctor Result.error [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (ctor Result.ok [EffectWireReadEffectFailure, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectFailure {value := (ctor Foundation.Browser.Application.V1.Effects::EffectFailure.InvalidInput), cursor := (project tag cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireEffectFailure,
+  parameters: [value : Foundation.Browser.Application.V1.Effects::EffectFailure],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Foundation.Browser.Application.V1.Effects::EffectFailure.InvalidInput => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 0) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectFailure.IdentityCorrupt => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 1) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectFailure.CryptoUnavailable => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 2) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectFailure.HeadConflict => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 3) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectFailure.MissingObject => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 4) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectFailure.ObjectCorrupt => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 5) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectFailure.StoreLimit => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 6) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectFailure.StoreClosed => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 7) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectFailure.StorageQuota => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 8) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectFailure.StorageUnavailable => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 9) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectFailure.InvalidGeneratedModule => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 10) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectFailure.GeneratedExecutionFailed => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 11) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectFailure.InvalidGeneratedOutput => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 12) (effectWireLimits)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadEffectResult,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.Effects::EffectResult},
+    {name: cursor, type: Nat}
+  ]
+}
+
+structure{
+  name: EffectWireReadOptionEffectHead,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: (Option Foundation.Browser.Application.V1.Effects::EffectHead)},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readEffectWireOptionEffectHead,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadOptionEffectHead Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 2)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadOptionEffectHead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match (readEffectWireNat input (project array cursor))
+      | Result.error wireCause => (ctor Result.error [EffectWireReadOptionEffectHead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok tag => (match (((project array count) =? 1) && (((project tag value) =? 0) && true))
+        | Bool.false => (match (((project array count) =? 2) && (((project tag value) =? 1) && true))
+          | Bool.false => (ctor Result.error [EffectWireReadOptionEffectHead, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (match (readEffectWireEffectHead input (project tag cursor))
+            | Result.error wireCause => (ctor Result.error [EffectWireReadOptionEffectHead, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok item => (ctor Result.ok [EffectWireReadOptionEffectHead, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadOptionEffectHead {value := (ctor Option.some [Foundation.Browser.Application.V1.Effects::EffectHead] (project item value)), cursor := (project item cursor)}))))
+        | Bool.true => (ctor Result.ok [EffectWireReadOptionEffectHead, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadOptionEffectHead {value := (ctor Option.none [Foundation.Browser.Application.V1.Effects::EffectHead]), cursor := (project tag cursor)}))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireOptionEffectHead,
+  parameters: [value : (Option Foundation.Browser.Application.V1.Effects::EffectHead)],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Option.none => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x8100)
+    | Option.some item => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x8201)) (writeEffectWireEffectHead item))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadOptionBytes,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: value, type: (Option Bytes)}, {name: cursor, type: Nat}]
+}
+
+definition{
+  name: readEffectWireOptionBytes,
+  parameters: [input : EffectWireInput, cursor : Nat, maximum : Nat],
+  result: (Result EffectWireReadOptionBytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 2)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadOptionBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match (readEffectWireNat input (project array cursor))
+      | Result.error wireCause => (ctor Result.error [EffectWireReadOptionBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok tag => (match (((project array count) =? 1) && (((project tag value) =? 0) && true))
+        | Bool.false => (match (((project array count) =? 2) && (((project tag value) =? 1) && true))
+          | Bool.false => (ctor Result.error [EffectWireReadOptionBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (match (readEffectWireBytes input (project tag cursor) maximum)
+            | Result.error wireCause => (ctor Result.error [EffectWireReadOptionBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok item => (ctor Result.ok [EffectWireReadOptionBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadOptionBytes {value := (ctor Option.some [Bytes] (project item value)), cursor := (project item cursor)}))))
+        | Bool.true => (ctor Result.ok [EffectWireReadOptionBytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadOptionBytes {value := (ctor Option.none [Bytes]), cursor := (project tag cursor)}))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireOptionBytes,
+  parameters: [value : (Option Bytes)],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Option.none => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x8100)
+    | Option.some item => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x8201)) (writeEffectWireBytes item))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readEffectWireEffectResult,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadEffectResult Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 64)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match (readEffectWireNat input (project array cursor))
+      | Result.error wireCause => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok tag => (match ((project tag value) =? 0)
+        | Bool.false => (match ((project tag value) =? 1)
+          | Bool.false => (match ((project tag value) =? 2)
+            | Bool.false => (match ((project tag value) =? 3)
+              | Bool.false => (match ((project tag value) =? 4)
+                | Bool.false => (match ((project tag value) =? 5)
+                  | Bool.false => (match ((project tag value) =? 6)
+                    | Bool.false => (match ((project tag value) =? 7)
+                      | Bool.false => (match ((project tag value) =? 8)
+                        | Bool.false => (match ((project tag value) =? 9)
+                          | Bool.false => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                          | Bool.true => (match ((project array count) =? 1)
+                            | Bool.false => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                            | Bool.true => (ctor Result.ok [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectResult {value := (ctor Foundation.Browser.Application.V1.Effects::EffectResult.Unknown), cursor := (project tag cursor)}))))
+                        | Bool.true => (match ((project array count) =? 2)
+                          | Bool.false => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                          | Bool.true => (match (readEffectWireEffectFailure input (project tag cursor))
+                            | Result.error wireCause => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                            | Result.ok wireField0 => (ctor Result.ok [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectResult {value := (ctor Foundation.Browser.Application.V1.Effects::EffectResult.Rejected (project wireField0 value)), cursor := (project wireField0 cursor)})))))
+                      | Bool.true => (match ((project array count) =? 2)
+                        | Bool.false => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                        | Bool.true => (match (readEffectWireText input (project tag cursor))
+                          | Result.error wireCause => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                          | Result.ok wireField0 => (ctor Result.ok [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectResult {value := (ctor Foundation.Browser.Application.V1.Effects::EffectResult.Committed (project wireField0 value)), cursor := (project wireField0 cursor)})))))
+                    | Bool.true => (match ((project array count) =? 2)
+                      | Bool.false => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                      | Bool.true => (match (readEffectWireOptionEffectHead input (project tag cursor))
+                        | Result.error wireCause => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                        | Result.ok wireField0 => (ctor Result.ok [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectResult {value := (ctor Foundation.Browser.Application.V1.Effects::EffectResult.Head (project wireField0 value)), cursor := (project wireField0 cursor)})))))
+                  | Bool.true => (match ((project array count) =? 2)
+                    | Bool.false => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                    | Bool.true => (match (readEffectWireOptionBytes input (project tag cursor) 1048576)
+                      | Result.error wireCause => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                      | Result.ok wireField0 => (ctor Result.ok [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectResult {value := (ctor Foundation.Browser.Application.V1.Effects::EffectResult.Object (project wireField0 value)), cursor := (project wireField0 cursor)})))))
+                | Bool.true => (match ((project array count) =? 2)
+                  | Bool.false => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                  | Bool.true => (match (readEffectWireBool input (project tag cursor))
+                    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                    | Result.ok wireField0 => (ctor Result.ok [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectResult {value := (ctor Foundation.Browser.Application.V1.Effects::EffectResult.Verification (project wireField0 value)), cursor := (project wireField0 cursor)})))))
+              | Bool.true => (match ((project array count) =? 2)
+                | Bool.false => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                | Bool.true => (match (readEffectWireBytes input (project tag cursor) 64)
+                  | Result.error wireCause => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                  | Result.ok wireField0 => (ctor Result.ok [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectResult {value := (ctor Foundation.Browser.Application.V1.Effects::EffectResult.Signature (project wireField0 value)), cursor := (project wireField0 cursor)})))))
+            | Bool.true => (match ((project array count) =? 2)
+              | Bool.false => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+              | Bool.true => (match (readEffectWireText input (project tag cursor))
+                | Result.error wireCause => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok wireField0 => (ctor Result.ok [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectResult {value := (ctor Foundation.Browser.Application.V1.Effects::EffectResult.Digest (project wireField0 value)), cursor := (project wireField0 cursor)})))))
+          | Bool.true => (match ((project array count) =? 2)
+            | Bool.false => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+            | Bool.true => (match (readEffectWireBytes input (project tag cursor) 65536)
+              | Result.error wireCause => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok wireField0 => (ctor Result.ok [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectResult {value := (ctor Foundation.Browser.Application.V1.Effects::EffectResult.RandomBytes (project wireField0 value)), cursor := (project wireField0 cursor)})))))
+        | Bool.true => (match ((project array count) =? 2)
+          | Bool.false => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (match (readEffectWireBytes input (project tag cursor) 2097152)
+            | Result.error wireCause => (ctor Result.error [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok wireField0 => (ctor Result.ok [EffectWireReadEffectResult, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectResult {value := (ctor Foundation.Browser.Application.V1.Effects::EffectResult.GuestBytes (project wireField0 value)), cursor := (project wireField0 cursor)}))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireEffectResult,
+  parameters: [value : Foundation.Browser.Application.V1.Effects::EffectResult],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Foundation.Browser.Application.V1.Effects::EffectResult.GuestBytes item0 => (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 0) (effectWireLimits))) (writeEffectWireBytes item0))
+    | Foundation.Browser.Application.V1.Effects::EffectResult.RandomBytes item0 => (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 1) (effectWireLimits))) (writeEffectWireBytes item0))
+    | Foundation.Browser.Application.V1.Effects::EffectResult.Digest item0 => (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 2) (effectWireLimits))) (writeEffectWireText item0))
+    | Foundation.Browser.Application.V1.Effects::EffectResult.Signature item0 => (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 3) (effectWireLimits))) (writeEffectWireBytes item0))
+    | Foundation.Browser.Application.V1.Effects::EffectResult.Verification item0 => (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 4) (effectWireLimits))) (writeEffectWireBool item0))
+    | Foundation.Browser.Application.V1.Effects::EffectResult.Object item0 => (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 5) (effectWireLimits))) (writeEffectWireOptionBytes item0))
+    | Foundation.Browser.Application.V1.Effects::EffectResult.Head item0 => (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 6) (effectWireLimits))) (writeEffectWireOptionEffectHead item0))
+    | Foundation.Browser.Application.V1.Effects::EffectResult.Committed item0 => (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 7) (effectWireLimits))) (writeEffectWireText item0))
+    | Foundation.Browser.Application.V1.Effects::EffectResult.Rejected item0 => (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 8) (effectWireLimits))) (writeEffectWireEffectFailure item0))
+    | Foundation.Browser.Application.V1.Effects::EffectResult.Unknown => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 9) (effectWireLimits)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadEffectCompletion,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.Effects::EffectCompletion},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readEffectWireEffectCompletion,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadEffectCompletion Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 64)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectCompletion, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match ((project array count) =? 2)
+      | Bool.false => (ctor Result.error [EffectWireReadEffectCompletion, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readEffectWireEffectRequest input (project array cursor))
+        | Result.error wireCause => (ctor Result.error [EffectWireReadEffectCompletion, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok wireField0 => (match (readEffectWireEffectResult input (project wireField0 cursor))
+          | Result.error wireCause => (ctor Result.error [EffectWireReadEffectCompletion, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok wireField1 => (ctor Result.ok [EffectWireReadEffectCompletion, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectCompletion {value := (record Foundation.Browser.Application.V1.Effects::EffectCompletion {request := (project wireField0 value), result := (project wireField1 value)}), cursor := (project wireField1 cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireEffectCompletion,
+  parameters: [value : Foundation.Browser.Application.V1.Effects::EffectCompletion],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 2 (effectWireLimits))) (writeEffectWireEffectRequest (project value request))) (writeEffectWireEffectResult (project value result))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadEffectSession,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.Effects::EffectSession},
+    {name: cursor, type: Nat}
+  ]
+}
+
+structure{
+  name: EffectWireReadOptionEffectRequest,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: (Option Foundation.Browser.Application.V1.Effects::EffectRequest)},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readEffectWireOptionEffectRequest,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadOptionEffectRequest Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 2)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadOptionEffectRequest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match (readEffectWireNat input (project array cursor))
+      | Result.error wireCause => (ctor Result.error [EffectWireReadOptionEffectRequest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok tag => (match (((project array count) =? 1) && (((project tag value) =? 0) && true))
+        | Bool.false => (match (((project array count) =? 2) && (((project tag value) =? 1) && true))
+          | Bool.false => (ctor Result.error [EffectWireReadOptionEffectRequest, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (match (readEffectWireEffectRequest input (project tag cursor))
+            | Result.error wireCause => (ctor Result.error [EffectWireReadOptionEffectRequest, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok item => (ctor Result.ok [EffectWireReadOptionEffectRequest, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadOptionEffectRequest {value := (ctor Option.some [Foundation.Browser.Application.V1.Effects::EffectRequest] (project item value)), cursor := (project item cursor)}))))
+        | Bool.true => (ctor Result.ok [EffectWireReadOptionEffectRequest, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadOptionEffectRequest {value := (ctor Option.none [Foundation.Browser.Application.V1.Effects::EffectRequest]), cursor := (project tag cursor)}))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireOptionEffectRequest,
+  parameters: [value : (Option Foundation.Browser.Application.V1.Effects::EffectRequest)],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Option.none => (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x8100)
+    | Option.some item => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x8201)) (writeEffectWireEffectRequest item))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: readEffectWireEffectSession,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadEffectSession Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 64)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectSession, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match ((project array count) =? 7)
+      | Bool.false => (ctor Result.error [EffectWireReadEffectSession, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+      | Bool.true => (match (readEffectWireEffectManifest input (project array cursor))
+        | Result.error wireCause => (ctor Result.error [EffectWireReadEffectSession, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+        | Result.ok wireField0 => (match (readEffectWireBytes input (project wireField0 cursor) 32)
+          | Result.error wireCause => (ctor Result.error [EffectWireReadEffectSession, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok wireField1 => (match (readEffectWireNat input (project wireField1 cursor))
+            | Result.error wireCause => (ctor Result.error [EffectWireReadEffectSession, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+            | Result.ok wireField2 => (match (readEffectWireBool input (project wireField2 cursor))
+              | Result.error wireCause => (ctor Result.error [EffectWireReadEffectSession, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+              | Result.ok wireField3 => (match (readEffectWireBool input (project wireField3 cursor))
+                | Result.error wireCause => (ctor Result.error [EffectWireReadEffectSession, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok wireField4 => (match (readEffectWireOptionEffectRequest input (project wireField4 cursor))
+                  | Result.error wireCause => (ctor Result.error [EffectWireReadEffectSession, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                  | Result.ok wireField5 => (match (readEffectWireOptionEffectRequest input (project wireField5 cursor))
+                    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectSession, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                    | Result.ok wireField6 => (ctor Result.ok [EffectWireReadEffectSession, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectSession {value := (record Foundation.Browser.Application.V1.Effects::EffectSession {manifest := (project wireField0 value), session := (project wireField1 value), nextOperation := (project wireField2 value), closed := (project wireField3 value), uncertain := (project wireField4 value), active := (project wireField5 value), waiter := (project wireField6 value)}), cursor := (project wireField6 cursor)}))))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireEffectSession,
+  parameters: [value : Foundation.Browser.Application.V1.Effects::EffectSession],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 7 (effectWireLimits))) (writeEffectWireEffectManifest (project value manifest))) (writeEffectWireBytes (project value session))) (writeEffectWireNat (project value nextOperation))) (writeEffectWireBool (project value closed))) (writeEffectWireBool (project value uncertain))) (writeEffectWireOptionEffectRequest (project value active))) (writeEffectWireOptionEffectRequest (project value waiter))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+structure{
+  name: EffectWireReadEffectProtocolError,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: value, type: Foundation.Browser.Application.V1.Effects::EffectProtocolError},
+    {name: cursor, type: Nat}
+  ]
+}
+
+definition{
+  name: readEffectWireEffectProtocolError,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result EffectWireReadEffectProtocolError Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 64)
+    | Result.error wireCause => (ctor Result.error [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match (readEffectWireNat input (project array cursor))
+      | Result.error wireCause => (ctor Result.error [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok tag => (match ((project tag value) =? 0)
+        | Bool.false => (match ((project tag value) =? 1)
+          | Bool.false => (match ((project tag value) =? 2)
+            | Bool.false => (match ((project tag value) =? 3)
+              | Bool.false => (match ((project tag value) =? 4)
+                | Bool.false => (match ((project tag value) =? 5)
+                  | Bool.false => (match ((project tag value) =? 6)
+                    | Bool.false => (match ((project tag value) =? 7)
+                      | Bool.false => (match ((project tag value) =? 8)
+                        | Bool.false => (match ((project tag value) =? 9)
+                          | Bool.false => (match ((project tag value) =? 10)
+                            | Bool.false => (match ((project tag value) =? 11)
+                              | Bool.false => (match ((project tag value) =? 12)
+                                | Bool.false => (match ((project tag value) =? 13)
+                                  | Bool.false => (match ((project tag value) =? 14)
+                                    | Bool.false => (ctor Result.error [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                                    | Bool.true => (match ((project array count) =? 1)
+                                      | Bool.false => (ctor Result.error [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                                      | Bool.true => (ctor Result.ok [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectProtocolError {value := (ctor Foundation.Browser.Application.V1.Effects::EffectProtocolError.InvalidResult), cursor := (project tag cursor)}))))
+                                  | Bool.true => (match ((project array count) =? 1)
+                                    | Bool.false => (ctor Result.error [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                                    | Bool.true => (ctor Result.ok [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectProtocolError {value := (ctor Foundation.Browser.Application.V1.Effects::EffectProtocolError.CompletionMismatch), cursor := (project tag cursor)}))))
+                                | Bool.true => (match ((project array count) =? 1)
+                                  | Bool.false => (ctor Result.error [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                                  | Bool.true => (ctor Result.ok [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectProtocolError {value := (ctor Foundation.Browser.Application.V1.Effects::EffectProtocolError.NoActiveOperation), cursor := (project tag cursor)}))))
+                              | Bool.true => (match ((project array count) =? 1)
+                                | Bool.false => (ctor Result.error [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                                | Bool.true => (ctor Result.ok [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectProtocolError {value := (ctor Foundation.Browser.Application.V1.Effects::EffectProtocolError.InvalidEffect), cursor := (project tag cursor)}))))
+                            | Bool.true => (match ((project array count) =? 1)
+                              | Bool.false => (ctor Result.error [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                              | Bool.true => (ctor Result.ok [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectProtocolError {value := (ctor Foundation.Browser.Application.V1.Effects::EffectProtocolError.UnknownResource), cursor := (project tag cursor)}))))
+                          | Bool.true => (match ((project array count) =? 1)
+                            | Bool.false => (ctor Result.error [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                            | Bool.true => (ctor Result.ok [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectProtocolError {value := (ctor Foundation.Browser.Application.V1.Effects::EffectProtocolError.WrongOperation), cursor := (project tag cursor)}))))
+                        | Bool.true => (match ((project array count) =? 1)
+                          | Bool.false => (ctor Result.error [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                          | Bool.true => (ctor Result.ok [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectProtocolError {value := (ctor Foundation.Browser.Application.V1.Effects::EffectProtocolError.WrongSession), cursor := (project tag cursor)}))))
+                      | Bool.true => (match ((project array count) =? 1)
+                        | Bool.false => (ctor Result.error [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                        | Bool.true => (ctor Result.ok [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectProtocolError {value := (ctor Foundation.Browser.Application.V1.Effects::EffectProtocolError.WrongManifest), cursor := (project tag cursor)}))))
+                    | Bool.true => (match ((project array count) =? 1)
+                      | Bool.false => (ctor Result.error [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                      | Bool.true => (ctor Result.ok [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectProtocolError {value := (ctor Foundation.Browser.Application.V1.Effects::EffectProtocolError.WrongApplication), cursor := (project tag cursor)}))))
+                  | Bool.true => (match ((project array count) =? 1)
+                    | Bool.false => (ctor Result.error [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                    | Bool.true => (ctor Result.ok [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectProtocolError {value := (ctor Foundation.Browser.Application.V1.Effects::EffectProtocolError.OperationExhausted), cursor := (project tag cursor)}))))
+                | Bool.true => (match ((project array count) =? 1)
+                  | Bool.false => (ctor Result.error [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                  | Bool.true => (ctor Result.ok [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectProtocolError {value := (ctor Foundation.Browser.Application.V1.Effects::EffectProtocolError.Busy), cursor := (project tag cursor)}))))
+              | Bool.true => (match ((project array count) =? 1)
+                | Bool.false => (ctor Result.error [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                | Bool.true => (ctor Result.ok [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectProtocolError {value := (ctor Foundation.Browser.Application.V1.Effects::EffectProtocolError.OutcomeUnknown), cursor := (project tag cursor)}))))
+            | Bool.true => (match ((project array count) =? 1)
+              | Bool.false => (ctor Result.error [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+              | Bool.true => (ctor Result.ok [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectProtocolError {value := (ctor Foundation.Browser.Application.V1.Effects::EffectProtocolError.Closed), cursor := (project tag cursor)}))))
+          | Bool.true => (match ((project array count) =? 1)
+            | Bool.false => (ctor Result.error [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+            | Bool.true => (ctor Result.ok [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectProtocolError {value := (ctor Foundation.Browser.Application.V1.Effects::EffectProtocolError.BadSession), cursor := (project tag cursor)}))))
+        | Bool.true => (match ((project array count) =? 1)
+          | Bool.false => (ctor Result.error [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+          | Bool.true => (ctor Result.ok [EffectWireReadEffectProtocolError, Foundation.Codec.Cbor.V1.Primitive::CborError] (record EffectWireReadEffectProtocolError {value := (ctor Foundation.Browser.Application.V1.Effects::EffectProtocolError.BadManifest), cursor := (project tag cursor)})))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: writeEffectWireEffectProtocolError,
+  parameters: [value : Foundation.Browser.Application.V1.Effects::EffectProtocolError],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Foundation.Browser.Application.V1.Effects::EffectProtocolError.BadManifest => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 0) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectProtocolError.BadSession => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 1) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectProtocolError.Closed => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 2) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectProtocolError.OutcomeUnknown => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 3) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectProtocolError.Busy => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 4) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectProtocolError.OperationExhausted => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 5) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectProtocolError.WrongApplication => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 6) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectProtocolError.WrongManifest => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 7) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectProtocolError.WrongSession => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 8) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectProtocolError.WrongOperation => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 9) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectProtocolError.UnknownResource => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 10) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectProtocolError.InvalidEffect => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 11) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectProtocolError.NoActiveOperation => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 12) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectProtocolError.CompletionMismatch => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 13) (effectWireLimits)))
+    | Foundation.Browser.Application.V1.Effects::EffectProtocolError.InvalidResult => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (Foundation.Codec.Cbor.V1.Primitive::writeCborArrayHead 1 (effectWireLimits))) (Foundation.Codec.Cbor.V1.Primitive::writeCborPrimitive (ctor Foundation.Codec.Cbor.V1.Primitive::CborValue.Unsigned 14) (effectWireLimits)))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: effectWireProtocolResult,
+  parameters: [
+    value : (Result Foundation.Browser.Application.V1.Effects::EffectSession Foundation.Browser.Application.V1.Effects::EffectProtocolError)
+  ],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match value
+    | Result.error cause => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x830101)) (writeEffectWireEffectProtocolError cause))
+    | Result.ok state => (effectWireJoin (effectWireJoin (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x) (ctor Result.ok [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] 0x830100)) (writeEffectWireEffectSession state))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: dispatchEffectWire,
+  parameters: [input : EffectWireInput, cursor : Nat],
+  result: (Result Bytes Foundation.Codec.Cbor.V1.Primitive::CborError),
+  body: (match (effectWireReadArray input cursor 64)
+    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+    | Result.ok array => (match (readEffectWireNat input (project array cursor))
+      | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+      | Result.ok version => (match ((project version value) =? 1)
+        | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+        | Bool.true => (match (readEffectWireNat input (project version cursor))
+          | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+          | Result.ok operation => (match ((project operation value) =? 0)
+            | Bool.false => (match ((project operation value) =? 1)
+              | Bool.false => (match ((project operation value) =? 2)
+                | Bool.false => (match ((project operation value) =? 3)
+                  | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                  | Bool.true => (match ((project array count) =? 3)
+                    | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                    | Bool.true => (match (readEffectWireEffectSession input (project operation cursor))
+                      | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                      | Result.ok wireField0 => (match (effectWireWindow input (project wireField0 cursor))
+                        | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                        | Result.ok finishWindow => (match (Foundation.Codec.Cbor.V1.Primitive::finishCborCursor (record Foundation.Codec::BoundedCursor {bytes := finishWindow, offset := 0, limit := (prim length finishWindow : Nat)}) (effectWireLimits))
+                          | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                          | Result.ok finished => (effectWireProtocolResult (Foundation.Browser.Application.V1.Effects::closeEffectSession (project wireField0 value))))))))
+                | Bool.true => (match ((project array count) =? 4)
+                  | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                  | Bool.true => (match (readEffectWireEffectSession input (project operation cursor))
+                    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                    | Result.ok wireField0 => (match (readEffectWireEffectCompletion input (project wireField0 cursor))
+                      | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                      | Result.ok wireField1 => (match (effectWireWindow input (project wireField1 cursor))
+                        | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                        | Result.ok finishWindow => (match (Foundation.Codec.Cbor.V1.Primitive::finishCborCursor (record Foundation.Codec::BoundedCursor {bytes := finishWindow, offset := 0, limit := (prim length finishWindow : Nat)}) (effectWireLimits))
+                          | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                          | Result.ok finished => (effectWireProtocolResult (Foundation.Browser.Application.V1.Effects::completeEffect (project wireField0 value) (project wireField1 value)))))))))
+              | Bool.true => (match ((project array count) =? 4)
+                | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+                | Bool.true => (match (readEffectWireEffectSession input (project operation cursor))
+                  | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                  | Result.ok wireField0 => (match (readEffectWireEffectRequest input (project wireField0 cursor))
+                    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                    | Result.ok wireField1 => (match (effectWireWindow input (project wireField1 cursor))
+                      | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                      | Result.ok finishWindow => (match (Foundation.Codec.Cbor.V1.Primitive::finishCborCursor (record Foundation.Codec::BoundedCursor {bytes := finishWindow, offset := 0, limit := (prim length finishWindow : Nat)}) (effectWireLimits))
+                        | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                        | Result.ok finished => (effectWireProtocolResult (Foundation.Browser.Application.V1.Effects::admitEffect (project wireField0 value) (project wireField1 value)))))))))
+            | Bool.true => (match ((project array count) =? 4)
+              | Bool.false => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] (ctor Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType))
+              | Bool.true => (match (readEffectWireEffectManifest input (project operation cursor))
+                | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                | Result.ok wireField0 => (match (readEffectWireBytes input (project wireField0 cursor) 32)
+                  | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                  | Result.ok wireField1 => (match (effectWireWindow input (project wireField1 cursor))
+                    | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                    | Result.ok finishWindow => (match (Foundation.Codec.Cbor.V1.Primitive::finishCborCursor (record Foundation.Codec::BoundedCursor {bytes := finishWindow, offset := 0, limit := (prim length finishWindow : Nat)}) (effectWireLimits))
+                      | Result.error wireCause => (ctor Result.error [Bytes, Foundation.Codec.Cbor.V1.Primitive::CborError] wireCause)
+                      | Result.ok finished => (effectWireProtocolResult (Foundation.Browser.Application.V1.Effects::beginEffectSession (project wireField0 value) (project wireField1 value))))))))))))),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+
+definition{
+  name: effectWireErrorBytes,
+  parameters: [cause : Foundation.Codec.Cbor.V1.Primitive::CborError],
+  result: Bytes,
+  body: (match cause
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.BadLimits => 0x83010200
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.BadCursor => 0x83010201
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.Truncated => 0x83010202
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.WrongType => 0x83010203
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.UnsupportedHead => 0x83010204
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.NonCanonical => 0x83010205
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.ValueLimit => 0x83010206
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.InvalidUtf8 => 0x83010207
+    | Foundation.Codec.Cbor.V1.Primitive::CborError.TrailingInput => 0x83010208),
+  axioms: []
+}
+
+definition{
+  name: effectWireBytes,
+  parameters: [input : Bytes],
+  result: Bytes,
+  body: (match ((prim length input : Nat) <=? 67108864)
+    | Bool.false => 0x83010206
+    | Bool.true => (match (dispatchEffectWire (record EffectWireInput {bytes := input}) 0)
+      | Result.error cause => (effectWireErrorBytes cause)
+      | Result.ok response => response)),
+  axioms: [Classical.choice, Quot.sound, propext]
+}
+\end{semanticmodule}
+\end{lexlean}

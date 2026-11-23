@@ -1,0 +1,183 @@
+\begin{lexlean}{Foundation.View.Browser.V1.Design}
+\useglossary{lexlean.std.bool@1.2.0}
+\useglossary{lexlean.std.nat@1.2.0}
+\useglossary{prism.arch@1.0.0}
+\title{Browser view design catalogue}
+\begin{semanticmodule}
+inductive{
+  name: FontFamily,
+  type_parameters: [],
+  parameters: [],
+  constructors: [
+    {name: System, fields: []},
+    {name: Serif, fields: []},
+    {name: Monospace, fields: []},
+    {name: Hologram, fields: []}
+  ]
+}
+
+structure{
+  name: DesignTokens,
+  type_parameters: [],
+  parameters: [],
+  fields: [
+    {name: surface, type: Nat},
+    {name: text, type: Nat},
+    {name: border, type: Nat},
+    {name: accent, type: Nat},
+    {name: accentText, type: Nat},
+    {name: danger, type: Nat},
+    {name: focus, type: Nat},
+    {name: fontFamily, type: FontFamily},
+    {name: textPermille, type: Nat},
+    {name: lineHeightPermille, type: Nat},
+    {name: spacePermille, type: Nat},
+    {name: radiusPermille, type: Nat},
+    {name: contentWidthRem, type: Nat},
+    {name: sidebarWidthRem, type: Nat},
+    {name: collapseWidthRem, type: Nat},
+    {name: targetPixels, type: Nat},
+    {name: card, type: Nat},
+    {name: muted, type: Nat},
+    {name: mutedText, type: Nat},
+    {name: hover, type: Nat},
+    {name: input, type: Nat},
+    {name: brand, type: Nat},
+    {name: brandText, type: Nat},
+    {name: success, type: Nat},
+    {name: warning, type: Nat}
+  ]
+}
+
+definition{
+  name: designLinearCell,
+  parameters: [row : Nat, column : Nat],
+  result: Nat,
+  body: (if (row =? 0) then (if (column =? 0) then 0 else (if (column =? 1) then 3035 else (if (column =? 2) then 6071 else (if (column =? 3) then 9106 else (if (column =? 4) then 12141 else (if (column =? 5) then 15176 else (if (column =? 6) then 18212 else (if (column =? 7) then 21247 else (if (column =? 8) then 24282 else (if (column =? 9) then 27317 else (if (column =? 10) then 30353 else (if (column =? 11) then 33465 else (if (column =? 12) then 36765 else (if (column =? 13) then 40247 else (if (column =? 14) then 43914 else 47770))))))))))))))) else (if (row =? 1) then (if (column =? 0) then 51815 else (if (column =? 1) then 56054 else (if (column =? 2) then 60488 else (if (column =? 3) then 65121 else (if (column =? 4) then 69954 else (if (column =? 5) then 74990 else (if (column =? 6) then 80232 else (if (column =? 7) then 85681 else (if (column =? 8) then 91341 else (if (column =? 9) then 97212 else (if (column =? 10) then 103298 else (if (column =? 11) then 109601 else (if (column =? 12) then 116122 else (if (column =? 13) then 122865 else (if (column =? 14) then 129830 else 137021))))))))))))))) else (if (row =? 2) then (if (column =? 0) then 144438 else (if (column =? 1) then 152085 else (if (column =? 2) then 159963 else (if (column =? 3) then 168074 else (if (column =? 4) then 176420 else (if (column =? 5) then 185002 else (if (column =? 6) then 193824 else (if (column =? 7) then 202886 else (if (column =? 8) then 212190 else (if (column =? 9) then 221739 else (if (column =? 10) then 231534 else (if (column =? 11) then 241576 else (if (column =? 12) then 251869 else (if (column =? 13) then 262412 else (if (column =? 14) then 273209 else 284260))))))))))))))) else (if (row =? 3) then (if (column =? 0) then 295568 else (if (column =? 1) then 307134 else (if (column =? 2) then 318960 else (if (column =? 3) then 331048 else (if (column =? 4) then 343398 else (if (column =? 5) then 356013 else (if (column =? 6) then 368895 else (if (column =? 7) then 382044 else (if (column =? 8) then 395462 else (if (column =? 9) then 409152 else (if (column =? 10) then 423114 else (if (column =? 11) then 437350 else (if (column =? 12) then 451862 else (if (column =? 13) then 466651 else (if (column =? 14) then 481718 else 497066))))))))))))))) else (if (row =? 4) then (if (column =? 0) then 512695 else (if (column =? 1) then 528606 else (if (column =? 2) then 544803 else (if (column =? 3) then 561285 else (if (column =? 4) then 578054 else (if (column =? 5) then 595112 else (if (column =? 6) then 612461 else (if (column =? 7) then 630100 else (if (column =? 8) then 648033 else (if (column =? 9) then 666259 else (if (column =? 10) then 684782 else (if (column =? 11) then 703601 else (if (column =? 12) then 722719 else (if (column =? 13) then 742136 else (if (column =? 14) then 761854 else 781874))))))))))))))) else (if (row =? 5) then (if (column =? 0) then 802198 else (if (column =? 1) then 822827 else (if (column =? 2) then 843762 else (if (column =? 3) then 865005 else (if (column =? 4) then 886556 else (if (column =? 5) then 908417 else (if (column =? 6) then 930590 else (if (column =? 7) then 953075 else (if (column =? 8) then 975873 else (if (column =? 9) then 998987 else (if (column =? 10) then 1022417 else (if (column =? 11) then 1046165 else (if (column =? 12) then 1070231 else (if (column =? 13) then 1094617 else (if (column =? 14) then 1119324 else 1144354))))))))))))))) else (if (row =? 6) then (if (column =? 0) then 1169707 else (if (column =? 1) then 1195384 else (if (column =? 2) then 1221388 else (if (column =? 3) then 1247718 else (if (column =? 4) then 1274377 else (if (column =? 5) then 1301365 else (if (column =? 6) then 1328683 else (if (column =? 7) then 1356333 else (if (column =? 8) then 1384316 else (if (column =? 9) then 1412633 else (if (column =? 10) then 1441285 else (if (column =? 11) then 1470273 else (if (column =? 12) then 1499598 else (if (column =? 13) then 1529262 else (if (column =? 14) then 1559265 else 1589608))))))))))))))) else (if (row =? 7) then (if (column =? 0) then 1620294 else (if (column =? 1) then 1651322 else (if (column =? 2) then 1682694 else (if (column =? 3) then 1714411 else (if (column =? 4) then 1746474 else (if (column =? 5) then 1778884 else (if (column =? 6) then 1811642 else (if (column =? 7) then 1844750 else (if (column =? 8) then 1878208 else (if (column =? 9) then 1912017 else (if (column =? 10) then 1946178 else (if (column =? 11) then 1980693 else (if (column =? 12) then 2015563 else (if (column =? 13) then 2050787 else (if (column =? 14) then 2086369 else 2122308))))))))))))))) else (if (row =? 8) then (if (column =? 0) then 2158605 else (if (column =? 1) then 2195262 else (if (column =? 2) then 2232280 else (if (column =? 3) then 2269659 else (if (column =? 4) then 2307400 else (if (column =? 5) then 2345506 else (if (column =? 6) then 2383976 else (if (column =? 7) then 2422811 else (if (column =? 8) then 2462013 else (if (column =? 9) then 2501583 else (if (column =? 10) then 2541521 else (if (column =? 11) then 2581829 else (if (column =? 12) then 2622507 else (if (column =? 13) then 2663556 else (if (column =? 14) then 2704978 else 2746773))))))))))))))) else (if (row =? 9) then (if (column =? 0) then 2788943 else (if (column =? 1) then 2831487 else (if (column =? 2) then 2874408 else (if (column =? 3) then 2917706 else (if (column =? 4) then 2961383 else (if (column =? 5) then 3005438 else (if (column =? 6) then 3049873 else (if (column =? 7) then 3094689 else (if (column =? 8) then 3139887 else (if (column =? 9) then 3185468 else (if (column =? 10) then 3231432 else (if (column =? 11) then 3277781 else (if (column =? 12) then 3324515 else (if (column =? 13) then 3371636 else (if (column =? 14) then 3419144 else 3467041))))))))))))))) else (if (row =? 10) then (if (column =? 0) then 3515326 else (if (column =? 1) then 3564001 else (if (column =? 2) then 3613068 else (if (column =? 3) then 3662526 else (if (column =? 4) then 3712377 else (if (column =? 5) then 3762621 else (if (column =? 6) then 3813260 else (if (column =? 7) then 3864294 else (if (column =? 8) then 3915725 else (if (column =? 9) then 3967552 else (if (column =? 10) then 4019778 else (if (column =? 11) then 4072402 else (if (column =? 12) then 4125426 else (if (column =? 13) then 4178851 else (if (column =? 14) then 4232677 else 4286905))))))))))))))) else (if (row =? 11) then (if (column =? 0) then 4341536 else (if (column =? 1) then 4396572 else (if (column =? 2) then 4452012 else (if (column =? 3) then 4507858 else (if (column =? 4) then 4564110 else (if (column =? 5) then 4620770 else (if (column =? 6) then 4677838 else (if (column =? 7) then 4735315 else (if (column =? 8) then 4793202 else (if (column =? 9) then 4851499 else (if (column =? 10) then 4910208 else (if (column =? 11) then 4969330 else (if (column =? 12) then 5028865 else (if (column =? 13) then 5088813 else (if (column =? 14) then 5149177 else 5209956))))))))))))))) else (if (row =? 12) then (if (column =? 0) then 5271151 else (if (column =? 1) then 5332764 else (if (column =? 2) then 5394795 else (if (column =? 3) then 5457245 else (if (column =? 4) then 5520114 else (if (column =? 5) then 5583404 else (if (column =? 6) then 5647115 else (if (column =? 7) then 5711248 else (if (column =? 8) then 5775804 else (if (column =? 9) then 5840784 else (if (column =? 10) then 5906188 else (if (column =? 11) then 5972018 else (if (column =? 12) then 6038273 else (if (column =? 13) then 6104956 else (if (column =? 14) then 6172066 else 6239604))))))))))))))) else (if (row =? 13) then (if (column =? 0) then 6307571 else (if (column =? 1) then 6375969 else (if (column =? 2) then 6444797 else (if (column =? 3) then 6514056 else (if (column =? 4) then 6583748 else (if (column =? 5) then 6653873 else (if (column =? 6) then 6724432 else (if (column =? 7) then 6795425 else (if (column =? 8) then 6866853 else (if (column =? 9) then 6938718 else (if (column =? 10) then 7011019 else (if (column =? 11) then 7083758 else (if (column =? 12) then 7156935 else (if (column =? 13) then 7230551 else (if (column =? 14) then 7304607 else 7379104))))))))))))))) else (if (row =? 14) then (if (column =? 0) then 7454042 else (if (column =? 1) then 7529422 else (if (column =? 2) then 7605245 else (if (column =? 3) then 7681511 else (if (column =? 4) then 7758222 else (if (column =? 5) then 7835378 else (if (column =? 6) then 7912979 else (if (column =? 7) then 7991027 else (if (column =? 8) then 8069523 else (if (column =? 9) then 8148466 else (if (column =? 10) then 8227858 else (if (column =? 11) then 8307699 else (if (column =? 12) then 8387990 else (if (column =? 13) then 8468732 else (if (column =? 14) then 8549926 else 8631572))))))))))))))) else (if (column =? 0) then 8713671 else (if (column =? 1) then 8796224 else (if (column =? 2) then 8879231 else (if (column =? 3) then 8962694 else (if (column =? 4) then 9046612 else (if (column =? 5) then 9130987 else (if (column =? 6) then 9215819 else (if (column =? 7) then 9301109 else (if (column =? 8) then 9386857 else (if (column =? 9) then 9473065 else (if (column =? 10) then 9559734 else (if (column =? 11) then 9646862 else (if (column =? 12) then 9734453 else (if (column =? 13) then 9822506 else (if (column =? 14) then 9911021 else 10000000)))))))))))))))))))))))))))))),
+  axioms: []
+}
+
+definition{
+  name: designLinear,
+  parameters: [channel : Nat],
+  result: Nat,
+  body: (designLinearCell (prim quotient channel 16 0 : Nat) (prim remainder channel 16 0 : Nat)),
+  axioms: []
+}
+
+definition{
+  name: designLuminance,
+  parameters: [color : Nat],
+  result: Nat,
+  body: (((prim multiply 2126 (designLinear (prim quotient color 65536 0 : Nat)) : Nat) + (prim multiply 7152 (designLinear (prim remainder (prim quotient color 256 0 : Nat) 256 0 : Nat)) : Nat)) + (prim multiply 722 (designLinear (prim remainder color 256 0 : Nat)) : Nat)),
+  axioms: []
+}
+
+definition{
+  name: designContrastOrdered,
+  parameters: [high : Nat, low : Nat, numerator : Nat, denominator : Nat],
+  result: Bool,
+  body: ((prim multiply numerator ((low + 5000000000) + 5000) : Nat) <=? (prim multiply denominator (prim subtract (high + 5000000000) 5000 : Nat) : Nat)),
+  axioms: []
+}
+
+definition{
+  name: designContrastAtLeast,
+  parameters: [foreground : Nat, background : Nat, numerator : Nat, denominator : Nat],
+  result: Bool,
+  body: (if ((designLuminance background) <=? (designLuminance foreground)) then (designContrastOrdered (designLuminance foreground) (designLuminance background) numerator denominator) else (designContrastOrdered (designLuminance background) (designLuminance foreground) numerator denominator)),
+  axioms: []
+}
+
+definition{
+  name: designTokensContrastValid,
+  parameters: [value : DesignTokens],
+  result: Bool,
+  body: ((designContrastAtLeast (project value text) (project value surface) 9 2) && ((designContrastAtLeast (project value text) (project value card) 9 2) && ((designContrastAtLeast (project value text) (project value muted) 9 2) && ((designContrastAtLeast (project value mutedText) (project value surface) 9 2) && ((designContrastAtLeast (project value mutedText) (project value card) 9 2) && ((designContrastAtLeast (project value mutedText) (project value muted) 9 2) && ((designContrastAtLeast (project value accentText) (project value accent) 9 2) && ((designContrastAtLeast (project value danger) (project value surface) 9 2) && ((designContrastAtLeast (project value danger) (project value card) 9 2) && ((designContrastAtLeast (project value brandText) (project value surface) 9 2) && ((designContrastAtLeast (project value brandText) (project value card) 9 2) && ((designContrastAtLeast (project value success) (project value card) 9 2) && ((designContrastAtLeast (project value warning) (project value card) 9 2) && ((designContrastAtLeast (project value focus) (project value surface) 3 1) && ((designContrastAtLeast (project value focus) (project value card) 3 1) && true))))))))))))))),
+  axioms: []
+}
+
+definition{
+  name: designTokensValid,
+  parameters: [value : DesignTokens],
+  result: Bool,
+  body: (((project value surface) <=? 16777215) && (((project value text) <=? 16777215) && (((project value border) <=? 16777215) && (((project value accent) <=? 16777215) && (((project value accentText) <=? 16777215) && (((project value danger) <=? 16777215) && (((project value focus) <=? 16777215) && (((project value card) <=? 16777215) && (((project value muted) <=? 16777215) && (((project value mutedText) <=? 16777215) && (((project value hover) <=? 16777215) && (((project value input) <=? 16777215) && (((project value brand) <=? 16777215) && (((project value brandText) <=? 16777215) && (((project value success) <=? 16777215) && (((project value warning) <=? 16777215) && (((1000 <=? (project value textPermille)) && ((project value textPermille) <=? 4000)) && (((1000 <=? (project value lineHeightPermille)) && ((project value lineHeightPermille) <=? 3000)) && (((0 <=? (project value spacePermille)) && ((project value spacePermille) <=? 4000)) && (((0 <=? (project value radiusPermille)) && ((project value radiusPermille) <=? 4000)) && (((16 <=? (project value contentWidthRem)) && ((project value contentWidthRem) <=? 120)) && (((8 <=? (project value sidebarWidthRem)) && ((project value sidebarWidthRem) <=? 40)) && (((20 <=? (project value collapseWidthRem)) && ((project value collapseWidthRem) <=? 100)) && (((24 <=? (project value targetPixels)) && ((project value targetPixels) <=? 96)) && true)))))))))))))))))))))))),
+  axioms: []
+}
+
+structure{
+  name: DesignPair,
+  type_parameters: [],
+  parameters: [],
+  fields: [{name: light, type: DesignTokens}, {name: dark, type: DesignTokens}]
+}
+
+definition{
+  name: designPairValid,
+  parameters: [value : DesignPair],
+  result: Bool,
+  body: ((designTokensValid (project value light)) && ((designTokensValid (project value dark)) && true)),
+  axioms: []
+}
+
+definition{
+  name: designCatalogueItemsValid,
+  parameters: [values : (List DesignPair), remaining : Nat],
+  result: Bool,
+  body: (match values
+    | List.nil => true
+    | List.cons head tail => ((0 <? remaining) && ((designPairValid head) && ((designCatalogueItemsValid tail (prim subtract remaining 1 : Nat)) && true)))),
+  axioms: [],
+  recursive_argument: values
+}
+
+definition{
+  name: fontFamilyCode,
+  parameters: [value : FontFamily],
+  result: Nat,
+  body: (match value
+    | FontFamily.System => 0
+    | FontFamily.Serif => 1
+    | FontFamily.Monospace => 2
+    | FontFamily.Hologram => 3),
+  axioms: []
+}
+
+definition{
+  name: designCatalogueValid,
+  parameters: [values : (List DesignPair)],
+  result: Bool,
+  body: (match values
+    | List.nil => false
+    | List.cons head tail => (designCatalogueItemsValid values 16)),
+  axioms: []
+}
+
+definition{
+  name: designPairContrastValid,
+  parameters: [value : DesignPair],
+  result: Bool,
+  body: ((designTokensContrastValid (project value light)) && ((designTokensContrastValid (project value dark)) && true)),
+  axioms: []
+}
+
+definition{
+  name: designCatalogueContrastValid,
+  parameters: [values : (List DesignPair)],
+  result: Bool,
+  body: (match values
+    | List.nil => true
+    | List.cons head tail => ((designPairContrastValid head) && (designCatalogueContrastValid tail))),
+  axioms: [],
+  recursive_argument: values
+}
+
+definition{
+  name: designCatalogueAdmitted,
+  parameters: [values : (List DesignPair)],
+  result: Bool,
+  body: ((designCatalogueValid values) && (designCatalogueContrastValid values)),
+  axioms: []
+}
+\end{semanticmodule}
+\end{lexlean}
