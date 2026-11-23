@@ -1,15 +1,15 @@
 {
-  "timestamp": "20261123T220551",
-  "iso_time": "2026-11-23T22:05:51.682915+00:00",
+  "timestamp": "20261123T220931",
+  "iso_time": "2026-11-23T22:09:31.338006+00:00",
   "overall_status": true,
-  "total_duration": 3.7126629919948755,
+  "total_duration": 3.089093911999953,
   "suites": [
     {
       "suite_id": "SUITE-S1",
       "name": "Prime-Boundary Spectral Binning & Jensen-Shannon Divergence Scaling",
       "invariant": "INV-RC-031a",
       "status": true,
-      "duration": 1.9418596749892458,
+      "duration": 1.585739198999363,
       "evaluations": [
         {
           "samples": 10,
@@ -77,7 +77,7 @@
       "name": "Discrete-Time Control Barrier Function (DT-CBF) Forward Invariance & Disturbance Stress",
       "invariant": "INV-RC-031b",
       "status": true,
-      "duration": 0.9647395580104785,
+      "duration": 0.8287020279967692,
       "metrics": {
         "num_trajectories": 10000,
         "steps_per_trajectory": 50,
@@ -94,7 +94,7 @@
       "name": "Zero-Float Exact Rational Ordering & Scaling Invariance",
       "invariant": "INV-RC-031c",
       "status": true,
-      "duration": 0.3468233949970454,
+      "duration": 0.3073773699870799,
       "metrics": {
         "tested_pairs": 100000,
         "transitivity_violations": 0,
@@ -108,7 +108,7 @@
       "name": "Hybrid Stability, Mode Switching & Dwell-Time Zeno Prevention",
       "invariant": "INV-RC-031d",
       "status": true,
-      "duration": 0.004886512004304677,
+      "duration": 0.0033395609934814274,
       "metrics": {
         "num_event_triggers": 1000,
         "admitted_mode_switches": 308,
@@ -126,31 +126,31 @@
       "name": "Microsecond Throughput & Execution Latency Benchmarks",
       "invariant": "INV-RC-031e",
       "status": true,
-      "duration": 0.45160669699544087,
+      "duration": 0.36182141899189446,
       "benchmarks": {
         "spectral_js_divergence": {
           "iterations": 10000,
-          "p50_us": 26.597997930366546,
-          "p95_us": 74.16934386128557,
-          "p99_us": 102.91066500940362,
-          "max_us": 205.01499238889664,
-          "throughput_ops_sec": 27847
+          "p50_us": 24.954999389592558,
+          "p95_us": 55.1139426534064,
+          "p99_us": 76.70178820262672,
+          "max_us": 153.9049990242347,
+          "throughput_ops_sec": 34308
         },
         "dt_cbf_invariance_check": {
           "iterations": 50000,
-          "p50_us": 0.15199475456029177,
-          "p95_us": 0.46601053327322006,
-          "p99_us": 0.5589972715824842,
-          "max_us": 67.21199315506965,
-          "throughput_ops_sec": 4412213
+          "p50_us": 0.1299922587350011,
+          "p95_us": 0.1449952833354473,
+          "p99_us": 0.15700061339884996,
+          "max_us": 29.507005820050836,
+          "throughput_ops_sec": 6855273
         },
         "rational_order_cross_mult": {
           "iterations": 50000,
-          "p50_us": 0.11498923413455486,
-          "p95_us": 0.24604960344731375,
-          "p99_us": 0.39300357457250357,
-          "max_us": 31.458010198548436,
-          "throughput_ops_sec": 6710945
+          "p50_us": 0.10700023267418146,
+          "p95_us": 0.11599331628531218,
+          "p99_us": 0.21100277081131935,
+          "max_us": 21.232001017779112,
+          "throughput_ops_sec": 8175580
         }
       },
       "errors": []

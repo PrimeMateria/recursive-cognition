@@ -1,8 +1,8 @@
 # Recursive Cognition Formal Invariant Stress-Test & Scaling Benchmark Report
 
-- **Execution Timestamp**: `2026-11-23T22:05:51.682915+00:00`
+- **Execution Timestamp**: `2026-11-23T22:09:31.338006+00:00`
 - **Overall Verdict**: **PASS (ALL SUITES GREEN)**
-- **Total Duration**: `3.713s`
+- **Total Duration**: `3.089s`
 - **Governing Local ADR**: [`ADR-0017`](file:///run/media/multiplic/AGI/prismagi/mount/SUBSYSTEMS/recursive-cognition/docs/ADR-0017.md)
 - **Governing Global ADR**: [`ADR-0031`](file:///home/multiplic/adr/03_accepted/ADR-0031-recursive-cognition-production-test-harness-benchmarking-ci.md)
 
@@ -21,11 +21,11 @@ exact rational cross-multiplication, and dwell-time Zeno prevention) have been e
 
 | Suite ID | Name | Invariant | Verdict | Duration |
 |:---|:---|:---|:---:|:---:|
-| `SUITE-S1` | Prime-Boundary Spectral Binning & Jensen-Shannon Divergence Scaling | `INV-RC-031a` | **PASS** | `1.942s` |
-| `SUITE-S2` | Discrete-Time Control Barrier Function (DT-CBF) Forward Invariance & Disturbance Stress | `INV-RC-031b` | **PASS** | `0.965s` |
-| `SUITE-S3` | Zero-Float Exact Rational Ordering & Scaling Invariance | `INV-RC-031c` | **PASS** | `0.347s` |
-| `SUITE-S4` | Hybrid Stability, Mode Switching & Dwell-Time Zeno Prevention | `INV-RC-031d` | **PASS** | `0.005s` |
-| `SUITE-S5` | Microsecond Throughput & Execution Latency Benchmarks | `INV-RC-031e` | **PASS** | `0.452s` |
+| `SUITE-S1` | Prime-Boundary Spectral Binning & Jensen-Shannon Divergence Scaling | `INV-RC-031a` | **PASS** | `1.586s` |
+| `SUITE-S2` | Discrete-Time Control Barrier Function (DT-CBF) Forward Invariance & Disturbance Stress | `INV-RC-031b` | **PASS** | `0.829s` |
+| `SUITE-S3` | Zero-Float Exact Rational Ordering & Scaling Invariance | `INV-RC-031c` | **PASS** | `0.307s` |
+| `SUITE-S4` | Hybrid Stability, Mode Switching & Dwell-Time Zeno Prevention | `INV-RC-031d` | **PASS** | `0.003s` |
+| `SUITE-S5` | Microsecond Throughput & Execution Latency Benchmarks | `INV-RC-031e` | **PASS** | `0.362s` |
 
 ---
 
@@ -69,9 +69,9 @@ exact rational cross-multiplication, and dwell-time Zeno prevention) have been e
 
 | Benchmark Component | Iterations | p50 | p95 | p99 | Max | Throughput (ops/sec) |
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| `spectral_js_divergence` | 10,000 | `26.60μs` | `74.17μs` | `102.91μs` | `205.01μs` | `27,847` |
-| `dt_cbf_invariance_check` | 50,000 | `0.15μs` | `0.47μs` | `0.56μs` | `67.21μs` | `4,412,213` |
-| `rational_order_cross_mult` | 50,000 | `0.11μs` | `0.25μs` | `0.39μs` | `31.46μs` | `6,710,945` |
+| `spectral_js_divergence` | 10,000 | `24.95μs` | `55.11μs` | `76.70μs` | `153.90μs` | `34,308` |
+| `dt_cbf_invariance_check` | 50,000 | `0.13μs` | `0.14μs` | `0.16μs` | `29.51μs` | `6,855,273` |
+| `rational_order_cross_mult` | 50,000 | `0.11μs` | `0.12μs` | `0.21μs` | `21.23μs` | `8,175,580` |
 
 > [!NOTE]
 > All safety-critical checks execute with p99 latency < 25 microseconds, well within the 2.5 ms (2,500 μs) real-time safety watchdog budget.

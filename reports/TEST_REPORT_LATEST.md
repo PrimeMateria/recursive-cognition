@@ -1,7 +1,7 @@
 # Recursive Cognition Engine Formal Verification & Quality Gate Report
 
 **Status**: ✅ PASSED  
-**Execution Timestamp**: `2026-11-23T22:05:11.113534+00:00`  
+**Execution Timestamp**: `2026-11-23T22:08:53.620607+00:00`  
 **Target Directory**: [`/run/media/multiplic/AGI/prismagi/mount/SUBSYSTEMS/recursive-cognition`](file:///run/media/multiplic/AGI/prismagi/mount/SUBSYSTEMS/recursive-cognition)  
 **Lean Toolchain**: `leanprover/lean4:v4.32.2`  
 **LexLean Version**: `0.4.3` (Language: `1.0`)  
@@ -30,15 +30,15 @@
 
 | Suite ID | Test Name | Target / Command | Result | Duration |
 | :--- | :--- | :--- | :--- | :--- |
-| TS-01 | Toolchain Pin & Localization Boundary Audit | `lean, lake, lexlean, prismpm, boundary` | ✅ PASS | 0.303s |
-| TS-02 | Lean Lake Host Workspace Build & Hygiene | `lake build` | ✅ PASS | 0.175s |
-| TS-03 | LexLean Lock Parity & Canonical Configuration | `lexlean lock --check` | ✅ PASS | 0.889s |
-| TS-04 | Semantic IR AST & Module Type Check | `lexlean check` | ✅ PASS | 4.137s |
+| TS-01 | Toolchain Pin & Localization Boundary Audit | `lean, lake, lexlean, prismpm, boundary` | ✅ PASS | 0.251s |
+| TS-02 | Lean Lake Host Workspace Build & Hygiene | `lake build` | ✅ PASS | 0.171s |
+| TS-03 | LexLean Lock Parity & Canonical Configuration | `lexlean lock --check` | ✅ PASS | 0.767s |
+| TS-04 | Semantic IR AST & Module Type Check | `lexlean check` | ✅ PASS | 3.279s |
 | TS-05 | Lean 4 Kernel Formal Verification & Attestation Capture | `lexlean verify` | ✅ PASS | 0.005s |
-| TS-06 | Formal Invariants & Certified Theorems Audit | `src/Spike/*.lex.tex, attestation declarations` | ✅ PASS | 0.047s |
+| TS-06 | Formal Invariants & Certified Theorems Audit | `src/Spike/*.lex.tex, attestation declarations` | ✅ PASS | 0.038s |
 | TS-07 | Build & Attestation Storage Integrity Audit | `.lexlean/verified attestation storage` | ✅ PASS | 0.002s |
-| TS-08 | PrismPM Model Governance & Static Check | `prismpm check` | ✅ PASS | 34.787s |
-| TS-09 | Empirical Invariant Stress-Testing & Scaling Benchmarks | `benchmark_recursive_cognition.py` | ✅ PASS | 3.713s |
+| TS-08 | PrismPM Model Governance & Static Check | `prismpm check` | ✅ PASS | 33.000s |
+| TS-09 | Empirical Invariant Stress-Testing & Scaling Benchmarks | `benchmark_recursive_cognition.py` | ✅ PASS | 3.089s |
 
 ---
 
@@ -70,11 +70,11 @@
 
 | Sub-Suite | Target Property | Invariant | Verdict | Duration |
 | :--- | :--- | :--- | :---: | :---: |
-| `SUITE-S1` | Prime-Boundary Spectral Binning & Jensen-Shannon Divergence Scaling | `INV-RC-031a` | ✅ PASS | `1.942s` |
-| `SUITE-S2` | Discrete-Time Control Barrier Function (DT-CBF) Forward Invariance & Disturbance Stress | `INV-RC-031b` | ✅ PASS | `0.965s` |
-| `SUITE-S3` | Zero-Float Exact Rational Ordering & Scaling Invariance | `INV-RC-031c` | ✅ PASS | `0.347s` |
-| `SUITE-S4` | Hybrid Stability, Mode Switching & Dwell-Time Zeno Prevention | `INV-RC-031d` | ✅ PASS | `0.005s` |
-| `SUITE-S5` | Microsecond Throughput & Execution Latency Benchmarks | `INV-RC-031e` | ✅ PASS | `0.452s` |
+| `SUITE-S1` | Prime-Boundary Spectral Binning & Jensen-Shannon Divergence Scaling | `INV-RC-031a` | ✅ PASS | `1.586s` |
+| `SUITE-S2` | Discrete-Time Control Barrier Function (DT-CBF) Forward Invariance & Disturbance Stress | `INV-RC-031b` | ✅ PASS | `0.829s` |
+| `SUITE-S3` | Zero-Float Exact Rational Ordering & Scaling Invariance | `INV-RC-031c` | ✅ PASS | `0.307s` |
+| `SUITE-S4` | Hybrid Stability, Mode Switching & Dwell-Time Zeno Prevention | `INV-RC-031d` | ✅ PASS | `0.003s` |
+| `SUITE-S5` | Microsecond Throughput & Execution Latency Benchmarks | `INV-RC-031e` | ✅ PASS | `0.362s` |
 
 > [!NOTE]
 > Empirical stress testing validates: 1) exact prime spectral binning coverage across 1,000,000 Monte Carlo samples with machine-zero JS divergence symmetry error; 2) 100% DT-CBF forward invariance retention across 10,000 multi-step trajectories; 3) 100,000 rational cross-multiplication checks with zero transitivity errors; 4) zero Zeno transitions under dwell-time constraint $\tau_{\min}$; and 5) microsecond safety evaluation with p99 latency < 25 microseconds (well within the 2.5 ms watchdog budget).
