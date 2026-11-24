@@ -1,15 +1,15 @@
 {
-  "timestamp": "20261123T220853",
-  "iso_time": "2026-11-23T22:08:53.620607+00:00",
+  "timestamp": "20261124T184833",
+  "iso_time": "2026-11-24T18:48:33.051047+00:00",
   "target_directory": "/run/media/multiplic/AGI/prismagi/mount/SUBSYSTEMS/recursive-cognition",
   "toolchain": {
     "pinned_toolchain": "leanprover/lean4:v4.32.2",
     "lean_version": "Lean (version 4.32.2, x86_64-unknown-linux-gnu, commit f3b06c705e6c85f5314019d5d3baab0fec5b580c, Release)",
     "lake_version": "Lake version 5.0.0-src+f3b06c7 (Lean version 4.32.2)",
     "lexlean_info": {
-      "lexlean": "0.4.3",
+      "lexlean": "0.4.4",
       "language": "1.0",
-      "compiler-semantics": "4bd46ef62ba56a77cb3c6453346671a809ccd665fc1f5334e4b1b9dce01f3245",
+      "compiler-semantics": "blake3:fe8a55baee71f49857d4ff8e41462241778c38c6a55ad291c3aa6e9f900c7ae7",
       "lean-toolchain": "leanprover/lean4:v4.32.2"
     },
     "prismpm_version": "prismpm 0.5.0",
@@ -18,26 +18,26 @@
   "lake_build": {
     "status": true,
     "stdout": "Nothing to build.",
-    "duration": 0.17055034800432622
+    "duration": 0.1738461519998964
   },
   "lexlean": {
     "lock_check": {
-      "status": true,
-      "stdout": "lexlean.lock is current",
-      "duration": 0.7671990320086479
+      "status": false,
+      "stdout": "",
+      "duration": 0.00380553599097766
     },
     "check": {
-      "status": true,
-      "stdout": "checked 64 modules (source 5749419747de6b8392e55942f28140ba5dee45a853d80bccdac6b5f89aeb4cd7, semantic b4b1dbc5ebd11430e6c4619bc06781a3907fe3569962263daedb3cd816cc1563)",
-      "modules_checked": 64,
-      "source_hash": "5749419747de6b8392e55942f28140ba5dee45a853d80bccdac6b5f89aeb4cd7",
-      "semantic_hash": "b4b1dbc5ebd11430e6c4619bc06781a3907fe3569962263daedb3cd816cc1563",
-      "duration": 3.2793078550021164
+      "status": false,
+      "stdout": "",
+      "modules_checked": 0,
+      "source_hash": "UNKNOWN",
+      "semantic_hash": "UNKNOWN",
+      "duration": 0.003368870005942881
     },
     "verify": {
       "status": true,
-      "stdout": "verified 64 modules; attestation 9e2cba0c6af0790409a036d4db04430cb05a28234f3828150c3cfe78502a4b80",
-      "modules_verified": 64,
+      "stdout": "verified 0 modules; attestation 9e2cba0c6af0790409a036d4db04430cb05a28234f3828150c3cfe78502a4b80",
+      "modules_verified": 0,
       "attestation": "9e2cba0c6af0790409a036d4db04430cb05a28234f3828150c3cfe78502a4b80",
       "duration": 0.005,
       "build_id": "348f4b9be0da87b1e0792eb0fb921abd5f2400c9854ac138ae5b2eab3a247d25"
@@ -47,7 +47,7 @@
     "status": true,
     "semantic_id": "b4b1dbc5ebd11430e6c4619bc06781a3907fe3569962263daedb3cd816cc1563",
     "check_stdout": "check passed (semantic ID: b4b1dbc5ebd11430e6c4619bc06781a3907fe3569962263daedb3cd816cc1563)",
-    "duration": 33.00001899400377
+    "duration": 32.19968687900109
   },
   "formal_audit": {
     "certified_theorems": 3,
@@ -65,29 +65,29 @@
       "id": "TS-01",
       "name": "Toolchain Pin & Localization Boundary Audit",
       "target": "lean, lake, lexlean, prismpm, boundary",
-      "status": "PASS",
-      "duration": 0.25131075001263525
+      "status": "FAIL",
+      "duration": 0.2585228100360837
     },
     {
       "id": "TS-02",
       "name": "Lean Lake Host Workspace Build & Hygiene",
       "target": "lake build",
       "status": "PASS",
-      "duration": 0.17055034800432622
+      "duration": 0.1738461519998964
     },
     {
       "id": "TS-03",
       "name": "LexLean Lock Parity & Canonical Configuration",
       "target": "lexlean lock --check",
-      "status": "PASS",
-      "duration": 0.7671990320086479
+      "status": "FAIL",
+      "duration": 0.00380553599097766
     },
     {
       "id": "TS-04",
       "name": "Semantic IR AST & Module Type Check",
       "target": "lexlean check",
-      "status": "PASS",
-      "duration": 3.2793078550021164
+      "status": "FAIL",
+      "duration": 0.003368870005942881
     },
     {
       "id": "TS-05",
@@ -101,7 +101,7 @@
       "name": "Formal Invariants & Certified Theorems Audit",
       "target": "src/Spike/*.lex.tex, attestation declarations",
       "status": "PASS",
-      "duration": 0.03849905300012324
+      "duration": 0.028715623018797487
     },
     {
       "id": "TS-07",
@@ -115,34 +115,34 @@
       "name": "PrismPM Model Governance & Static Check",
       "target": "prismpm check",
       "status": "PASS",
-      "duration": 33.00001899400377
+      "duration": 32.19968687900109
     },
     {
       "id": "TS-09",
       "name": "Empirical Invariant Stress-Testing & Scaling Benchmarks",
       "target": "benchmark_recursive_cognition.py",
       "status": "PASS",
-      "duration": 3.089093911999953
+      "duration": 2.940535228000954
     }
   ],
   "summary": {
     "total": 9,
-    "passed": 9,
-    "failed": 0,
-    "status": "PASS"
+    "passed": 6,
+    "failed": 3,
+    "status": "FAIL"
   },
   "scaling_benchmark": {
-    "timestamp": "20261123T220931",
-    "iso_time": "2026-11-23T22:09:31.338006+00:00",
+    "timestamp": "20261124T184905",
+    "iso_time": "2026-11-24T18:49:05.879586+00:00",
     "overall_status": true,
-    "total_duration": 3.089093911999953,
+    "total_duration": 2.940535228000954,
     "suites": [
       {
         "suite_id": "SUITE-S1",
         "name": "Prime-Boundary Spectral Binning & Jensen-Shannon Divergence Scaling",
         "invariant": "INV-RC-031a",
         "status": true,
-        "duration": 1.585739198999363,
+        "duration": 1.5306680870126002,
         "evaluations": [
           {
             "samples": 10,
@@ -210,7 +210,7 @@
         "name": "Discrete-Time Control Barrier Function (DT-CBF) Forward Invariance & Disturbance Stress",
         "invariant": "INV-RC-031b",
         "status": true,
-        "duration": 0.8287020279967692,
+        "duration": 0.7572538840177003,
         "metrics": {
           "num_trajectories": 10000,
           "steps_per_trajectory": 50,
@@ -227,7 +227,7 @@
         "name": "Zero-Float Exact Rational Ordering & Scaling Invariance",
         "invariant": "INV-RC-031c",
         "status": true,
-        "duration": 0.3073773699870799,
+        "duration": 0.2831607440020889,
         "metrics": {
           "tested_pairs": 100000,
           "transitivity_violations": 0,
@@ -241,7 +241,7 @@
         "name": "Hybrid Stability, Mode Switching & Dwell-Time Zeno Prevention",
         "invariant": "INV-RC-031d",
         "status": true,
-        "duration": 0.0033395609934814274,
+        "duration": 0.004913451004540548,
         "metrics": {
           "num_event_triggers": 1000,
           "admitted_mode_switches": 308,
@@ -259,31 +259,31 @@
         "name": "Microsecond Throughput & Execution Latency Benchmarks",
         "invariant": "INV-RC-031e",
         "status": true,
-        "duration": 0.36182141899189446,
+        "duration": 0.3628827610227745,
         "benchmarks": {
           "spectral_js_divergence": {
             "iterations": 10000,
-            "p50_us": 24.954999389592558,
-            "p95_us": 55.1139426534064,
-            "p99_us": 76.70178820262672,
-            "max_us": 153.9049990242347,
-            "throughput_ops_sec": 34308
+            "p50_us": 25.424000341445208,
+            "p95_us": 55.58446719078345,
+            "p99_us": 78.4707031561994,
+            "max_us": 289.62799115106463,
+            "throughput_ops_sec": 34129
           },
           "dt_cbf_invariance_check": {
             "iterations": 50000,
-            "p50_us": 0.1299922587350011,
-            "p95_us": 0.1449952833354473,
-            "p99_us": 0.15700061339884996,
-            "max_us": 29.507005820050836,
-            "throughput_ops_sec": 6855273
+            "p50_us": 0.13300450518727303,
+            "p95_us": 0.1510197762399912,
+            "p99_us": 0.4530011210590601,
+            "max_us": 26.235997211188078,
+            "throughput_ops_sec": 6486194
           },
           "rational_order_cross_mult": {
             "iterations": 50000,
-            "p50_us": 0.10700023267418146,
-            "p95_us": 0.11599331628531218,
-            "p99_us": 0.21100277081131935,
-            "max_us": 21.232001017779112,
-            "throughput_ops_sec": 8175580
+            "p50_us": 0.10701478458940983,
+            "p95_us": 0.12200325727462769,
+            "p99_us": 0.20900479285046666,
+            "max_us": 26.080000679939985,
+            "throughput_ops_sec": 8117567
           }
         },
         "errors": []
